@@ -97,6 +97,14 @@ export interface ChatResponse {
   message: string;
   tool_calls?: ToolCall[];
   sources?: Source[];
+  degraded_mode?: boolean;
+  degraded_reason?: string | null;
+}
+
+export interface AIHealthResponse {
+  status: string;
+  groq_configured: boolean;
+  crm_backend: string;
 }
 
 /**
@@ -115,6 +123,8 @@ export async function* streamAgenticResponse(
   message?: string;
   toolCalls?: ToolCall[];
   sources?: Source[];
+  degraded_mode?: boolean;
+  degraded_reason?: string | null;
 }, void, unknown> {
   const userId = getUserId();
   const token = localStorage.getItem('token');
@@ -178,7 +188,12 @@ export async function* streamAgenticResponse(
               const jsonStr = line.slice(6).trim();
               if (jsonStr) {
                 const data = JSON.parse(jsonStr);
-                yield data;
+                yield {
+                  ...data,
+                  toolCalls: data.toolCalls ?? data.tool_calls,
+                  degraded_mode: data.degraded_mode ?? false,
+                  degraded_reason: data.degraded_reason ?? null,
+                };
               }
             } catch (e) {
               console.error('Failed to parse SSE data:', line, e);
@@ -292,10 +307,15 @@ export async function getAvailableTools(): Promise<any[]> {
 /**
  * Health check for AI service
  */
+export async function getAIServiceHealth(): Promise<AIHealthResponse> {
+  const response = await aiClient.get<AIHealthResponse>('/health');
+  return response.data;
+}
+
 export async function checkAIServiceHealth(): Promise<boolean> {
   try {
-    const response = await aiClient.get('/health');
-    return response.data.status === 'healthy';
+    const response = await getAIServiceHealth();
+    return response.status === 'healthy';
   } catch (error) {
     return false;
   }

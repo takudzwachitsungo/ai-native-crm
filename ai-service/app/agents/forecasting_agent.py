@@ -56,6 +56,8 @@ class ForecastingState(TypedDict, total=False):
     
     # Error handling
     error: Optional[str]
+    degraded_mode: bool
+    degraded_reasons: List[str]
 
 
 class ForecastingAgent:
@@ -134,7 +136,9 @@ class ForecastingAgent:
         """
         initial_state = ForecastingState(
             user_token=user_token,
-            forecast_months=forecast_months
+            forecast_months=forecast_months,
+            degraded_mode=False,
+            degraded_reasons=[],
         )
         
         try:
@@ -152,7 +156,9 @@ class ForecastingAgent:
                 "opportunities": result.get("opportunities", []),
                 "recommendations": result.get("recommendations", []),
                 "stage_conversion_rates": result.get("stage_conversion_rates", {}),
-                "error": result.get("error")
+                "error": result.get("error"),
+                "degraded_mode": result.get("degraded_mode", False),
+                "degraded_reason": "; ".join(result.get("degraded_reasons", [])) if result.get("degraded_reasons") else None,
             }
         except Exception as e:
             logger.error(f"Error generating forecast: {str(e)}")
@@ -173,7 +179,7 @@ class ForecastingAgent:
                 deals_response = await client.get(
                     f"{self.backend_url}/api/v1/deals",
                     headers=headers,
-                    params={"limit": 1000}
+                    params={"size": 1000}
                 )
                 deals_response.raise_for_status()
                 deals_data = deals_response.json()
@@ -204,7 +210,7 @@ class ForecastingAgent:
                     leads_response = await client.get(
                         f"{self.backend_url}/api/v1/leads",
                         headers=headers,
-                        params={"status": "QUALIFIED", "limit": 100}
+                        params={"status": "QUALIFIED", "size": 100}
                     )
                     leads_response.raise_for_status()
                     leads_data = leads_response.json()
@@ -258,10 +264,10 @@ class ForecastingAgent:
         # Calculate average deal cycle (days from creation to close)
         deal_cycles = []
         for deal in historical_deals:
-            if deal.get("createdAt") and deal.get("closeDate"):
+            if deal.get("createdAt") and deal.get("actualCloseDate"):
                 try:
                     created = datetime.fromisoformat(deal["createdAt"].replace("Z", "+00:00"))
-                    closed = datetime.fromisoformat(deal["closeDate"].replace("Z", "+00:00"))
+                    closed = datetime.fromisoformat(deal["actualCloseDate"].replace("Z", "+00:00"))
                     days = (closed - created).days
                     if days > 0:
                         deal_cycles.append(days)
@@ -358,6 +364,10 @@ Provide probability adjustment multipliers for each deal."""
             
         except Exception as e:
             logger.error(f"Error in AI scoring, using stage-based probabilities: {str(e)}")
+            state["degraded_mode"] = True
+            reasons = state.get("degraded_reasons", [])
+            reasons.append("AI probability scoring unavailable; using stage-based probabilities.")
+            state["degraded_reasons"] = reasons
             # Fallback to stage-based probabilities
             probabilities = {}
             for deal in deals:
@@ -461,9 +471,10 @@ Provide probability adjustment multipliers for each deal."""
         
         # Default quota per person (can be customized)
         default_quota = weighted_pipeline * 0.3  # 30% of total pipeline
+        team_forecasts = []
         
         for deal in deals:
-            owner = deal.get("ownerId", "unassigned")
+            owner = deal.get("ownerId") or "unassigned"
             deal_value = deal.get("value", 0)
             probability = probabilities.get(deal["id"], 0.5)
             
@@ -474,15 +485,26 @@ Provide probability adjustment multipliers for each deal."""
                 team_data[owner]["forecast"] += deal_value * probability
             
             team_data[owner]["quota"] = default_quota
-        
-        team_forecasts = []
+
         for owner_id, data in team_data.items():
             attainment = 0
             if data["quota"] > 0:
                 attainment = int((data["closed"] / data["quota"]) * 100)
+
+            owner_name = next(
+                (
+                    deal.get("ownerName")
+                    for deal in deals
+                    if deal.get("ownerId") == owner_id and deal.get("ownerName")
+                ),
+                None,
+            )
+            owner_label = "Unassigned"
+            if owner_id != "unassigned":
+                owner_label = f"Rep {str(owner_id)[:8]}"
             
             team_forecasts.append({
-                "name": f"Rep {owner_id[:8]}" if owner_id != "unassigned" else "Unassigned",
+                "name": owner_name or owner_label,
                 "quota": round(data["quota"]),
                 "forecast": round(data["forecast"]),
                 "closed": round(data["closed"]),
@@ -532,7 +554,7 @@ Provide probability adjustment multipliers for each deal."""
             if age_days > avg_cycle * 2:
                 risks.append({
                     "deal_id": deal["id"],
-                    "title": deal.get("title", "Untitled Deal"),
+                    "title": deal.get("name", "Untitled Deal"),
                     "value": deal.get("value", 0),
                     "stage": deal.get("stage"),
                     "age_days": age_days,
@@ -555,7 +577,7 @@ Provide probability adjustment multipliers for each deal."""
             if probability > 0.7 and value > weighted_pipeline / 20:  # Top 5% of pipeline
                 opportunities.append({
                     "deal_id": deal["id"],
-                    "title": deal.get("title", "Untitled Deal"),
+                    "title": deal.get("name", "Untitled Deal"),
                     "value": value,
                     "probability": probability,
                     "weighted_value": weighted_value,
@@ -640,6 +662,10 @@ Provide insights and recommendations."""
             
         except Exception as e:
             logger.error(f"Error generating AI insights: {str(e)}")
+            state["degraded_mode"] = True
+            reasons = state.get("degraded_reasons", [])
+            reasons.append("AI narrative insights unavailable; using rule-based forecast insights.")
+            state["degraded_reasons"] = reasons
             # Fallback insights
             state["insights"] = [
                 f"Pipeline forecast at {forecast_vs_quota:.0f}% of quota",

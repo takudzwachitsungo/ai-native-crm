@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -23,6 +24,9 @@ public class UserResponseDTO {
     private UserRole role;
     private Boolean isActive;
     private String avatar;
+    private String territory;
+    private BigDecimal quarterlyQuota;
+    private BigDecimal annualQuota;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

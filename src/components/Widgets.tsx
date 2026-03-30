@@ -534,9 +534,12 @@ function WidgetsGrid({ period }: { period: string }) {
 
   const totalLeads = stats?.totalLeads || 0;
   const totalDeals = stats?.totalDeals || 0;
+  const activeDeals = stats?.activeDeals || totalDeals;
   const totalRevenue = stats?.totalRevenue || 0;
   const conversionRate = stats?.conversionRate || 0;
   const winRate = stats?.winRate || 0;
+  const stalledDealCount = stats?.stalledDealCount || 0;
+  const dealsNeedingAttention = stats?.dealsNeedingAttention || 0;
 
   // Calculate tasks due today
   const today = new Date().toISOString().split('T')[0];
@@ -608,12 +611,15 @@ function WidgetsGrid({ period }: { period: string }) {
             {atRiskDealsCount > 0 && (
               <InsightBadge type="at_risk" label={`${atRiskDealsCount} at risk`} />
             )}
+            {dealsNeedingAttention > 0 && (
+              <InsightBadge type="overdue" label={`${dealsNeedingAttention} need action`} />
+            )}
           </div>
         }
         actions="View pipeline"
         onClick={() => navigate('/pipeline')}
       >
-        <h2 className="text-xl font-semibold mb-1">{totalDeals}</h2>
+        <h2 className="text-xl font-semibold mb-1">{activeDeals}</h2>
       </BaseWidget>
 
       {/* Revenue Widget */}
@@ -698,7 +704,14 @@ function WidgetsGrid({ period }: { period: string }) {
       <BaseWidget
         title="Win Rate"
         icon={<Icons.PieChart size={16} />}
-        description={<p className="text-xs text-muted-foreground">Deals won vs lost</p>}
+        description={
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs text-muted-foreground">Deals won vs lost</p>
+            {stalledDealCount > 0 && (
+              <InsightBadge type="stuck" label={`${stalledDealCount} stalled`} />
+            )}
+          </div>
+        }
         actions="View analytics"
         onClick={() => navigate('/reports')}
       >

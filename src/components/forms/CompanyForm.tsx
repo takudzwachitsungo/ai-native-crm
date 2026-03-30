@@ -1,20 +1,26 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Modal } from "../Modal";
+import { companiesApi } from "../../lib/api";
 
 interface CompanyFormData {
+  id?: string;
   name: string;
   industry: string;
   website: string;
   phone: string;
   email: string;
-  employees: string;
+  employeeCount: string;
   revenue: string;
   address: string;
   city: string;
   state: string;
   zip: string;
   country: string;
-  description: string;
+  territory: string;
+  notes: string;
+  status: "ACTIVE" | "INACTIVE" | "PROSPECT";
+  parentCompanyId: string;
 }
 
 interface CompanyFormProps {
@@ -31,19 +37,50 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
     website: "",
     phone: "",
     email: "",
-    employees: "",
+    employeeCount: "",
     revenue: "",
     address: "",
     city: "",
     state: "",
     zip: "",
     country: "United States",
-    description: "",
+    territory: "",
+    notes: "",
+    status: "ACTIVE",
+    parentCompanyId: "",
   });
+
+  const { data: companiesData } = useQuery({
+    queryKey: ["companies", "form-options"],
+    queryFn: () => companiesApi.getAll({ page: 0, size: 1000, sort: "name,asc" }),
+    enabled: isOpen,
+  });
+
+  const availableParentCompanies = (companiesData?.content || []).filter(
+    (company) => company.id && company.id !== initialData?.id
+  );
 
   useEffect(() => {
     if (initialData) {
-      setFormData((prev) => ({ ...prev, ...initialData }));
+      setFormData({
+        id: initialData.id,
+        name: initialData.name || "",
+        industry: initialData.industry || "",
+        website: initialData.website || "",
+        phone: initialData.phone || "",
+        email: initialData.email || "",
+        employeeCount: initialData.employeeCount ? String(initialData.employeeCount) : "",
+        revenue: initialData.revenue ? String(initialData.revenue) : "",
+        address: initialData.address || "",
+        city: initialData.city || "",
+        state: initialData.state || "",
+        zip: (initialData as { postalCode?: string }).postalCode || initialData.zip || "",
+        country: initialData.country || "United States",
+        territory: initialData.territory || "",
+        notes: initialData.notes || "",
+        status: initialData.status || "ACTIVE",
+        parentCompanyId: initialData.parentCompanyId || "",
+      });
     } else {
       setFormData({
         name: "",
@@ -51,40 +88,24 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
         website: "",
         phone: "",
         email: "",
-        employees: "",
+        employeeCount: "",
         revenue: "",
         address: "",
         city: "",
         state: "",
         zip: "",
         country: "United States",
-        description: "",
+        territory: "",
+        notes: "",
+        status: "ACTIVE",
+        parentCompanyId: "",
       });
     }
   }, [initialData, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Transform form data to match backend DTO
-    const companyData: any = {
-      name: formData.name,
-      email: formData.email,
-      industry: formData.industry || null,
-      website: formData.website || null,
-      phone: formData.phone || null,
-      revenue: null,
-      employeeCount: formData.employees ? parseInt(formData.employees) : null,
-      address: formData.address || null,
-      city: formData.city || null,
-      state: formData.state || null,
-      postalCode: formData.zip || null,
-      country: formData.country || null,
-      notes: formData.description || null,
-      status: 'ACTIVE',
-    };
-    
-    onSubmit(companyData);
+    onSubmit(formData);
   };
 
   return (
@@ -113,9 +134,8 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
         <div>
-          <h3 className="text-sm font-medium text-foreground mb-3">Basic Information</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Account Basics</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
@@ -130,11 +150,26 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
               />
             </div>
             <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Parent Account</label>
+              <select
+                value={formData.parentCompanyId}
+                onChange={(e) => setFormData({ ...formData, parentCompanyId: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+              >
+                <option value="">No parent company</option>
+                {availableParentCompanies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-foreground mb-1">Industry</label>
               <select
                 value={formData.industry}
                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
               >
                 <option value="">Select Industry</option>
                 <option value="TECHNOLOGY">Technology</option>
@@ -146,6 +181,18 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 <option value="EDUCATION">Education</option>
                 <option value="CONSULTING">Consulting</option>
                 <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as CompanyFormData["status"] })}
+                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="PROSPECT">Prospect</option>
+                <option value="INACTIVE">Inactive</option>
               </select>
             </div>
             <div>
@@ -180,25 +227,29 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Employees</label>
-              <select
-                value={formData.employees}
-                onChange={(e) => setFormData({ ...formData, employees: e.target.value })}
+              <label className="block text-sm font-medium text-foreground mb-1">Employee Count</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.employeeCount}
+                onChange={(e) => setFormData({ ...formData, employeeCount: e.target.value })}
                 className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="">Select Range</option>
-                <option value="1-10">1-10</option>
-                <option value="11-50">11-50</option>
-                <option value="51-200">51-200</option>
-                <option value="201-500">201-500</option>
-                <option value="501-1000">501-1000</option>
-                <option value="1000+">1000+</option>
-              </select>
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Annual Revenue</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.revenue}
+                onChange={(e) => setFormData({ ...formData, revenue: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
             </div>
           </div>
         </div>
 
-        {/* Address Information */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-3">Address</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -247,18 +298,27 @@ export function CompanyForm({ isOpen, onClose, onSubmit, initialData }: CompanyF
                 className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Territory</label>
+              <input
+                type="text"
+                value={formData.territory}
+                onChange={(e) => setFormData({ ...formData, territory: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="e.g. Zimbabwe, North America, Harare"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Description</label>
+          <label className="block text-sm font-medium text-foreground mb-1">Account Notes</label>
           <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows={3}
             className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-            placeholder="Brief description of the company..."
+            placeholder="Key relationship, ownership, or hierarchy notes..."
           />
         </div>
       </form>

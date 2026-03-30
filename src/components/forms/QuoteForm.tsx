@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Modal } from "../Modal";
 import { Icons } from "../icons";
 import { companiesApi, contactsApi, productsApi } from "../../lib/api";
+import type { Quote } from "../../lib/types";
 
 interface QuoteLineItem {
   id: string;
@@ -30,7 +31,7 @@ interface QuoteFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
-  initialData?: Partial<QuoteFormData>;
+  initialData?: Partial<QuoteFormData & Quote>;
 }
 
 export function QuoteForm({ isOpen, onClose, onSubmit, initialData }: QuoteFormProps) {

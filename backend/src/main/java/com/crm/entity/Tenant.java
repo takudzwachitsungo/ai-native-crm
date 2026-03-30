@@ -25,6 +25,9 @@ public class Tenant {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false, unique = true, length = 120)
+    private String slug;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -37,6 +40,32 @@ public class Tenant {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "dedicated_database_enabled", nullable = false)
+    @Builder.Default
+    private Boolean dedicatedDatabaseEnabled = false;
+
+    @Column(name = "database_url", length = 500)
+    private String databaseUrl;
+
+    @Column(name = "database_username")
+    private String databaseUsername;
+
+    @Column(name = "database_password")
+    private String databasePassword;
+
+    @Column(name = "database_driver_class_name", nullable = false)
+    @Builder.Default
+    private String databaseDriverClassName = "org.postgresql.Driver";
+
+    @Column(name = "database_last_validated_at")
+    private LocalDateTime databaseLastValidatedAt;
+
+    @Column(name = "database_last_validation_success")
+    private Boolean databaseLastValidationSuccess;
+
+    @Column(name = "database_last_validation_message", length = 500)
+    private String databaseLastValidationMessage;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

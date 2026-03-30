@@ -2,6 +2,7 @@ package com.crm.service.impl;
 
 import com.crm.config.TenantContext;
 import com.crm.dto.request.UserCreateRequestDTO;
+import com.crm.dto.request.UserRevenueOpsUpdateRequestDTO;
 import com.crm.dto.request.UserRoleUpdateRequestDTO;
 import com.crm.dto.request.UserStatusUpdateRequestDTO;
 import com.crm.dto.response.UserResponseDTO;
@@ -10,6 +11,7 @@ import com.crm.exception.BadRequestException;
 import com.crm.exception.DuplicateResourceException;
 import com.crm.exception.ResourceNotFoundException;
 import com.crm.mapper.UserMapper;
+import com.crm.repository.TerritoryRepository;
 import com.crm.repository.UserRepository;
 import com.crm.service.UserManagementService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ import java.util.UUID;
 public class UserManagementServiceImpl implements UserManagementService {
 
     private final UserRepository userRepository;
+    private final TerritoryRepository territoryRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
@@ -55,6 +58,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         user.setTenantId(tenantId);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        user.setTerritory(resolveTerritoryForCreate(tenantId, request.getTerritory()));
 
         User saved = userRepository.save(user);
         log.info("Created tenant user {} for tenant {}", saved.getEmail(), tenantId);
@@ -93,6 +97,22 @@ public class UserManagementServiceImpl implements UserManagementService {
         return userMapper.toDto(saved);
     }
 
+    @Override
+    @Transactional
+    public UserResponseDTO updateRevenueOps(UUID id, UserRevenueOpsUpdateRequestDTO request) {
+        UUID tenantId = requireTenant();
+        User user = findTenantUser(id, tenantId);
+
+        user.setTerritory(resolveTerritoryForUpdate(tenantId, user.getTerritory(), request.getTerritory()));
+        user.setQuarterlyQuota(request.getQuarterlyQuota());
+        user.setAnnualQuota(request.getAnnualQuota());
+
+        User saved = userRepository.save(user);
+        log.info("Updated revenue ops settings for user {} in tenant {}", id, tenantId);
+
+        return userMapper.toDto(saved);
+    }
+
     private UUID requireTenant() {
         UUID tenantId = TenantContext.getTenantId();
         if (tenantId == null) {
@@ -112,5 +132,49 @@ public class UserManagementServiceImpl implements UserManagementService {
             return null;
         }
         return ((User) authentication.getPrincipal()).getId();
+    }
+
+    private String normalizeTerritory(String territory) {
+        if (territory == null) {
+            return null;
+        }
+        String normalized = territory.trim().replaceAll("\\s+", " ");
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private String normalizeTerritoryKey(String territory) {
+        String normalized = normalizeTerritory(territory);
+        return normalized == null ? null : normalized.toLowerCase();
+    }
+
+    private String resolveTerritoryForCreate(UUID tenantId, String requestedTerritory) {
+        String territory = normalizeTerritory(requestedTerritory);
+        if (territory == null) {
+            return null;
+        }
+        return resolveGovernedTerritoryName(tenantId, territory);
+    }
+
+    private String resolveTerritoryForUpdate(UUID tenantId, String currentTerritory, String requestedTerritory) {
+        String territory = normalizeTerritory(requestedTerritory);
+        if (territory == null) {
+            return null;
+        }
+
+        if (normalizeTerritoryKey(currentTerritory) != null
+                && normalizeTerritoryKey(currentTerritory).equals(normalizeTerritoryKey(territory))) {
+            return normalizeTerritory(currentTerritory);
+        }
+
+        return resolveGovernedTerritoryName(tenantId, territory);
+    }
+
+    private String resolveGovernedTerritoryName(UUID tenantId, String territory) {
+        return territoryRepository.findByTenantIdAndNormalizedNameAndIsActiveTrueAndArchivedFalse(
+                        tenantId,
+                        normalizeTerritoryKey(territory)
+                )
+                .map(found -> normalizeTerritory(found.getName()))
+                .orElseThrow(() -> new BadRequestException("Territory must match an active workspace territory"));
     }
 }

@@ -23,4 +23,6 @@ public interface ContactRepository extends JpaRepository<Contact, UUID>, JpaSpec
     List<Contact> searchContacts(@Param("tenantId") UUID tenantId, @Param("search") String search);
     
     long countByTenantIdAndArchivedFalse(UUID tenantId);
+
+    List<Contact> findByTenantIdAndArchivedFalse(UUID tenantId);
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { leadsApi } from "../lib/api";
 import type { Lead } from "../lib/types";
 import { Icons } from "../components/icons";
@@ -14,6 +15,7 @@ import { DetailSidebar, DetailSection, DetailField } from "../components/DetailS
 import { exportToCSV } from "../lib/helpers";
 
 export default function LeadsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -29,8 +31,16 @@ export default function LeadsPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
+  React.useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setSelectedLead(null);
+      setIsFormOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   // Fetch leads from API
-  const { data: leadsData, isLoading } = useQuery({
+  const { data: leadsData } = useQuery({
     queryKey: ['leads', filter, searchQuery, currentPage, pageSize],
     queryFn: async () => {
       const params: any = { 
@@ -50,6 +60,12 @@ export default function LeadsPage() {
     placeholderData: (previousData) => previousData, // Keep showing old data while fetching
   });
 
+  const { data: leadStats } = useQuery({
+    queryKey: ['lead-stats'],
+    queryFn: () => leadsApi.getStatistics(),
+    staleTime: 1000 * 60,
+  });
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => leadsApi.delete(id),
@@ -61,6 +77,19 @@ export default function LeadsPage() {
     },
     onError: () => {
       showToast('Failed to delete lead', 'error');
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => leadsApi.bulkDelete(ids),
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      showToast(`${ids.length} lead(s) deleted successfully`, 'success');
+      setSelectedIds(new Set());
+      setIsBulkDeleteOpen(false);
+    },
+    onError: () => {
+      showToast('Failed to delete selected leads', 'error');
     },
   });
 
@@ -95,6 +124,21 @@ export default function LeadsPage() {
     },
   });
 
+  const convertMutation = useMutation({
+    mutationFn: (id: string) => leadsApi.convertToCustomer(id),
+    onSuccess: (result, leadId) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      showToast(`Lead converted successfully to contact ${result.contactId}`, 'success');
+      if (viewingLead?.id === leadId) {
+        setDetailSidebarOpen(false);
+        setViewingLead(null);
+      }
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || 'Failed to convert lead', 'error');
+    },
+  });
+
   const leads = leadsData?.content || [];
   const totalElements = leadsData?.totalElements || 0;
   const totalPages = Math.ceil(totalElements / pageSize);
@@ -120,6 +164,7 @@ export default function LeadsPage() {
     new: leads.filter(l => l.status === "NEW").length,
     contacted: leads.filter(l => l.status === "CONTACTED").length,
     qualified: leads.filter(l => l.status === "QUALIFIED").length,
+    unqualified: leads.filter(l => l.status === "UNQUALIFIED").length,
     lost: leads.filter(l => l.status === "LOST").length,
   };
 
@@ -127,11 +172,12 @@ export default function LeadsPage() {
     if (selectedIds.size === filteredLeads.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredLeads.map(l => l.id)));
+      setSelectedIds(new Set(filteredLeads.flatMap((lead) => (lead.id ? [lead.id] : []))));
     }
   };
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id?: string) => {
+    if (!id) return;
     const newSelected = new Set(selectedIds);
     if (newSelected.has(id)) {
       newSelected.delete(id);
@@ -183,6 +229,27 @@ export default function LeadsPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Total Leads</p>
+              <p className="text-xl font-semibold text-foreground">{leadStats?.totalLeads ?? totalElements}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Avg Score</p>
+              <p className="text-xl font-semibold text-foreground">{Math.round(leadStats?.averageScore ?? 0)}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Conversion Rate</p>
+              <p className="text-xl font-semibold text-foreground">{Math.round(leadStats?.conversionRate ?? 0)}%</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Lead Value</p>
+              <p className="text-xl font-semibold text-foreground">
+                ${(Number(leadStats?.totalEstimatedValue ?? 0)).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
           {/* Search and Filters */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 relative">
@@ -226,6 +293,7 @@ export default function LeadsPage() {
               { value: "new", label: "New" },
               { value: "contacted", label: "Contacted" },
               { value: "qualified", label: "Qualified" },
+              { value: "unqualified", label: "Unqualified" },
               { value: "lost", label: "Lost" },
             ].map((tab) => (
               <button
@@ -315,18 +383,29 @@ export default function LeadsPage() {
                       type="checkbox" 
                       className="rounded" 
                       aria-label="Select lead"
-                      checked={selectedIds.has(lead.id)}
+                      checked={lead.id ? selectedIds.has(lead.id) : false}
                       onChange={() => toggleSelect(lead.id)}
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                        {lead.firstName?.charAt(0) || '?'}
-                      </div>
-                      <div className="font-medium text-foreground">{lead.firstName} {lead.lastName}</div>
+                    {lead.firstName?.charAt(0) || '?'}
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">{lead.firstName} {lead.lastName}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                      {lead.ownerName && <span>Owner: {lead.ownerName}</span>}
+                      {lead.territory && <span>Territory: {lead.territory}</span>}
+                      {lead.territoryMismatch && (
+                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                          Territory mismatch
+                        </span>
+                      )}
                     </div>
-                  </td>
+                  </div>
+                </div>
+              </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{lead.company}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{lead.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{lead.phone}</td>
@@ -336,23 +415,24 @@ export default function LeadsPage() {
                         <div
                           className={cn(
                             "h-full transition-all",
-                            lead.score >= 80 ? "bg-green-500" : lead.score >= 60 ? "bg-yellow-500" : "bg-red-500"
+                            (lead.score ?? 0) >= 80 ? "bg-green-500" : (lead.score ?? 0) >= 60 ? "bg-yellow-500" : "bg-red-500"
                           )}
-                          style={{ width: `${lead.score}%` }}
+                          style={{ width: `${lead.score ?? 0}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-foreground w-8">{lead.score}</span>
+                      <span className="text-sm font-medium text-foreground w-8">{lead.score ?? 0}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={cn(
                       "px-2.5 py-1 text-xs font-medium rounded-full",
-                      lead.status === "qualified" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                      lead.status === "contacted" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                      lead.status === "new" && "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
-                      lead.status === "lost" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      lead.status === "QUALIFIED" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                      lead.status === "UNQUALIFIED" && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+                      lead.status === "CONTACTED" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                      lead.status === "NEW" && "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+                      lead.status === "LOST" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                     )}>
-                      {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                      {lead.status.charAt(0) + lead.status.slice(1).toLowerCase()}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
@@ -400,13 +480,22 @@ export default function LeadsPage() {
                   <div>
                     <h3 className="font-medium text-foreground">{lead.firstName} {lead.lastName}</h3>
                     <p className="text-sm text-muted-foreground">{lead.company}</p>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                      {lead.ownerName && <span>Owner: {lead.ownerName}</span>}
+                      {lead.territory && <span>Territory: {lead.territory}</span>}
+                      {lead.territoryMismatch && (
+                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                          Territory mismatch
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <span className={cn(
                   "px-2 py-1 text-xs font-medium rounded",
-                  lead.score >= 80 ? "bg-green-100 text-green-700" : lead.score >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
+                  (lead.score ?? 0) >= 80 ? "bg-green-100 text-green-700" : (lead.score ?? 0) >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
                 )}>
-                  {lead.score}
+                  {lead.score ?? 0}
                 </span>
               </div>
               <div className="space-y-2 text-sm">
@@ -421,12 +510,13 @@ export default function LeadsPage() {
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <span className={cn(
                     "px-2 py-1 text-xs font-medium rounded-full",
-                    lead.status === "qualified" && "bg-green-100 text-green-700",
-                    lead.status === "contacted" && "bg-blue-100 text-blue-700",
-                    lead.status === "new" && "bg-gray-100 text-gray-700",
-                    lead.status === "lost" && "bg-red-100 text-red-700"
+                    lead.status === "QUALIFIED" && "bg-green-100 text-green-700",
+                    lead.status === "UNQUALIFIED" && "bg-orange-100 text-orange-700",
+                    lead.status === "CONTACTED" && "bg-blue-100 text-blue-700",
+                    lead.status === "NEW" && "bg-gray-100 text-gray-700",
+                    lead.status === "LOST" && "bg-red-100 text-red-700"
                   )}>
-                    {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                    {lead.status.charAt(0) + lead.status.slice(1).toLowerCase()}
                   </span>
                   {lead.estimatedValue && (
                     <span className="font-medium text-foreground">${lead.estimatedValue.toLocaleString()}</span>
@@ -510,7 +600,7 @@ export default function LeadsPage() {
         }}
         onSubmit={(data) => {
           // Form already provides firstName, lastName, etc.
-          if (selectedLead) {
+          if (selectedLead?.id) {
             updateMutation.mutate({ id: selectedLead.id, data });
           } else {
             createMutation.mutate(data);
@@ -527,7 +617,7 @@ export default function LeadsPage() {
           setSelectedLead(null);
         }}
         onConfirm={() => {
-          if (selectedLead) {
+          if (selectedLead?.id) {
             deleteMutation.mutate(selectedLead.id);
           }
         }}
@@ -541,9 +631,9 @@ export default function LeadsPage() {
         isOpen={isBulkDeleteOpen}
         onClose={() => setIsBulkDeleteOpen(false)}
         onConfirm={() => {
-          showToast(`${selectedIds.size} lead(s) deleted successfully`, "success");
-          setSelectedIds(new Set());
-          setIsBulkDeleteOpen(false);
+          if (selectedIds.size > 0) {
+            bulkDeleteMutation.mutate(Array.from(selectedIds));
+          }
         }}
         title="Delete Multiple Leads"
         message={`Are you sure you want to delete ${selectedIds.size} lead(s)? This action cannot be undone.`}
@@ -574,7 +664,11 @@ export default function LeadsPage() {
             {
               label: "Convert to Contact",
               icon: <Icons.Contact size={16} />,
-              onClick: () => showToast("Lead converted to contact", "success"),
+              onClick: () => {
+                if (viewingLead.id) {
+                  convertMutation.mutate(viewingLead.id);
+                }
+              },
             },
             {
               label: "Send Email",
@@ -587,14 +681,18 @@ export default function LeadsPage() {
             <DetailField label="Email" value={viewingLead.email} icon={<Icons.Mail size={16} />} />
             <DetailField label="Phone" value={viewingLead.phone} icon={<Icons.Phone size={16} />} />
             <DetailField label="Company" value={viewingLead.company} icon={<Icons.Building2 size={16} />} />
+            <DetailField label="Territory" value={viewingLead.territory || "Unassigned"} icon={<Icons.Target size={16} />} />
+            <DetailField label="Owner Territory" value={viewingLead.ownerTerritory || "Unassigned"} icon={<Icons.Target size={16} />} />
           </DetailSection>
 
           <DetailSection title="Lead Details">
             <DetailField label="Status" value={viewingLead.status} />
-            <DetailField label="Lead Score" value={`${viewingLead.score}/100`} />
+            <DetailField label="Lead Score" value={`${viewingLead.score ?? 0}/100`} />
+            <DetailField label="Owner" value={viewingLead.ownerName || (viewingLead.territory ? "Auto-routed by territory and workload" : "Auto-routed by workload")} />
+            <DetailField label="Territory Coverage" value={viewingLead.territoryMismatch ? "Needs reassignment review" : "Aligned"} />
             <DetailField label="Source" value={viewingLead.source} />
             <DetailField label="Potential Value" value={viewingLead.estimatedValue ? `$${viewingLead.estimatedValue.toLocaleString()}` : "Not set"} />
-            <DetailField label="Last Contact" value={viewingLead.lastContact} />
+            <DetailField label="Last Contact" value={viewingLead.lastContactDate || viewingLead.lastContact} />
           </DetailSection>
 
           {viewingLead.tags && viewingLead.tags.length > 0 && (

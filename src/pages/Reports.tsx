@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Icons } from "../components/icons";
 import { PageLayout } from "../components/PageLayout";
+import { AIDegradedNotice } from "../components/AIDegradedNotice";
 import { reportsApi } from "../lib/api";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import { SimpleChart } from "../components/SimpleChart";
@@ -38,6 +39,8 @@ interface GeneratedReport {
   sections: Array<any>;
   generated_at: string;
   error?: string;
+  degraded_mode?: boolean;
+  degraded_reason?: string | null;
 }
 
 export default function ReportsPage() {
@@ -178,6 +181,9 @@ export default function ReportsPage() {
         </div>
 
         <div className="p-6 space-y-6">
+          {generatedReport.degraded_mode && (
+            <AIDegradedNotice reason={generatedReport.degraded_reason} />
+          )}
           {/* Key Metrics */}
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

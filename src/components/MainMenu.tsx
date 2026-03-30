@@ -2,20 +2,23 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { Icons } from "./icons";
 import type { LucideIcon } from "lucide-react";
+import type { UserRole } from "../lib/types";
+import { useAuth } from "../contexts/AuthContext";
+import { canAccessRole } from "../lib/authz";
 
 const items = [
   { path: "/", name: "Dashboard" },
-  { path: "/leads", name: "Leads" },
-  { path: "/contacts", name: "Contacts" },
-  { path: "/companies", name: "Companies" },
-  { path: "/deals", name: "Deals" },
-  { path: "/pipeline", name: "Pipeline" },
-  { path: "/quotes", name: "Quotes" },
-  { path: "/invoices", name: "Invoices" },
-  { path: "/products", name: "Products" },
-  { path: "/tasks", name: "Tasks" },
-  { path: "/calendar", name: "Calendar" },
-  { path: "/email", name: "Email" },
+  { path: "/leads", name: "Leads", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/contacts", name: "Contacts", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/companies", name: "Companies", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/deals", name: "Deals", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/pipeline", name: "Pipeline", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/quotes", name: "Quotes", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/invoices", name: "Invoices", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/products", name: "Products", allowedRoles: ["ADMIN", "MANAGER"] as UserRole[] },
+  { path: "/tasks", name: "Tasks", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/calendar", name: "Calendar", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
+  { path: "/email", name: "Email", allowedRoles: ["ADMIN", "MANAGER", "SALES_REP"] as UserRole[] },
   { path: "/reports", name: "Reports" },
   { path: "/forecasting", name: "Forecasting" },
   { path: "/settings", name: "Settings" },
@@ -46,12 +49,14 @@ interface Props {
 
 export function MainMenu({ onSelect, isExpanded = false }: Props) {
   const location = useLocation();
+  const { user } = useAuth();
+  const visibleItems = items.filter((item) => canAccessRole(user?.role as UserRole | undefined, item.allowedRoles));
 
   return (
     <div className="mt-6 w-full">
       <nav className="w-full">
         <div className="flex flex-col gap-2">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = icons[item.path];
             const isActive = location.pathname === item.path;
 

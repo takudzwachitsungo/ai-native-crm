@@ -53,10 +53,15 @@ public class CompanyRequestDTO {
     
     @Size(max = 100, message = "Country must be less than 100 characters")
     private String country;
+
+    @Size(max = 120, message = "Territory must be less than 120 characters")
+    private String territory;
     
     private CompanyStatus status;
     
     private String notes;
     
     private UUID ownerId;
+
+    private UUID parentCompanyId;
 }

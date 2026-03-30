@@ -1,8 +1,9 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
-import { Plus, Search, Mic, Send, Loader2, Home, Bot } from 'lucide-react';
+import { Plus, Search, Mic, Send, Loader2, Home } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Icons } from '../components/icons';
+import { AIDegradedNotice } from '../components/AIDegradedNotice';
 import { cn } from '../lib/utils';
 import { generateId } from '../lib/helpers';
 import { streamAgenticResponse, type Message as AIMessage, type ToolCall, type Source } from '../lib/ai-api';
@@ -15,6 +16,8 @@ interface Message {
   timestamp?: Date;
   toolCalls?: ToolCall[];
   sources?: Source[];
+  degradedMode?: boolean;
+  degradedReason?: string | null;
 }
 
 export default function Chat() {
@@ -34,6 +37,9 @@ export default function Chat() {
 
   // Use stored messages
   const messages = storedMessages;
+  const latestDegradedMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === 'assistant' && message.degradedMode);
 
   // Animate in on mount
   useEffect(() => {
@@ -84,7 +90,9 @@ export default function Chat() {
                 role: 'assistant',
                 content: event.message || streamingMessage,
                 toolCalls: event.toolCalls,
-                sources: event.sources
+                sources: event.sources,
+                degradedMode: event.degraded_mode,
+                degradedReason: event.degraded_reason ?? null,
               };
               addMessage(assistantMessage);
               setStreamingMessage('');
@@ -164,7 +172,9 @@ export default function Chat() {
             role: 'assistant',
             content: event.message || streamingMessage,
             toolCalls: event.toolCalls,
-            sources: event.sources
+            sources: event.sources,
+            degradedMode: event.degraded_mode,
+            degradedReason: event.degraded_reason ?? null,
           };
           addMessage(assistantMessage);
           setStreamingMessage('');
@@ -216,6 +226,12 @@ export default function Chat() {
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
         <div className="max-w-[770px] mx-auto">
+          {latestDegradedMessage && (
+            <AIDegradedNotice
+              className="mb-4"
+              reason={latestDegradedMessage.degradedReason}
+            />
+          )}
           {messages.length === 0 ? (
             <div 
               className={cn(

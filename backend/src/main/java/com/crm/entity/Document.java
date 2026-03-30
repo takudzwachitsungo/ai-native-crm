@@ -19,6 +19,9 @@ public class Document extends AbstractEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "file_type", length = 50)
     private String fileType;
 

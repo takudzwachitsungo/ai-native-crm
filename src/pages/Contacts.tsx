@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Icons } from "../components/icons";
 import { cn } from "../lib/utils";
 import { PageLayout } from "../components/PageLayout";
@@ -13,7 +14,12 @@ import { useInsights } from "../hooks/useInsights";
 import { InsightBadge } from "../components/InsightBadge";
 import { exportToCSV } from "../lib/helpers";
 
+function stakeholderLabel(contact: Contact) {
+  return contact.stakeholderRole ? contact.stakeholderRole.replaceAll("_", " ") : "No stakeholder role";
+}
+
 export default function ContactsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -27,130 +33,126 @@ export default function ContactsPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch live insights for contacts
-  const { insights } = useInsights('contacts');
+  React.useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setSelectedContact(null);
+      setIsFormOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
-  // Fetch contacts from backend with auto-refresh every 5 minutes
+  useInsights("contacts");
+
   const { data: contactsData, isLoading } = useQuery({
-    queryKey: ['contacts', searchQuery, currentPage, pageSize],
+    queryKey: ["contacts", searchQuery, currentPage, pageSize],
     queryFn: () => contactsApi.getAll({ search: searchQuery, page: currentPage, size: pageSize }),
-    refetchInterval: 300000, // Auto-refresh every 5 minutes
+    refetchInterval: 300000,
   });
 
   const contacts = contactsData?.content || [];
   const totalElements = contactsData?.totalElements || 0;
   const totalPages = Math.ceil(totalElements / pageSize);
 
-  // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: any) => contactsApi.create(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      showToast(`Contact "${variables.firstName} ${variables.lastName}" created successfully`, 'success');
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      showToast(`Contact "${variables.firstName} ${variables.lastName}" created successfully`, "success");
       setIsFormOpen(false);
       setSelectedContact(null);
     },
-    onError: (error: any) => {
-      console.error('Create contact error:', error);
-      showToast('Failed to create contact', 'error');
+    onError: () => {
+      showToast("Failed to create contact", "error");
     },
   });
 
-  // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => contactsApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => contactsApi.update(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      showToast(`Contact "${variables.data.firstName} ${variables.data.lastName}" updated successfully`, 'success');
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      showToast(`Contact "${variables.data.firstName} ${variables.data.lastName}" updated successfully`, "success");
       setIsFormOpen(false);
       setSelectedContact(null);
     },
-    onError: (error: any) => {
-      console.error('Update contact error:', error);
-      showToast('Failed to update contact', 'error');
+    onError: () => {
+      showToast("Failed to update contact", "error");
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => contactsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      showToast('Contact deleted successfully', 'success');
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      showToast("Contact deleted successfully", "success");
       setIsDeleteModalOpen(false);
       setSelectedContact(null);
     },
     onError: () => {
-      showToast('Failed to delete contact', 'error');
+      showToast("Failed to delete contact", "error");
     },
   });
 
   const filteredContacts = contacts.filter((contact) => {
-    const matchesStatus = statusFilter === "all" || (contact as any).status === statusFilter;
-    
-    // Apply advanced filters if set
+    const matchesStatus = statusFilter === "all" || contact.status?.toLowerCase() === statusFilter;
     let matchesAdvancedFilters = true;
-    if (activeFilters) {
-      if (activeFilters.status && activeFilters.status.length > 0) {
-        matchesAdvancedFilters = matchesAdvancedFilters && activeFilters.status.includes((contact as any).status);
-      }
-      // Add more filter logic as needed
+    if (activeFilters?.status && activeFilters.status.length > 0) {
+      matchesAdvancedFilters = activeFilters.status.includes((contact.status || "").toLowerCase());
     }
-    
     return matchesStatus && matchesAdvancedFilters;
   });
 
-  // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(0);
   }, [searchQuery, statusFilter, activeFilters]);
 
   const statusCounts = {
     all: totalElements,
-    active: contacts.filter((c: any) => c.status === "active").length,
-    inactive: contacts.filter((c: any) => c.status === "inactive").length,
+    active: contacts.filter((contact) => contact.status === "ACTIVE").length,
+    inactive: contacts.filter((contact) => contact.status === "INACTIVE").length,
   };
 
-  // Get insight badges for a contact based on its data
-  const getContactBadges = (contact: Contact): Array<{ type: 'inactive'; label?: string }> => {
-    const badges: Array<{ type: 'inactive'; label?: string }> = [];
-    
-    // Check if contact is inactive
-    if ((contact as any).status === 'inactive') {
-      badges.push({ type: 'inactive' });
+  const getContactBadges = (contact: Contact): Array<{ type: "inactive"; label?: string }> => {
+    const badges: Array<{ type: "inactive"; label?: string }> = [];
+    if (contact.status === "INACTIVE") {
+      badges.push({ type: "inactive" });
     }
-    
     return badges;
   };
 
   return (
     <PageLayout>
-      {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-semibold text-foreground">Contacts</h1>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => {
-                  exportToCSV(filteredContacts, [
-                    { header: 'First Name', accessor: 'firstName' },
-                    { header: 'Last Name', accessor: 'lastName' },
-                    { header: 'Email', accessor: 'email' },
-                    { header: 'Phone', accessor: 'phone' },
-                    { header: 'Title', accessor: 'title' },
-                    { header: 'Department', accessor: 'department' },
-                    { header: 'Company', accessor: (c) => c.company?.name || '' },
-                    { header: 'Created At', accessor: (c) => c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '' },
-                  ], 'contacts');
-                  showToast(`Exported ${filteredContacts.length} contacts to CSV`, 'success');
+                  exportToCSV(
+                    filteredContacts,
+                    [
+                      { header: "First Name", accessor: "firstName" },
+                      { header: "Last Name", accessor: "lastName" },
+                      { header: "Email", accessor: "email" },
+                      { header: "Phone", accessor: "phone" },
+                      { header: "Title", accessor: "title" },
+                      { header: "Department", accessor: "department" },
+                      { header: "Stakeholder Role", accessor: (contact: Contact) => stakeholderLabel(contact) },
+                      { header: "Influence", accessor: "influenceLevel" },
+                      { header: "Company", accessor: (contact: Contact) => contact.companyName || contact.company?.name || "" },
+                      { header: "Reports To", accessor: "reportsToName" },
+                      { header: "Created At", accessor: (contact: Contact) => contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : "" },
+                    ],
+                    "contacts"
+                  );
+                  showToast(`Exported ${filteredContacts.length} contacts to CSV`, "success");
                 }}
                 className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
               >
                 <Icons.Download size={16} />
                 Export
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setSelectedContact(null);
                   setIsFormOpen(true);
@@ -163,7 +165,25 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Total Contacts</p>
+              <p className="text-xl font-semibold text-foreground">{totalElements}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Primary Stakeholders</p>
+              <p className="text-xl font-semibold text-foreground">{contacts.filter((contact) => contact.isPrimary).length}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Decision Makers</p>
+              <p className="text-xl font-semibold text-foreground">{contacts.filter((contact) => contact.stakeholderRole === "DECISION_MAKER").length}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">High Influence</p>
+              <p className="text-xl font-semibold text-foreground">{contacts.filter((contact) => contact.influenceLevel === "HIGH").length}</p>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
@@ -185,9 +205,7 @@ export default function ContactsPage() {
               >
                 <Icons.Filter size={16} />
                 Filters
-                {activeFilters && (
-                  <span className="w-2 h-2 bg-primary-foreground rounded-full" />
-                )}
+                {activeFilters && <span className="w-2 h-2 bg-primary-foreground rounded-full" />}
               </button>
               <button
                 onClick={() => setViewMode("table")}
@@ -212,7 +230,6 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          {/* Filter Tabs */}
           <div className="flex items-center gap-1 border-b border-border -mb-px">
             {[
               { value: "all", label: "All Contacts" },
@@ -224,33 +241,25 @@ export default function ContactsPage() {
                 onClick={() => setStatusFilter(tab.value)}
                 className={cn(
                   "px-4 py-2.5 text-sm font-medium transition-colors relative",
-                  statusFilter === tab.value
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                  statusFilter === tab.value ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {tab.label}
                 <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-secondary">
                   {statusCounts[tab.value as keyof typeof statusCounts]}
                 </span>
-                {statusFilter === tab.value && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
+                {statusFilter === tab.value && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Table View */}
       {viewMode === "table" ? (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-secondary/50">
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <input type="checkbox" className="rounded" aria-label="Select all" />
-                </th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Contact Name</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Company</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Position</th>
@@ -263,58 +272,64 @@ export default function ContactsPage() {
             <tbody className="bg-card divide-y divide-border">
               {filteredContacts.map((contact) => (
                 <tr key={contact.id} className="hover:bg-secondary/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input type="checkbox" className="rounded" aria-label="Select contact" />
-                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                        {(contact.firstName?.charAt(0) || contact.email?.charAt(0) || '?').toUpperCase()}
+                        {(contact.firstName?.charAt(0) || contact.email?.charAt(0) || "?").toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">{contact.firstName} {contact.lastName}</span>
+                          {contact.isPrimary && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                              Primary
+                            </span>
+                          )}
                           {getContactBadges(contact).map((badge, idx) => (
-                            <InsightBadge 
-                              key={idx}
-                              type={badge.type}
-                              label={badge.label}
-                            />
+                            <InsightBadge key={idx} type={badge.type} label={badge.label} />
                           ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {contact.reportsToName ? `Reports to ${contact.reportsToName}` : stakeholderLabel(contact)}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{(contact as any).companyName || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{(contact as any).title || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{contact.companyName || "N/A"}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <div>{contact.title || "N/A"}</div>
+                    <div className="text-xs text-muted-foreground">{contact.department || stakeholderLabel(contact)}</div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{contact.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{contact.phone || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{contact.phone || contact.mobile || "N/A"}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={cn(
-                      "px-2.5 py-1 text-xs font-medium rounded-full",
-                      (contact as any).status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                    )}>
-                      {((contact as any).status?.charAt(0).toUpperCase() + (contact as any).status?.slice(1)) || 'N/A'}
+                    <span
+                      className={cn(
+                        "px-2.5 py-1 text-xs font-medium rounded-full",
+                        contact.status === "ACTIVE" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                      )}
+                    >
+                      {contact.status ? `${contact.status.charAt(0)}${contact.status.slice(1).toLowerCase()}` : "N/A"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedContact(contact);
                           setIsFormOpen(true);
                         }}
-                        className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors" 
+                        className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors"
                         aria-label="Edit contact"
                       >
                         <Icons.Edit size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedContact(contact);
                           setIsDeleteModalOpen(true);
                         }}
-                        className="p-1.5 hover:bg-red-50 rounded text-muted-foreground hover:text-red-600 transition-colors" 
+                        className="p-1.5 hover:bg-red-50 rounded text-muted-foreground hover:text-red-600 transition-colors"
                         aria-label="Delete contact"
                       >
                         <Icons.Trash size={16} />
@@ -327,27 +342,27 @@ export default function ContactsPage() {
           </table>
         </div>
       ) : (
-        /* Grid View */
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredContacts.map((contact) => (
             <div key={contact.id} className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow bg-card">
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-lg">
-                  {(contact.firstName?.charAt(0) || contact.email?.charAt(0) || '?').toUpperCase()}
+                  {(contact.firstName?.charAt(0) || contact.email?.charAt(0) || "?").toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-medium text-foreground truncate">{contact.firstName} {contact.lastName}</h3>
+                    {contact.isPrimary && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        Primary
+                      </span>
+                    )}
                     {getContactBadges(contact).map((badge, idx) => (
-                      <InsightBadge 
-                        key={idx}
-                        type={badge.type}
-                        label={badge.label}
-                      />
+                      <InsightBadge key={idx} type={badge.type} label={badge.label} />
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{(contact as any).title || 'N/A'}</p>
-                  <p className="text-xs text-muted-foreground truncate">{(contact as any).companyName || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground truncate">{contact.title || "N/A"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{contact.companyName || "N/A"}</p>
                 </div>
               </div>
               <div className="space-y-2 text-sm">
@@ -357,16 +372,24 @@ export default function ContactsPage() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Icons.Phone size={14} />
-                  <span>{contact.phone || 'N/A'}</span>
+                  <span>{contact.phone || contact.mobile || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Icons.Users size={14} />
+                  <span>{stakeholderLabel(contact)}</span>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <span className={cn(
-                    "px-2 py-1 text-xs font-medium rounded-full",
-                    (contact as any).status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                  )}>
-                    {((contact as any).status?.charAt(0).toUpperCase() + (contact as any).status?.slice(1)) || 'N/A'}
+                  <span
+                    className={cn(
+                      "px-2 py-1 text-xs font-medium rounded-full",
+                      contact.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                    )}
+                  >
+                    {contact.status ? `${contact.status.charAt(0)}${contact.status.slice(1).toLowerCase()}` : "N/A"}
                   </span>
-                  <span className="text-xs text-muted-foreground">{(contact as any).lastContact || 'N/A'}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {contact.reportsToName ? `Reports to ${contact.reportsToName}` : (contact.lastContactDate || "No recent contact")}
+                  </span>
                 </div>
               </div>
             </div>
@@ -386,13 +409,12 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* Footer Pagination */}
       <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
         <div className="text-sm text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} contacts
         </div>
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
@@ -414,16 +436,14 @@ export default function ContactsPage() {
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
                   "px-3 py-1.5 text-sm rounded transition-colors",
-                  currentPage === pageNum
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border hover:bg-secondary"
+                  currentPage === pageNum ? "bg-primary text-primary-foreground" : "border border-border hover:bg-secondary"
                 )}
               >
                 {pageNum + 1}
               </button>
             );
           })}
-          <button 
+          <button
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
@@ -436,7 +456,6 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      {/* Create/Edit Contact Form Modal */}
       <ContactForm
         isOpen={isFormOpen}
         onClose={() => {
@@ -444,9 +463,7 @@ export default function ContactsPage() {
           setSelectedContact(null);
         }}
         onSubmit={(data) => {
-          // Form already formats data correctly with firstName, lastName, etc.
-          // No need to duplicate the logic here
-          if (selectedContact) {
+          if (selectedContact?.id) {
             updateMutation.mutate({ id: selectedContact.id, data });
           } else {
             createMutation.mutate(data);
@@ -455,7 +472,6 @@ export default function ContactsPage() {
         initialData={selectedContact || undefined}
       />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => {
@@ -463,7 +479,7 @@ export default function ContactsPage() {
           setSelectedContact(null);
         }}
         onConfirm={() => {
-          if (selectedContact) {
+          if (selectedContact?.id) {
             deleteMutation.mutate(selectedContact.id);
           }
         }}
@@ -472,7 +488,6 @@ export default function ContactsPage() {
         variant="danger"
       />
 
-      {/* Advanced Filters */}
       <AdvancedFilters
         isOpen={isFiltersOpen}
         onClose={() => setIsFiltersOpen(false)}

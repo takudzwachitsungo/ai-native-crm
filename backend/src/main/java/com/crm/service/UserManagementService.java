@@ -1,6 +1,7 @@
 package com.crm.service;
 
 import com.crm.dto.request.UserCreateRequestDTO;
+import com.crm.dto.request.UserRevenueOpsUpdateRequestDTO;
 import com.crm.dto.request.UserRoleUpdateRequestDTO;
 import com.crm.dto.request.UserStatusUpdateRequestDTO;
 import com.crm.dto.response.UserResponseDTO;
@@ -18,4 +19,6 @@ public interface UserManagementService {
     UserResponseDTO updateRole(UUID id, UserRoleUpdateRequestDTO request);
 
     UserResponseDTO updateStatus(UUID id, UserStatusUpdateRequestDTO request);
+
+    UserResponseDTO updateRevenueOps(UUID id, UserRevenueOpsUpdateRequestDTO request);
 }

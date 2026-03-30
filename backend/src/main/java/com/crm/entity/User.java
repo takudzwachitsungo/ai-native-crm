@@ -7,6 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +47,15 @@ public class User extends AbstractEntity implements UserDetails {
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    @Column(length = 120)
+    private String territory;
+
+    @Column(name = "quarterly_quota", precision = 19, scale = 2)
+    private BigDecimal quarterlyQuota;
+
+    @Column(name = "annual_quota", precision = 19, scale = 2)
+    private BigDecimal annualQuota;
 
     // UserDetails implementation
     @Override

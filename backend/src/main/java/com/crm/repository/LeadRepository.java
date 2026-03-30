@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Collection;
 
 @Repository
 public interface LeadRepository extends JpaRepository<Lead, UUID>, JpaSpecificationExecutor<Lead> {
@@ -27,4 +28,6 @@ public interface LeadRepository extends JpaRepository<Lead, UUID>, JpaSpecificat
     Page<Lead> findByOwner(@Param("tenantId") UUID tenantId, @Param("ownerId") UUID ownerId, Pageable pageable);
     
     long countByTenantIdAndStatusAndArchivedFalse(UUID tenantId, LeadStatus status);
+
+    long countByTenantIdAndOwnerIdAndArchivedFalseAndStatusNotIn(UUID tenantId, UUID ownerId, Collection<LeadStatus> statuses);
 }

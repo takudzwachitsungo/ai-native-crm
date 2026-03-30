@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageLayout } from '../components/PageLayout';
 import { Icons } from '../components/icons';
@@ -9,16 +10,8 @@ import { emailsApi } from '../lib/api';
 import type { Email, EmailFolder } from '../lib/types';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 
-const emailTemplates = [
-  { name: 'Cold Outreach', category: 'Sales' },
-  { name: 'Follow-up After Meeting', category: 'Sales' },
-  { name: 'Proposal Submission', category: 'Sales' },
-  { name: 'Contract Renewal', category: 'Account Management' },
-  { name: 'Welcome New Client', category: 'Onboarding' },
-  { name: 'Support Response', category: 'Support' },
-];
-
 export default function EmailPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<EmailFolder>('INBOX');
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -26,17 +19,31 @@ export default function EmailPage() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (searchParams.get('compose') === '1') {
+      setIsComposeOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   // Fetch emails based on folder
   const { data: emailsPage, isLoading } = useQuery({
     queryKey: ['emails', activeTab],
     queryFn: () => emailsApi.getAll({ 
       page: 0, 
       size: 50,
-      sort: 'createdAt,desc'
+      sort: 'createdAt,desc',
+      folder: activeTab === 'TEMPLATES' ? 'TEMPLATES' : activeTab,
     }),
   });
 
   const emails = emailsPage?.content || [];
+
+  useEffect(() => {
+    if (selectedEmail && !emails.some((email) => email.id === selectedEmail.id)) {
+      setSelectedEmail(null);
+    }
+  }, [emails, selectedEmail]);
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({
@@ -100,10 +107,7 @@ export default function EmailPage() {
 
   const filteredEmails = emails.filter(email => {
     if (activeTab === 'INBOX') return email.folder === 'INBOX' || !email.folder;
-    if (activeTab === 'SENT') return email.folder === 'SENT';
-    if (activeTab === 'DRAFTS') return email.folder === 'DRAFTS';
-    if (activeTab === 'TEMPLATES') return email.folder === 'TEMPLATES';
-    return false;
+    return email.folder === activeTab;
   });
 
   const renderInbox = () => {
@@ -140,7 +144,7 @@ export default function EmailPage() {
             <div className="flex items-start justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className={cn("font-medium text-sm", !email.isRead && "font-semibold")}>
-                  {email.fromEmail || 'Unknown Sender'}
+                  {activeTab === 'SENT' ? (email.toEmail || 'Unknown Recipient') : (email.fromEmail || 'Unknown Sender')}
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">{formatDate(email.createdAt)}</span>
@@ -224,23 +228,6 @@ export default function EmailPage() {
     </div>
     );
   };
-
-  const renderTemplates = () => (
-    <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {emailTemplates.map((template) => (
-          <div key={template.name} className="p-4 border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
-            <div className="flex items-start justify-between mb-2">
-              <Icons.Mail size={20} className="text-primary" />
-              <span className="text-xs px-2 py-0.5 bg-muted rounded">{template.category}</span>
-            </div>
-            <h3 className="font-medium mb-1">{template.name}</h3>
-            <p className="text-sm text-muted-foreground">Click to preview and use template</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <PageLayout
@@ -349,8 +336,7 @@ export default function EmailPage() {
         )}
       </div>
 
-      {(activeTab === 'INBOX' || activeTab === 'SENT' || activeTab === 'DRAFTS') && renderInbox()}
-      {activeTab === 'TEMPLATES' && renderTemplates()}
+      {(activeTab === 'INBOX' || activeTab === 'SENT' || activeTab === 'DRAFTS' || activeTab === 'TEMPLATES') && renderInbox()}
 
       {/* Compose Modal */}
       <EmailComposeModal

@@ -20,6 +20,9 @@ public class AuthResponse {
     
     private UUID userId;
     private UUID tenantId;
+    private String tenantName;
+    private String tenantSlug;
+    private String tenantTier;
     private String email;
     private String firstName;
     private String lastName;

@@ -1,6 +1,8 @@
 import { Modal } from "./Modal";
 import { Icons } from "./icons";
 import { cn } from "../lib/utils";
+import { useAuth } from "../contexts/AuthContext";
+import { tenantTierLabels } from "../lib/authz";
 
 interface InvoiceLineItem {
   id: string;
@@ -41,6 +43,7 @@ interface InvoiceViewProps {
 }
 
 export function InvoiceView({ isOpen, onClose, invoice }: InvoiceViewProps) {
+  const { user } = useAuth();
   if (!invoice) return null;
 
   const lineItems = invoice.lineItems || [];
@@ -112,6 +115,10 @@ export function InvoiceView({ isOpen, onClose, invoice }: InvoiceViewProps) {
               <h1 className="text-3xl font-bold text-foreground mb-2">INVOICE</h1>
               <p className="text-sm text-muted-foreground">
                 Invoice Number: <span className="font-semibold text-foreground">{invoice.invoiceNumber || 'N/A'}</span>
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Issued by <span className="font-semibold text-foreground">{user?.tenantName || 'Workspace'}</span>
+                {user?.tenantTier ? ` · ${tenantTierLabels[user.tenantTier]} plan` : ''}
               </p>
             </div>
             <div className="text-right">

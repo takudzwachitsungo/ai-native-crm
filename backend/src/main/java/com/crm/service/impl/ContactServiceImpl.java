@@ -109,14 +109,8 @@ public class ContactServiceImpl implements ContactService {
         
         Contact contact = contactMapper.toEntity(request);
         contact.setTenantId(tenantId);
-        
-        // Set company if provided
-        if (request.getCompanyId() != null) {
-            Company company = companyRepository.findById(request.getCompanyId())
-                    .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
-                    .orElseThrow(() -> new ResourceNotFoundException("Company", request.getCompanyId()));
-            contact.setCompany(company);
-        }
+
+        applyRelationships(tenantId, contact, request, null);
         
         contact = contactRepository.save(contact);
         log.info("Created contact: {} for tenant: {}", contact.getId(), tenantId);
@@ -133,17 +127,9 @@ public class ContactServiceImpl implements ContactService {
         Contact contact = contactRepository.findById(id)
                 .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Contact", id));
-        
-        // Update company if changed
-        if (request.getCompanyId() != null && !request.getCompanyId().equals(
-                contact.getCompany() != null ? contact.getCompany().getId() : null)) {
-            Company company = companyRepository.findById(request.getCompanyId())
-                    .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
-                    .orElseThrow(() -> new ResourceNotFoundException("Company", request.getCompanyId()));
-            contact.setCompany(company);
-        }
-        
+
         contactMapper.updateEntity(request, contact);
+        applyRelationships(tenantId, contact, request, id);
         contact = contactRepository.save(contact);
         
         log.info("Updated contact: {} for tenant: {}", id, tenantId);
@@ -207,5 +193,43 @@ public class ContactServiceImpl implements ContactService {
         return contacts.stream()
                 .map(contactMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    private void applyRelationships(UUID tenantId, Contact contact, ContactRequestDTO request, UUID contactId) {
+        if (request.getCompanyId() != null) {
+            Company company = companyRepository.findById(request.getCompanyId())
+                    .filter(candidate -> candidate.getTenantId().equals(tenantId) && !candidate.getArchived())
+                    .orElseThrow(() -> new ResourceNotFoundException("Company", request.getCompanyId()));
+            contact.setCompanyId(company.getId());
+            contact.setCompany(company);
+        } else {
+            contact.setCompanyId(null);
+            contact.setCompany(null);
+        }
+
+        if (request.getReportsToId() != null) {
+            if (contactId != null && contactId.equals(request.getReportsToId())) {
+                throw new BadRequestException("A contact cannot report to itself");
+            }
+
+            Contact reportsTo = contactRepository.findById(request.getReportsToId())
+                    .filter(candidate -> candidate.getTenantId().equals(tenantId) && !candidate.getArchived())
+                    .orElseThrow(() -> new ResourceNotFoundException("Contact", request.getReportsToId()));
+
+            if (request.getCompanyId() != null && reportsTo.getCompanyId() != null
+                    && !request.getCompanyId().equals(reportsTo.getCompanyId())) {
+                throw new BadRequestException("Reporting contact must belong to the same company");
+            }
+
+            contact.setReportsToId(reportsTo.getId());
+            contact.setReportsTo(reportsTo);
+        } else {
+            contact.setReportsToId(null);
+            contact.setReportsTo(null);
+        }
+
+        if (contact.getIsPrimary() == null) {
+            contact.setIsPrimary(Boolean.FALSE);
+        }
     }
 }

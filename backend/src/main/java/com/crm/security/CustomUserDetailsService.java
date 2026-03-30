@@ -8,6 +8,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 /**
  * Custom UserDetailsService implementation for loading users from database
  */
@@ -26,6 +28,19 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("User account is not active: " + email);
         }
         
+        return user;
+    }
+
+    public UserDetails loadUserByUsernameAndTenantId(String email, UUID tenantId) throws UsernameNotFoundException {
+        User user = userRepository.findByTenantIdAndEmailAndArchivedFalse(tenantId, email)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User not found with email: " + email + " in tenant " + tenantId
+                ));
+
+        if (!user.getIsActive()) {
+            throw new UsernameNotFoundException("User account is not active: " + email);
+        }
+
         return user;
     }
 }

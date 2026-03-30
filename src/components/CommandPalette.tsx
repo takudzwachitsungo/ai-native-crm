@@ -33,14 +33,15 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     { id: 'nav-email', label: 'Go to Email', icon: <Icons.Mail size={16} />, action: () => navigate('/email'), category: 'Navigation' },
     { id: 'nav-documents', label: 'Go to Documents', icon: <Icons.FolderOpen size={16} />, action: () => navigate('/documents'), category: 'Navigation' },
     { id: 'nav-reports', label: 'Go to Reports', icon: <Icons.Reports size={16} />, action: () => navigate('/reports'), category: 'Navigation' },
+    { id: 'nav-chat', label: 'Go to CRM Assistant', icon: <Icons.Sparkles size={16} />, action: () => navigate('/chat'), category: 'Navigation' },
     { id: 'nav-settings', label: 'Go to Settings', icon: <Icons.Settings size={16} />, action: () => navigate('/settings'), category: 'Navigation' },
     
     // Actions
-    { id: 'action-new-lead', label: 'Create New Lead', icon: <Icons.UserPlus size={16} />, action: () => {}, category: 'Actions' },
-    { id: 'action-new-contact', label: 'Create New Contact', icon: <Icons.Contact size={16} />, action: () => {}, category: 'Actions' },
-    { id: 'action-new-deal', label: 'Create New Deal', icon: <Icons.Handshake size={16} />, action: () => {}, category: 'Actions' },
-    { id: 'action-new-task', label: 'Create New Task', icon: <Icons.CheckSquare size={16} />, action: () => {}, category: 'Actions' },
-    { id: 'action-compose-email', label: 'Compose Email', icon: <Icons.Mail size={16} />, action: () => {}, category: 'Actions' },
+    { id: 'action-new-lead', label: 'Create New Lead', icon: <Icons.UserPlus size={16} />, action: () => navigate('/leads?create=1'), category: 'Actions' },
+    { id: 'action-new-contact', label: 'Create New Contact', icon: <Icons.Contact size={16} />, action: () => navigate('/contacts?create=1'), category: 'Actions' },
+    { id: 'action-new-deal', label: 'Create New Deal', icon: <Icons.Handshake size={16} />, action: () => navigate('/deals?create=1'), category: 'Actions' },
+    { id: 'action-new-task', label: 'Create New Task', icon: <Icons.CheckSquare size={16} />, action: () => navigate('/tasks?create=1'), category: 'Actions' },
+    { id: 'action-compose-email', label: 'Compose Email', icon: <Icons.Mail size={16} />, action: () => navigate('/email?compose=1'), category: 'Actions' },
   ];
 
   const filteredCommands = commands.filter((cmd) =>

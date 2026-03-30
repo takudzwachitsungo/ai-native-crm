@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { Icons } from "../components/icons";
 import { cn } from "../lib/utils";
 import { PageLayout } from "../components/PageLayout";
 import { CompanyForm } from "../components/forms";
+import { AccountInsightsModal } from "../components/AccountInsightsModal";
 import { useToast } from "../components/Toast";
 import { ConfirmModal } from "../components/Modal";
 import { companiesApi } from "../lib/api";
@@ -16,114 +19,167 @@ const statusColors = {
   prospect: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
+function mapCompanyFormData(data: any): Partial<Company> {
+  return {
+    name: data.name,
+    email: data.email,
+    industry: data.industry || null,
+    website: data.website || null,
+    phone: data.phone || null,
+    revenue: data.revenue ? Number(data.revenue) : undefined,
+    employeeCount: data.employeeCount ? Number(data.employeeCount) : undefined,
+    address: data.address || null,
+    city: data.city || null,
+    state: data.state || null,
+    postalCode: data.zip || null,
+    country: data.country || null,
+    territory: data.territory || null,
+    notes: data.notes || null,
+    status: data.status,
+    parentCompanyId: data.parentCompanyId || undefined,
+  };
+}
+
 export default function CompaniesPage() {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isInsightsOpen, setIsInsightsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(10);
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const canManageTerritories = user?.role === "ADMIN" || user?.role === "MANAGER";
 
-  // Fetch companies from backend
+  React.useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setSelectedCompany(null);
+      setIsFormOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const { data: companiesData, isLoading } = useQuery({
-    queryKey: ['companies', searchQuery, currentPage, pageSize],
+    queryKey: ["companies", searchQuery, currentPage, pageSize],
     queryFn: () => companiesApi.getAll({ search: searchQuery, page: currentPage, size: pageSize }),
+  });
+
+  const { data: governanceQueue, isLoading: isGovernanceLoading } = useQuery({
+    queryKey: ["company-territory-governance-queue"],
+    queryFn: () => companiesApi.getTerritoryGovernanceQueue(),
+    enabled: canManageTerritories,
   });
 
   const companies = companiesData?.content || [];
   const totalElements = companiesData?.totalElements || 0;
   const totalPages = Math.ceil(totalElements / pageSize);
 
-  // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: Partial<Company>) => companiesApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
       setIsFormOpen(false);
-      showToast('Company created successfully', 'success');
+      showToast("Company created successfully", "success");
     },
     onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to create company', 'error');
+      showToast(error.response?.data?.message || "Failed to create company", "error");
     },
   });
 
-  // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Company> }) => 
-      companiesApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<Company> }) => companiesApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
       setIsFormOpen(false);
-      showToast('Company updated successfully', 'success');
+      showToast("Company updated successfully", "success");
     },
     onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to update company', 'error');
+      showToast(error.response?.data?.message || "Failed to update company", "error");
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => companiesApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
       setIsDeleteModalOpen(false);
-      showToast('Company deleted successfully', 'success');
+      showToast("Company deleted successfully", "success");
     },
     onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to delete company', 'error');
+      showToast(error.response?.data?.message || "Failed to delete company", "error");
+    },
+  });
+
+  const reassignGovernanceMutation = useMutation({
+    mutationFn: (companyIds?: string[]) => companiesApi.reassignTerritoryMismatches(companyIds),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      queryClient.invalidateQueries({ queryKey: ["company-territory-governance-queue"] });
+      showToast(
+        `Reassigned ${result.reassignedCompanies} account${result.reassignedCompanies === 1 ? "" : "s"} and aligned ${result.alignedDeals} deal${result.alignedDeals === 1 ? "" : "s"}.`,
+        "success"
+      );
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || "Failed to reassign accounts", "error");
     },
   });
 
   const filteredCompanies = companies.filter((company) => {
-    const matchesFilter = filter === "all" || (company as any).status === filter;
-    return matchesFilter;
+    return filter === "all" || company.status?.toLowerCase() === filter;
   });
 
-  // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(0);
   }, [searchQuery, filter]);
 
   const statusCounts = {
     all: totalElements,
-    active: companies.filter((c: any) => c.status === "active").length,
-    prospect: companies.filter((c: any) => c.status === "prospect").length,
-    inactive: companies.filter((c: any) => c.status === "inactive").length,
+    active: companies.filter((company) => company.status === "ACTIVE").length,
+    prospect: companies.filter((company) => company.status === "PROSPECT").length,
+    inactive: companies.filter((company) => company.status === "INACTIVE").length,
   };
 
   return (
     <PageLayout>
-      {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-semibold text-foreground">Companies</h1>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => {
-                  exportToCSV(filteredCompanies, [
-                    { header: 'Name', accessor: 'name' },
-                    { header: 'Industry', accessor: 'industry' },
-                    { header: 'Website', accessor: 'website' },
-                    { header: 'Phone', accessor: 'phone' },
-                    { header: 'City', accessor: 'city' },
-                    { header: 'Country', accessor: 'country' },
-                    { header: 'Employees', accessor: (c: any) => c.employees || '' },
-                    { header: 'Revenue', accessor: (c: any) => c.annualRevenue || c.revenue || '' },
-                    { header: 'Created At', accessor: (c: any) => c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '' },
-                  ], 'companies');
-                  showToast(`Exported ${filteredCompanies.length} companies to CSV`, 'success');
+                  exportToCSV(
+                    filteredCompanies,
+                    [
+                      { header: "Name", accessor: "name" },
+                      { header: "Parent Account", accessor: (company: Company) => company.parentCompanyName || "" },
+                      { header: "Industry", accessor: "industry" },
+                      { header: "Website", accessor: "website" },
+                      { header: "Phone", accessor: "phone" },
+                      { header: "City", accessor: "city" },
+                      { header: "Country", accessor: "country" },
+                      { header: "Territory", accessor: (company: Company) => company.territory || "" },
+                      { header: "Owner Territory", accessor: (company: Company) => company.ownerTerritory || "" },
+                      { header: "Contacts", accessor: (company: Company) => company.contactCount || 0 },
+                      { header: "Subsidiaries", accessor: (company: Company) => company.childCompanyCount || 0 },
+                      { header: "Created At", accessor: (company: Company) => company.createdAt ? new Date(company.createdAt).toLocaleDateString() : "" },
+                    ],
+                    "companies"
+                  );
+                  showToast(`Exported ${filteredCompanies.length} companies to CSV`, "success");
                 }}
                 className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
               >
                 <Icons.Download size={16} />
                 Export
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setSelectedCompany(null);
                   setIsFormOpen(true);
@@ -136,7 +192,25 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Total Accounts</p>
+              <p className="text-xl font-semibold text-foreground">{totalElements}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Prospects</p>
+              <p className="text-xl font-semibold text-foreground">{statusCounts.prospect}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Top-Level Accounts</p>
+              <p className="text-xl font-semibold text-foreground">{companies.filter((company) => !company.parentCompanyId).length}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-xs text-muted-foreground">Subsidiaries</p>
+              <p className="text-xl font-semibold text-foreground">{companies.filter((company) => company.parentCompanyId).length}</p>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
@@ -172,7 +246,6 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          {/* Status Tabs */}
           <div className="flex gap-1 border-b border-border -mb-px">
             {(["all", "active", "prospect", "inactive"] as const).map((status) => (
               <button
@@ -180,9 +253,7 @@ export default function CompaniesPage() {
                 onClick={() => setFilter(status)}
                 className={cn(
                   "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize",
-                  filter === status
-                    ? "text-primary border-primary"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
+                  filter === status ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"
                 )}
               >
                 {status === "all" ? "All Companies" : status}
@@ -195,21 +266,90 @@ export default function CompaniesPage() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-6">
+        {canManageTerritories && (
+          <div className="mb-6 rounded-lg border border-border bg-card p-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Account Territory Governance</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Review account owner mismatches and realign workspace coverage before they distort pipeline execution.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground">
+                  {governanceQueue?.mismatchCount ?? 0} mismatched
+                </div>
+                <button
+                  onClick={() => reassignGovernanceMutation.mutate(undefined)}
+                  disabled={!governanceQueue?.companies?.length || reassignGovernanceMutation.isPending}
+                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Icons.ArrowRight size={16} />
+                  Auto-Reassign Accounts
+                </button>
+              </div>
+            </div>
+
+            {isGovernanceLoading ? (
+              <p className="text-sm text-muted-foreground">Loading governance queue...</p>
+            ) : governanceQueue?.companies?.length ? (
+              <div className="space-y-3">
+                {governanceQueue.companies.slice(0, 5).map((item) => (
+                  <div key={item.companyId} className="rounded-lg border border-border bg-background p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">{item.companyName}</p>
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                            Needs reassignment
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {item.territory || "No territory"} · owner {item.currentOwnerName || "Unassigned"} ({item.currentOwnerTerritory || "No owner territory"})
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.activeDealCount} active deals · {item.territoryMismatchDealCount} mismatched deals · {item.overdueTaskCount} overdue tasks
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-foreground">
+                          Suggested: {item.suggestedOwnerName || "No better owner found"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.suggestedOwnerTerritory || "No governed match"}
+                        </p>
+                        <button
+                          onClick={() => reassignGovernanceMutation.mutate([item.companyId])}
+                          disabled={!item.suggestedOwnerId || reassignGovernanceMutation.isPending}
+                          className="mt-3 px-3 py-1.5 text-sm border border-border rounded hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Reassign Account
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                Account coverage is aligned with the current territory model.
+              </div>
+            )}
+          </div>
+        )}
+
         {viewMode === "table" ? (
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    <input type="checkbox" className="rounded" />
-                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Company</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Industry</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Territory</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Contacts</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Deals</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Hierarchy</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
@@ -218,51 +358,76 @@ export default function CompaniesPage() {
                 {filteredCompanies.map((company) => (
                   <tr key={company.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-4">
-                      <input type="checkbox" className="rounded" />
-                    </td>
-                    <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
                           <Icons.Building2 size={18} className="text-primary" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{company.name}</p>
-                          <p className="text-xs text-muted-foreground">{company.website}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : "Top-level account"}
+                          </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm">{company.industry}</td>
+                    <td className="px-4 py-4 text-sm">{company.industry || "N/A"}</td>
                     <td className="px-4 py-4 text-sm text-muted-foreground">
-                      {company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || 'N/A'}
+                      {company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || "N/A"}
                     </td>
-                    <td className="px-4 py-4 text-sm">{(company as any).contactCount || 0}</td>
-                    <td className="px-4 py-4 text-sm">{(company as any).dealCount || 0}</td>
+                    <td className="px-4 py-4 text-sm">
+                      <div className="text-foreground">{company.territory || company.country || "N/A"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {company.ownerTerritory ? `Owner ${company.ownerTerritory}` : "Owner territory unavailable"}
+                      </div>
+                      {company.territoryMismatch && (
+                        <span className="mt-1 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                          Needs reassignment
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-sm">{company.contactCount || 0}</td>
+                    <td className="px-4 py-4 text-sm">
+                      <div>{company.dealCount || 0} deals</div>
+                      <div className="text-xs text-muted-foreground">{company.childCompanyCount || 0} subsidiaries</div>
+                    </td>
                     <td className="px-4 py-4">
-                      <span className={cn(
-                        "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
-                        statusColors[(company as any).status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
-                      )}>
-                        {(company as any).status || 'N/A'}
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
+                          statusColors[(company.status || "ACTIVE").toLowerCase() as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
+                        )}
+                      >
+                        {company.status ? `${company.status.charAt(0)}${company.status.slice(1).toLowerCase()}` : "N/A"}
                       </span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1">
-                        <button 
+                        <button
+                          onClick={() => {
+                            setSelectedCompany(company);
+                            setIsInsightsOpen(true);
+                          }}
+                          className="p-1.5 hover:bg-muted rounded transition-colors"
+                          title="Account intelligence"
+                        >
+                          <Icons.Activity size={16} className="text-muted-foreground" />
+                        </button>
+                        <button
                           onClick={() => {
                             setSelectedCompany(company);
                             setIsFormOpen(true);
                           }}
-                          className="p-1.5 hover:bg-muted rounded transition-colors" 
+                          className="p-1.5 hover:bg-muted rounded transition-colors"
                           title="Edit"
                         >
                           <Icons.Edit size={16} className="text-muted-foreground" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setSelectedCompany(company);
                             setIsDeleteModalOpen(true);
                           }}
-                          className="p-1.5 hover:bg-muted rounded transition-colors" 
+                          className="p-1.5 hover:bg-muted rounded transition-colors"
                           title="Delete"
                         >
                           <Icons.Trash size={16} className="text-muted-foreground" />
@@ -285,46 +450,70 @@ export default function CompaniesPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">{company.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{company.industry}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : company.industry || "Top-level account"}
+                      </p>
                     </div>
                   </div>
-                  <span className={cn(
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border capitalize",
-                    statusColors[(company as any).status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
-                  )}>
-                    {(company as any).status || 'N/A'}
+                  <span
+                    className={cn(
+                      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border capitalize",
+                      statusColors[(company.status || "ACTIVE").toLowerCase() as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
+                    )}
+                  >
+                    {company.status ? `${company.status.charAt(0)}${company.status.slice(1).toLowerCase()}` : "N/A"}
                   </span>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Icons.Phone size={14} />
-                    <span>{company.phone || 'N/A'}</span>
+                    <span>{company.phone || "N/A"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Icons.Mail size={14} />
-                    <span>{company.website || 'N/A'}</span>
+                    <span>{company.email || company.website || "N/A"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Icons.Building2 size={14} />
-                    <span>{company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || 'N/A'}</span>
+                    <span>{company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || "N/A"}</span>
                   </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Icons.Target size={14} />
+                    <span>{company.territory || company.country || "No territory set"}</span>
+                  </div>
+                  {company.territoryMismatch && (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-700">
+                      Account territory does not match the current owner coverage.
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Revenue</p>
-                    <p className="text-sm font-semibold">{(company as any).revenue || 'N/A'}</p>
+                    <p className="text-sm font-semibold">{company.revenue ? `$${Number(company.revenue).toLocaleString()}` : "N/A"}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Contacts</p>
-                    <p className="text-sm font-semibold">{(company as any).contacts || 0}</p>
+                    <p className="text-sm font-semibold">{company.contactCount || 0}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Deals</p>
-                    <p className="text-sm font-semibold">{(company as any).deals || 0}</p>
+                    <p className="text-xs text-muted-foreground">Subsidiaries</p>
+                    <p className="text-sm font-semibold">{company.childCompanyCount || 0}</p>
                   </div>
                 </div>
+
+                <button
+                  onClick={() => {
+                    setSelectedCompany(company);
+                    setIsInsightsOpen(true);
+                  }}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded border border-border px-3 py-2 text-sm hover:bg-secondary transition-colors"
+                >
+                  <Icons.Activity size={16} />
+                  View Account Intelligence
+                </button>
               </div>
             ))}
           </div>
@@ -343,13 +532,12 @@ export default function CompaniesPage() {
         )}
       </div>
 
-      {/* Footer Pagination */}
       <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
         <div className="text-sm text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} companies
         </div>
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
@@ -371,16 +559,14 @@ export default function CompaniesPage() {
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
                   "px-3 py-1.5 text-sm rounded transition-colors",
-                  currentPage === pageNum
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border hover:bg-secondary"
+                  currentPage === pageNum ? "bg-primary text-primary-foreground" : "border border-border hover:bg-secondary"
                 )}
               >
                 {pageNum + 1}
               </button>
             );
           })}
-          <button 
+          <button
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
@@ -393,7 +579,6 @@ export default function CompaniesPage() {
         </div>
       </div>
 
-      {/* Create/Edit Company Form Modal */}
       <CompanyForm
         isOpen={isFormOpen}
         onClose={() => {
@@ -401,16 +586,16 @@ export default function CompaniesPage() {
           setSelectedCompany(null);
         }}
         onSubmit={(data) => {
+          const payload = mapCompanyFormData(data);
           if (selectedCompany?.id) {
-            updateMutation.mutate({ id: selectedCompany.id, data: data as any });
+            updateMutation.mutate({ id: selectedCompany.id, data: payload });
           } else {
-            createMutation.mutate(data as any);
+            createMutation.mutate(payload);
           }
         }}
-        initialData={selectedCompany ? { ...selectedCompany, revenue: selectedCompany.revenue?.toString() } as any : undefined}
+        initialData={selectedCompany ? ({ ...selectedCompany, zip: selectedCompany.postalCode } as any) : undefined}
       />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => {
@@ -419,21 +604,21 @@ export default function CompaniesPage() {
         }}
         onConfirm={() => {
           if (selectedCompany?.id) {
-            deleteMutation.mutate(selectedCompany.id, {
-              onSuccess: () => {
-                showToast(`Company "${selectedCompany.name}" deleted successfully`, "success");
-                setIsDeleteModalOpen(false);
-                setSelectedCompany(null);
-              },
-              onError: () => {
-                showToast("Failed to delete company", "error");
-              }
-            });
+            deleteMutation.mutate(selectedCompany.id);
           }
         }}
         title="Delete Company"
         message={`Are you sure you want to delete "${selectedCompany?.name}"? This action cannot be undone.`}
         variant="danger"
+      />
+
+      <AccountInsightsModal
+        company={isInsightsOpen ? selectedCompany : null}
+        isOpen={isInsightsOpen}
+        onClose={() => {
+          setIsInsightsOpen(false);
+          setSelectedCompany(null);
+        }}
       />
     </PageLayout>
   );

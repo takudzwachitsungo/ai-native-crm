@@ -27,6 +27,7 @@ public class LeadResponseDTO {
     private String phone;
     private String company;
     private String title;
+    private String territory;
     private LeadSource source;
     private LeadStatus status;
     private Integer score;
@@ -36,6 +37,8 @@ public class LeadResponseDTO {
     private LocalDate lastContactDate;
     private UUID ownerId;
     private String ownerName;
+    private String ownerTerritory;
+    private Boolean territoryMismatch;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UUID createdBy;

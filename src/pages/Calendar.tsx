@@ -30,8 +30,6 @@ interface DayEvents {
 const eventTypeColors = {
   MEETING: "bg-blue-50 text-blue-700 border-blue-200",
   CALL: "bg-green-50 text-green-700 border-green-200",
-  EMAIL: "bg-purple-50 text-purple-700 border-purple-200",
-  DEADLINE: "bg-yellow-50 text-yellow-700 border-yellow-200",
   OTHER: "bg-gray-50 text-gray-700 border-gray-200",
   DEMO: "bg-indigo-50 text-indigo-700 border-indigo-200",
   FOLLOW_UP: "bg-orange-50 text-orange-700 border-orange-200",
@@ -52,7 +50,7 @@ export default function CalendarPage() {
   const queryClient = useQueryClient();
 
   // Fetch events from backend
-  const { data: eventsData, isLoading } = useQuery({
+  const { data: eventsData } = useQuery({
     queryKey: ['events'],
     queryFn: () => eventsApi.getAll({ page: 0, size: 1000 }),
   });
@@ -184,8 +182,6 @@ export default function CalendarPage() {
     all: allEvents.length,
     MEETING: allEvents.filter(e => e.type === "MEETING").length,
     CALL: allEvents.filter(e => e.type === "CALL").length,
-    EMAIL: allEvents.filter(e => e.type === "EMAIL").length,
-    DEADLINE: allEvents.filter(e => e.type === "DEADLINE").length,
     OTHER: allEvents.filter(e => e.type === "OTHER").length,
   };
 

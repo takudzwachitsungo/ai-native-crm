@@ -2,6 +2,8 @@ package com.crm.controller;
 
 import com.crm.dto.request.DocumentFilterDTO;
 import com.crm.dto.request.DocumentRequestDTO;
+import com.crm.dto.request.DocumentUploadRequestDTO;
+import com.crm.dto.response.DocumentDownloadDTO;
 import com.crm.dto.response.DocumentResponseDTO;
 import com.crm.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,10 +15,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.nio.charset.StandardCharsets;
 
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +58,13 @@ public class DocumentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(documentService.create(request));
     }
 
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload document", description = "Upload a document file and create its metadata record")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    public ResponseEntity<DocumentResponseDTO> uploadDocument(@Valid @ModelAttribute DocumentUploadRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(documentService.upload(request));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "Update document", description = "Update an existing document")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
@@ -76,6 +89,30 @@ public class DocumentController {
     public ResponseEntity<Void> bulkDeleteDocuments(@RequestBody List<UUID> ids) {
         documentService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/download")
+    @Operation(summary = "Download document", description = "Download a stored document file")
+    public ResponseEntity<org.springframework.core.io.Resource> downloadDocument(@PathVariable UUID id) {
+        DocumentDownloadDTO download = documentService.download(id);
+        MediaType mediaType;
+        try {
+            mediaType = MediaType.parseMediaType(download.getContentType());
+        } catch (Exception ex) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .contentLength(download.getContentLength())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        org.springframework.http.ContentDisposition.attachment()
+                                .filename(download.getFilename(), StandardCharsets.UTF_8)
+                                .build()
+                                .toString()
+                )
+                .body(download.getResource());
     }
 
     @GetMapping("/related")

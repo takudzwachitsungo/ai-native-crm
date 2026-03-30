@@ -3,6 +3,8 @@ package com.crm.service.impl;
 import com.crm.config.TenantContext;
 import com.crm.dto.request.DocumentFilterDTO;
 import com.crm.dto.request.DocumentRequestDTO;
+import com.crm.dto.request.DocumentUploadRequestDTO;
+import com.crm.dto.response.DocumentDownloadDTO;
 import com.crm.dto.response.DocumentResponseDTO;
 import com.crm.entity.Document;
 import com.crm.entity.User;
@@ -12,6 +14,7 @@ import com.crm.mapper.DocumentMapper;
 import com.crm.repository.DocumentRepository;
 import com.crm.repository.UserRepository;
 import com.crm.service.DocumentService;
+import com.crm.service.DocumentStorageService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +23,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +41,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final DocumentMapper documentMapper;
+    private final DocumentStorageService documentStorageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -99,18 +105,37 @@ public class DocumentServiceImpl implements DocumentService {
         
         Document document = documentMapper.toEntity(request);
         document.setTenantId(tenantId);
-        
-        // Set uploaded by user if provided
-        if (request.getUploadedById() != null) {
-            User user = userRepository.findById(request.getUploadedById())
-                    .filter(u -> u.getTenantId().equals(tenantId) && u.getIsActive())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", request.getUploadedById()));
-            document.setUploadedBy(request.getUploadedById());
-        }
-        
-        document = documentRepository.save(document);
+        document.setUploadedBy(resolveUploadedById(tenantId, request.getUploadedById()));
+
+        document = saveDocument(document);
         log.info("Created document: {} for tenant: {}", document.getId(), tenantId);
         
+        return documentMapper.toDto(document);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "documents", allEntries = true)
+    public DocumentResponseDTO upload(DocumentUploadRequestDTO request) {
+        UUID tenantId = TenantContext.getTenantId();
+        String storedPath = documentStorageService.store(tenantId, request.getFile());
+
+        Document document = Document.builder()
+                .name(request.getName().trim())
+                .description(request.getDescription())
+                .category(request.getCategory())
+                .filePath(storedPath)
+                .fileType(resolveFileType(request))
+                .fileSize(String.valueOf(request.getFile().getSize()))
+                .relatedEntityType(normalizeBlank(request.getRelatedEntityType()))
+                .relatedEntityId(request.getRelatedEntityId())
+                .uploadedBy(resolveUploadedById(tenantId, request.getUploadedById()))
+                .build();
+        document.setTenantId(tenantId);
+
+        document = saveDocument(document);
+        log.info("Uploaded document: {} for tenant: {}", document.getId(), tenantId);
+
         return documentMapper.toDto(document);
     }
 
@@ -124,20 +149,24 @@ public class DocumentServiceImpl implements DocumentService {
                 .filter(d -> d.getTenantId().equals(tenantId) && !d.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Document", id));
         
-        // Update uploaded by user if changed
         if (request.getUploadedById() != null && !request.getUploadedById().equals(document.getUploadedBy())) {
-            User user = userRepository.findById(request.getUploadedById())
-                    .filter(u -> u.getTenantId().equals(tenantId) && u.getIsActive())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", request.getUploadedById()));
-            document.setUploadedBy(request.getUploadedById());
+            document.setUploadedBy(resolveUploadedById(tenantId, request.getUploadedById()));
         }
         
         documentMapper.updateEntity(request, document);
-        document = documentRepository.save(document);
+        document = saveDocument(document);
         
         log.info("Updated document: {} for tenant: {}", id, tenantId);
         
         return documentMapper.toDto(document);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentDownloadDTO download(UUID id) {
+        Document document = getActiveDocument(id);
+        UUID tenantId = TenantContext.getTenantId();
+        return documentStorageService.load(tenantId, document.getFilePath(), document.getName(), document.getFileType());
     }
 
     @Override
@@ -186,5 +215,79 @@ public class DocumentServiceImpl implements DocumentService {
         return documents.stream()
                 .map(documentMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    private Document getActiveDocument(UUID id) {
+        UUID tenantId = TenantContext.getTenantId();
+        return documentRepository.findById(id)
+                .filter(d -> d.getTenantId().equals(tenantId) && !d.getArchived())
+                .orElseThrow(() -> new ResourceNotFoundException("Document", id));
+    }
+
+    private UUID resolveUploadedById(UUID tenantId, UUID uploadedById) {
+        UUID candidateId = uploadedById != null ? uploadedById : getCurrentUserId();
+        if (candidateId == null) {
+            return null;
+        }
+
+        userRepository.findById(candidateId)
+                .filter(user -> user.getTenantId().equals(tenantId) && user.getIsActive())
+                .orElseThrow(() -> new ResourceNotFoundException("User", candidateId));
+
+        return candidateId;
+    }
+
+    private UUID getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            return null;
+        }
+        return user.getId();
+    }
+
+    private String resolveFileType(DocumentUploadRequestDTO request) {
+        String contentType = request.getFile().getContentType();
+        if (contentType != null && !contentType.isBlank()) {
+            return contentType;
+        }
+
+        String originalFilename = request.getFile().getOriginalFilename();
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            return "application/octet-stream";
+        }
+
+        return originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private String normalizeBlank(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
+    }
+
+    private Document saveDocument(Document document) {
+        Document savedDocument = documentRepository.save(document);
+        String expectedFileUrl = shouldExposeManagedDownload(savedDocument.getFilePath())
+                ? buildDownloadUrl(savedDocument.getId())
+                : null;
+        if ((expectedFileUrl == null && savedDocument.getFileUrl() != null)
+                || (expectedFileUrl != null && !expectedFileUrl.equals(savedDocument.getFileUrl()))) {
+            savedDocument.setFileUrl(expectedFileUrl);
+            savedDocument = documentRepository.save(savedDocument);
+        }
+        return savedDocument;
+    }
+
+    private String buildDownloadUrl(UUID documentId) {
+        return "/api/v1/documents/" + documentId + "/download";
+    }
+
+    private boolean shouldExposeManagedDownload(String filePath) {
+        return filePath != null
+                && !filePath.isBlank()
+                && !filePath.startsWith("/")
+                && !filePath.contains("://");
     }
 }

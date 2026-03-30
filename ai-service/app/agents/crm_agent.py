@@ -26,6 +26,8 @@ class AgentState(TypedDict, total=False):
     tool_results: List[Dict[str, Any]]
     final_response: str
     sources: List[Dict[str, Any]]
+    degraded_mode: bool
+    degraded_reason: Optional[str]
 
 
 class CRMAgent:
@@ -54,6 +56,22 @@ class CRMAgent:
         self.workflow = self._build_workflow()
         
         logger.info("CRM Agent initialized successfully")
+
+    @staticmethod
+    def _is_llm_unavailable_error(error: Exception) -> bool:
+        """Detect provider/network failures that should trigger deterministic fallbacks."""
+        message = str(error).lower()
+        return any(
+            marker in message
+            for marker in ["access denied", "permissiondenied", "403", "network settings"]
+        )
+
+    @staticmethod
+    def _format_currency(value: Any) -> str:
+        try:
+            return f"${float(value or 0):,.0f}"
+        except (TypeError, ValueError):
+            return "$0"
     
     def _build_workflow(self) -> StateGraph:
         """Build LangGraph workflow for agent"""
@@ -107,7 +125,9 @@ class CRMAgent:
             tool_calls=[],
             tool_results=[],
             final_response="",
-            sources=[]
+            sources=[],
+            degraded_mode=False,
+            degraded_reason=None,
         )
         
         # Run workflow
@@ -116,7 +136,9 @@ class CRMAgent:
         return {
             "message": final_state["final_response"],
             "tool_calls": final_state["tool_calls"],
-            "sources": final_state["sources"]
+            "sources": final_state["sources"],
+            "degraded_mode": final_state.get("degraded_mode", False),
+            "degraded_reason": final_state.get("degraded_reason"),
         }
     
     def _get_tool_display_name(self, tool_name: str, query: str = "") -> str:
@@ -163,7 +185,9 @@ class CRMAgent:
             tool_calls=[],
             tool_results=[],
             final_response="",
-            sources=[]
+            sources=[],
+            degraded_mode=False,
+            degraded_reason=None,
         )
         
         # Run understanding step
@@ -218,7 +242,9 @@ class CRMAgent:
             "type": "done",
             "message": response_text,
             "tool_calls": state["tool_calls"],
-            "sources": state["sources"]
+            "sources": state["sources"],
+            "degraded_mode": state.get("degraded_mode", False),
+            "degraded_reason": state.get("degraded_reason"),
         }
     
     async def _understand_intent(self, state: AgentState) -> AgentState:
@@ -246,8 +272,15 @@ Keep it brief and natural - you're chatting with a colleague, not writing docume
             HumanMessage(content=f"Query: {state['query']}")
         ]
         
-        response = await self.llm.ainvoke(messages)
-        state["thought"] = response.content
+        try:
+            response = await self.llm.ainvoke(messages)
+            state["thought"] = response.content
+        except Exception as error:
+            if self._is_llm_unavailable_error(error):
+                logger.warning("LLM unavailable during intent understanding, using rule-based routing")
+                state["thought"] = "Using fallback routing because the LLM provider is unavailable."
+            else:
+                raise
         
         return state
     
@@ -550,6 +583,105 @@ Keep it brief and natural - you're chatting with a colleague, not writing docume
         
         # Default: just count
         return f"{count} {data_type}"
+
+    def _build_direct_fallback_response(self, query: str) -> str:
+        """Return a deterministic response when the LLM is unavailable."""
+        query_lower = query.lower().strip()
+
+        if any(greeting in query_lower for greeting in ["hi", "hello", "hey"]):
+            return "Hi! I can help with CRM data like leads, deals, contacts, tasks, forecasts, and reports."
+
+        if any(word in query_lower for word in ["help", "what can you do"]):
+            return (
+                "I can summarize CRM data, look up leads, deals, contacts, tasks, documents, "
+                "emails, quotes, invoices, and give simple pipeline overviews from live data."
+            )
+
+        return (
+            "I couldn't reach the AI provider just now, but CRM data tools are still available. "
+            "Ask about leads, deals, contacts, tasks, documents, or pipeline performance and I can answer from live records."
+        )
+
+    def _build_tool_fallback_response(self, state: AgentState) -> str:
+        """Build a useful deterministic response from tool results without the LLM."""
+        if not state.get("tool_results"):
+            return self._build_direct_fallback_response(state.get("query", ""))
+
+        lines: List[str] = []
+        query_lower = state.get("query", "").lower()
+
+        for result in state["tool_results"]:
+            tool_name = result.get("tool", "")
+            data = result.get("results")
+
+            if tool_name == "get_dashboard_stats" and isinstance(data, dict):
+                total_leads = data.get("totalLeads", data.get("leads", 0))
+                total_deals = data.get("totalDeals", data.get("deals", 0))
+                pipeline_value = data.get("pipelineValue", data.get("totalPipelineValue", 0))
+                lines.append(
+                    f"Dashboard snapshot: {total_leads} leads, {total_deals} deals, pipeline value {self._format_currency(pipeline_value)}."
+                )
+                continue
+
+            if tool_name == "global_search" and isinstance(data, dict):
+                counts = [
+                    f"{entity}: {len(items)}"
+                    for entity, items in data.items()
+                    if isinstance(items, list) and items
+                ]
+                if counts:
+                    lines.append("I found matching records across " + ", ".join(counts) + ".")
+                else:
+                    lines.append("I couldn't find matching CRM records for that search.")
+                continue
+
+            if not isinstance(data, list):
+                continue
+
+            if tool_name == "search_deals":
+                total_value = sum(float(deal.get("value", 0) or 0) for deal in data)
+                stage_counts: Dict[str, int] = {}
+                for deal in data:
+                    stage = deal.get("stage", "UNKNOWN")
+                    stage_counts[stage] = stage_counts.get(stage, 0) + 1
+                stage_summary = ", ".join(f"{stage}: {count}" for stage, count in sorted(stage_counts.items()))
+                lines.append(
+                    f"I found {len(data)} deals worth {self._format_currency(total_value)} in total."
+                    + (f" Stage mix: {stage_summary}." if stage_summary else "")
+                )
+                continue
+
+            if tool_name == "search_leads":
+                status_counts: Dict[str, int] = {}
+                for lead in data:
+                    status = lead.get("status", "UNKNOWN")
+                    status_counts[status] = status_counts.get(status, 0) + 1
+                status_summary = ", ".join(f"{status}: {count}" for status, count in sorted(status_counts.items()))
+                lines.append(
+                    f"I found {len(data)} leads."
+                    + (f" By status: {status_summary}." if status_summary else "")
+                )
+                continue
+
+            if tool_name == "search_contacts":
+                lines.append(f"I found {len(data)} contacts.")
+                continue
+
+            if tool_name == "get_companies":
+                lines.append(f"I found {len(data)} companies.")
+                continue
+
+            if tool_name.startswith("search_"):
+                entity = tool_name.replace("search_", "").replace("_", " ")
+                lines.append(f"I found {len(data)} {entity}.")
+
+        if not lines:
+            return self._build_direct_fallback_response(state.get("query", ""))
+
+        if "forecast" in query_lower or "pipeline" in query_lower:
+            lines.append("The AI provider is currently unavailable, so this summary is based on live CRM records and rule-based calculations.")
+
+        return "\n".join(lines)
     
     async def _synthesize_response(self, state: AgentState) -> AgentState:
         """Synthesize final response from tool results and RAG sources"""
@@ -571,6 +703,12 @@ Keep it brief and natural - you're chatting with a colleague, not writing docume
                     summary = self._summarize_data(data, 'leads')
                 elif 'contact' in tool_name:
                     summary = self._summarize_data(data, 'contacts')
+                elif tool_name == 'global_search' and isinstance(data, dict):
+                    parts = []
+                    for entity_name, entity_results in data.items():
+                        if isinstance(entity_results, list) and entity_results:
+                            parts.append(f"{entity_name}: {len(entity_results)}")
+                    summary = ", ".join(parts) if parts else "No matching CRM records found"
                 else:
                     # For other types, limit to first 20 items
                     summary = f"{len(data) if isinstance(data, list) else 1} items"
@@ -655,8 +793,17 @@ ALWAYS:
             HumanMessage(content=f"Context:\n{context_str}\n\nUser asked: {state['query']}\n\nRespond naturally:")
         ]
         
-        response = await self.llm.ainvoke(messages)
-        state["final_response"] = response.content
+        try:
+            response = await self.llm.ainvoke(messages)
+            state["final_response"] = response.content
+        except Exception as error:
+            if self._is_llm_unavailable_error(error):
+                logger.warning("LLM unavailable during response synthesis, using deterministic fallback")
+                state["final_response"] = self._build_tool_fallback_response(state)
+                state["degraded_mode"] = True
+                state["degraded_reason"] = "AI provider unavailable; showing live CRM results with rule-based summaries."
+            else:
+                raise
         
         return state
     

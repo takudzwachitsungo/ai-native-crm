@@ -33,6 +33,9 @@ public class Lead extends AbstractEntity {
 
     private String title;
 
+    @Column(length = 120)
+    private String territory;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
     private LeadSource source;

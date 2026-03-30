@@ -10,21 +10,22 @@ import com.crm.entity.enums.TenantTier;
 import com.crm.entity.enums.UserRole;
 import com.crm.exception.DuplicateResourceException;
 import com.crm.exception.UnauthorizedException;
+import com.crm.config.TenantContext;
 import com.crm.repository.TenantRepository;
 import com.crm.repository.UserRepository;
 import com.crm.security.JwtTokenProvider;
 import com.crm.service.AuthService;
+import com.crm.service.TenantProvisioningService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final AuthenticationManager authenticationManager;
+    private final TenantProvisioningService tenantProvisioningService;
     
     @Value("${security.jwt.access-token-expiration}")
     private long accessTokenExpiration;
@@ -43,14 +44,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // Check if user already exists
-        if (userRepository.existsByEmailAndArchivedFalse(request.getEmail())) {
-            throw new DuplicateResourceException("User", "email", request.getEmail());
-        }
-
         // Create tenant
         Tenant tenant = new Tenant();
         tenant.setName(request.getCompanyName());
+        tenant.setSlug(resolveUniqueWorkspaceSlug(request.getWorkspaceSlug(), request.getCompanyName()));
         tenant.setTier(request.getTier() != null ? request.getTier() : TenantTier.FREE);
         tenant.setRateLimitPerMinute(getRateLimitForTier(tenant.getTier()));
         tenant.setIsActive(true);
@@ -68,59 +65,50 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(UserRole.ADMIN);
         user.setIsActive(true);
         user = userRepository.save(user);
+
+        tenantProvisioningService.provisionTenantDatabase(tenant, user);
+        tenant = tenantRepository.save(tenant);
         
         log.info("Created new admin user: {} for tenant: {}", user.getEmail(), tenant.getName());
 
         // Generate tokens
         String accessToken = jwtTokenProvider.generateAccessToken(user, tenant.getId(), user.getId());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId());
 
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(accessTokenExpiration)
-                .userId(user.getId())
-                .tenantId(tenant.getId())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole().name())
-                .build();
+        return buildAuthResponse(user, tenant, accessToken, refreshToken);
     }
 
     @Override
     @Transactional
     public AuthResponse login(LoginRequest request) {
-        // Authenticate user
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        Tenant tenant = resolveTenantForLogin(request);
+        TenantContext.setTenantId(tenant.getId());
+        try {
+            User user = userRepository.findByTenantIdAndEmailAndArchivedFalse(tenant.getId(), request.getEmail())
+                    .orElseThrow(() -> new UnauthorizedException("Invalid workspace, email, or password"));
 
-        User user = (User) authentication.getPrincipal();
-        
-        // Update last login time
-        user.setLastLoginAt(LocalDateTime.now());
-        userRepository.save(user);
-        
-        log.info("User logged in: {} from tenant: {}", user.getEmail(), user.getTenantId());
+            if (!user.getIsActive() || user.getArchived()) {
+                throw new UnauthorizedException("User account is inactive");
+            }
 
-        // Generate tokens
-        String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId());
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                throw new UnauthorizedException("Invalid workspace, email, or password");
+            }
+            
+            // Update last login time
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+            
+            log.info("User logged in: {} from tenant: {}", user.getEmail(), user.getTenantId());
 
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(accessTokenExpiration)
-                .userId(user.getId())
-                .tenantId(user.getTenantId())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole().name())
-                .build();
+            // Generate tokens
+            String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId());
+
+            return buildAuthResponse(user, tenant, accessToken, refreshToken);
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     @Override
@@ -128,10 +116,18 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         try {
             String refreshToken = request.getRefreshToken();
-            String userEmail = jwtTokenProvider.extractUsername(refreshToken);
+            java.util.UUID userId = jwtTokenProvider.extractUserId(refreshToken);
+            java.util.UUID tenantId = jwtTokenProvider.extractTenantId(refreshToken);
 
-            User user = userRepository.findByEmailAndArchivedFalse(userEmail)
+            if (tenantId == null) {
+                throw new UnauthorizedException("Refresh token missing tenant context");
+            }
+
+            TenantContext.setTenantId(tenantId);
+            User user = userRepository.findByIdAndTenantIdAndArchivedFalse(userId, tenantId)
                     .orElseThrow(() -> new UnauthorizedException("User not found"));
+            Tenant tenant = tenantRepository.findByIdAndArchivedFalse(tenantId)
+                    .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
 
             if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
                 throw new UnauthorizedException("Invalid refresh token");
@@ -146,21 +142,12 @@ public class AuthServiceImpl implements AuthService {
             
             log.info("Token refreshed for user: {}", user.getEmail());
 
-            return AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .tokenType("Bearer")
-                    .expiresIn(accessTokenExpiration)
-                    .userId(user.getId())
-                    .tenantId(user.getTenantId())
-                    .email(user.getEmail())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .role(user.getRole().name())
-                    .build();
+            return buildAuthResponse(user, tenant, accessToken, refreshToken);
         } catch (Exception e) {
             log.error("Error refreshing token: {}", e.getMessage());
             throw new UnauthorizedException("Invalid refresh token");
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -170,5 +157,71 @@ public class AuthServiceImpl implements AuthService {
             case PRO -> 1000;
             case ENTERPRISE -> 10000;
         };
+    }
+
+    private AuthResponse buildAuthResponse(User user, Tenant tenant, String accessToken, String refreshToken) {
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(accessTokenExpiration)
+                .userId(user.getId())
+                .tenantId(tenant.getId())
+                .tenantName(tenant.getName())
+                .tenantSlug(tenant.getSlug())
+                .tenantTier(tenant.getTier().name())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    private Tenant resolveTenantForLogin(LoginRequest request) {
+        if (request.getWorkspaceSlug() != null && !request.getWorkspaceSlug().isBlank()) {
+            return tenantRepository.findBySlugAndArchivedFalse(normalizeWorkspaceSlug(request.getWorkspaceSlug()))
+                    .orElseThrow(() -> new UnauthorizedException("Workspace not found"));
+        }
+
+        List<User> matchingUsers = userRepository.findAllByEmailAndArchivedFalse(request.getEmail());
+        if (matchingUsers.isEmpty()) {
+            throw new UnauthorizedException("Invalid workspace, email, or password");
+        }
+
+        if (matchingUsers.size() > 1) {
+            throw new UnauthorizedException("Multiple workspaces matched this email. Please provide your workspace slug.");
+        }
+
+        return tenantRepository.findByIdAndArchivedFalse(matchingUsers.get(0).getTenantId())
+                .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
+    }
+
+    private String resolveUniqueWorkspaceSlug(String requestedSlug, String companyName) {
+        String baseSlug = normalizeWorkspaceSlug(
+                requestedSlug != null && !requestedSlug.isBlank() ? requestedSlug : companyName
+        );
+
+        String candidate = baseSlug;
+        int suffix = 2;
+        while (tenantRepository.existsBySlugAndArchivedFalse(candidate)) {
+            candidate = baseSlug + "-" + suffix;
+            suffix++;
+        }
+
+        return candidate;
+    }
+
+    private String normalizeWorkspaceSlug(String value) {
+        String normalized = value.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-+", "")
+                .replaceAll("-+$", "")
+                .replaceAll("-{2,}", "-");
+
+        if (normalized.isBlank()) {
+            throw new DuplicateResourceException("Tenant", "slug", value);
+        }
+
+        return normalized;
     }
 }

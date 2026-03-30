@@ -5,6 +5,10 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  toolCalls?: Array<Record<string, any>>;
+  sources?: Array<Record<string, any>>;
+  degradedMode?: boolean;
+  degradedReason?: string | null;
 }
 
 interface ChatStore {

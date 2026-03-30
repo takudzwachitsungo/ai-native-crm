@@ -21,6 +21,7 @@ public class DocumentResponseDTO {
     private String description;
     private DocumentCategory category;
     private String filePath;
+    private String fileUrl;
     private String fileType;
     private Long fileSize;
     private String relatedEntityType;

@@ -4,12 +4,15 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import { generateId } from '../lib/helpers';
 import { streamAgenticResponse, type Message as AIMessage } from '../lib/ai-api';
+import { AIDegradedNotice } from './AIDegradedNotice';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  degradedMode?: boolean;
+  degradedReason?: string | null;
 }
 
 interface DashboardChatProps {
@@ -24,6 +27,9 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
   const [currentTool, setCurrentTool] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const latestDegradedMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === 'assistant' && message.degradedMode);
 
   // Auto scroll to bottom when messages change
   useEffect(() => {
@@ -79,6 +85,8 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
             role: 'assistant',
             content: event.message || streamingMessage,
             timestamp: new Date(),
+            degradedMode: event.degraded_mode,
+            degradedReason: event.degraded_reason ?? null,
           };
           setMessages(prev => [...prev, assistantMessage]);
           setStreamingMessage('');
@@ -166,6 +174,12 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
 
           {/* Messages */}
           <div className="max-h-[500px] overflow-y-auto p-4 space-y-4">
+            {latestDegradedMessage && (
+              <AIDegradedNotice
+                compact
+                reason={latestDegradedMessage.degradedReason}
+              />
+            )}
             {messages.map((message) => (
               <div
                 key={message.id}
