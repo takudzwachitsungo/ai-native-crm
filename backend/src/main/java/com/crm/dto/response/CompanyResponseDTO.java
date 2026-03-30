@@ -31,12 +31,18 @@ public class CompanyResponseDTO {
     private String state;
     private String postalCode;
     private String country;
+    private String territory;
     private CompanyStatus status;
     private String notes;
     private UUID ownerId;
     private String ownerName;
+    private String ownerTerritory;
+    private Boolean territoryMismatch;
+    private UUID parentCompanyId;
+    private String parentCompanyName;
     private Long contactCount;
     private Long dealCount;
+    private Long childCompanyCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UUID createdBy;

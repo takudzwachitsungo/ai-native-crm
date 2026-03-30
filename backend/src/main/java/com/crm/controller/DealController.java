@@ -2,8 +2,14 @@ package com.crm.controller;
 
 import com.crm.dto.request.DealFilterDTO;
 import com.crm.dto.request.DealRequestDTO;
+import com.crm.dto.request.DealApprovalActionRequestDTO;
+import com.crm.dto.request.DealTerritoryReassignmentRequestDTO;
+import com.crm.dto.response.DealAttentionSummaryDTO;
+import com.crm.dto.response.DealAutomationResultDTO;
 import com.crm.dto.response.DealResponseDTO;
 import com.crm.dto.response.DealStatsDTO;
+import com.crm.dto.response.DealTerritoryQueueSummaryDTO;
+import com.crm.dto.response.DealTerritoryReassignmentResultDTO;
 import com.crm.entity.enums.DealStage;
 import com.crm.service.DealService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +47,7 @@ public class DealController {
         return ResponseEntity.ok(dealService.findAll(pageable, filter));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:[0-9a-fA-F\\-]{36}}")
     @Operation(summary = "Get deal by ID", description = "Get detailed information about a specific deal")
     public ResponseEntity<DealResponseDTO> getDealById(@PathVariable UUID id) {
         return ResponseEntity.ok(dealService.findById(id));
@@ -100,5 +106,66 @@ public class DealController {
     @Operation(summary = "Get deal statistics", description = "Get aggregated statistics about deals")
     public ResponseEntity<DealStatsDTO> getDealStatistics() {
         return ResponseEntity.ok(dealService.getStatistics());
+    }
+
+    @GetMapping("/attention-summary")
+    @Operation(summary = "Get deals needing attention", description = "Get stalled, high-risk, and overdue-next-step deals that need action")
+    public ResponseEntity<DealAttentionSummaryDTO> getAttentionSummary() {
+        return ResponseEntity.ok(dealService.getAttentionSummary());
+    }
+
+    @GetMapping("/governance/territory-queue")
+    @Operation(summary = "Get territory governance queue", description = "Get active deals whose owners do not match their territory with suggested in-territory owners")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    public ResponseEntity<DealTerritoryQueueSummaryDTO> getTerritoryGovernanceQueue() {
+        return ResponseEntity.ok(dealService.getTerritoryGovernanceQueue());
+    }
+
+    @PostMapping("/governance/reassign")
+    @Operation(summary = "Bulk reassign territory mismatches", description = "Reassign territory-mismatched deals to the best suggested owner")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    public ResponseEntity<DealTerritoryReassignmentResultDTO> reassignTerritoryMismatches(
+            @RequestBody(required = false) DealTerritoryReassignmentRequestDTO request
+    ) {
+        return ResponseEntity.ok(dealService.reassignTerritoryMismatches(
+                request == null ? new DealTerritoryReassignmentRequestDTO() : request
+        ));
+    }
+
+    @PostMapping("/automation/stalled-review")
+    @Operation(summary = "Create rescue tasks for stalled deals", description = "Review deals needing attention and create rescue tasks where coverage is missing")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    public ResponseEntity<DealAutomationResultDTO> runStalledReviewAutomation() {
+        return ResponseEntity.ok(dealService.runStalledDealAutomation());
+    }
+
+    @PostMapping("/{id:[0-9a-fA-F\\-]{36}}/request-approval")
+    @Operation(summary = "Request approval for a deal", description = "Request governance approval for a high-value or high-risk deal")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    public ResponseEntity<DealResponseDTO> requestApproval(
+            @PathVariable UUID id,
+            @RequestBody(required = false) DealApprovalActionRequestDTO request
+    ) {
+        return ResponseEntity.ok(dealService.requestApproval(id, request == null ? new DealApprovalActionRequestDTO() : request));
+    }
+
+    @PostMapping("/{id:[0-9a-fA-F\\-]{36}}/approve")
+    @Operation(summary = "Approve a deal", description = "Approve a deal that is pending governance approval")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    public ResponseEntity<DealResponseDTO> approveDeal(
+            @PathVariable UUID id,
+            @RequestBody(required = false) DealApprovalActionRequestDTO request
+    ) {
+        return ResponseEntity.ok(dealService.approve(id, request == null ? new DealApprovalActionRequestDTO() : request));
+    }
+
+    @PostMapping("/{id:[0-9a-fA-F\\-]{36}}/reject")
+    @Operation(summary = "Reject a deal approval request", description = "Reject a deal that is pending governance approval")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    public ResponseEntity<DealResponseDTO> rejectDeal(
+            @PathVariable UUID id,
+            @RequestBody(required = false) DealApprovalActionRequestDTO request
+    ) {
+        return ResponseEntity.ok(dealService.reject(id, request == null ? new DealApprovalActionRequestDTO() : request));
     }
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Icons } from "../components/icons";
 import { cn } from "../lib/utils";
 import { PageLayout } from "../components/PageLayout";
@@ -25,6 +26,7 @@ const statusColors = {
 };
 
 export default function TasksPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
@@ -35,6 +37,14 @@ export default function TasksPage() {
   const [pageSize] = useState(10);
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setSelectedItem(null);
+      setIsFormOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch live insights for tasks
   useInsights('tasks');

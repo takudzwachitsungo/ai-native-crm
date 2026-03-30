@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search, Bell, User, Settings, LogOut, CreditCard, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Icons } from './icons';
 import { cn } from '../lib/utils';
+import { useInsights } from '../hooks/useInsights';
+import type { UserRole } from '../lib/types';
+import { roleLabels, tenantTierLabels } from '../lib/authz';
 
 interface Notification {
   id: string;
@@ -14,29 +16,56 @@ interface Notification {
   type: 'success' | 'warning' | 'info';
 }
 
-const mockNotifications: Notification[] = [
-  { id: '1', title: 'New lead assigned', message: 'John Smith from Acme Corp has been assigned to you', time: '5 min ago', read: false, type: 'info' },
-  { id: '2', title: 'Deal won', message: 'TechStart Inc deal closed for $24,999', time: '1 hour ago', read: false, type: 'success' },
-  { id: '3', title: 'Task overdue', message: 'Follow up with Global Solutions is overdue', time: '2 hours ago', read: true, type: 'warning' },
-  { id: '4', title: 'Meeting reminder', message: 'Demo call with Innovate Co in 30 minutes', time: '3 hours ago', read: true, type: 'info' },
-];
+const notificationTitleMap: Record<string, string> = {
+  overdue: 'Overdue activity',
+  hot: 'Hot opportunity',
+  closing_soon: 'Closing soon',
+  stuck: 'Pipeline stalled',
+  at_risk: 'Deal at risk',
+  inactive: 'Inactive contact',
+};
 
 export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { insights } = useInsights('dashboard');
+
+  const notifications = useMemo<Notification[]>(
+    () =>
+      insights.map((insight) => ({
+        id: `${insight.entity_type}:${insight.entity_id}:${insight.type}`,
+        title: notificationTitleMap[insight.type] || 'CRM insight',
+        message: insight.message,
+        time: 'Live',
+        read: readNotificationIds.includes(`${insight.entity_type}:${insight.entity_id}:${insight.type}`),
+        type:
+          insight.severity === 'success'
+            ? 'success'
+            : insight.severity === 'warning' || insight.severity === 'error'
+              ? 'warning'
+              : 'info',
+      })),
+    [insights, readNotificationIds]
+  );
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  const roleLabel = user?.role ? roleLabels[user.role as UserRole] ?? user.role : 'User';
+  const tierLabel = user?.tenantTier ? tenantTierLabels[user.tenantTier] : 'Free';
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setReadNotificationIds(notifications.map((notification) => notification.id));
   };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const openCommandPalette = () => {
+    window.dispatchEvent(new CustomEvent('crm:open-command-palette'));
   };
 
   return (
@@ -50,6 +79,9 @@ export function Header() {
             type="text"
             placeholder="Find anything... (Cmd+K)"
             aria-label="Search CRM"
+            readOnly
+            onFocus={openCommandPalette}
+            onClick={openCommandPalette}
             className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -156,23 +188,50 @@ export function Header() {
                     <div>
                       <p className="font-semibold">{user?.firstName} {user?.lastName}</p>
                       <p className="text-xs text-muted-foreground">{user?.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user?.tenantName || 'Workspace'} · {roleLabel} · {tierLabel}
+                      </p>
                     </div>
                   </div>
                 </div>
                 <div className="p-2">
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left">
+                  <button
+                    onClick={() => {
+                      navigate('/settings');
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left"
+                  >
                     <User size={16} className="text-muted-foreground" />
                     <span className="text-sm">My Profile</span>
                   </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left">
+                  <button
+                    onClick={() => {
+                      navigate('/settings');
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left"
+                  >
                     <Settings size={16} className="text-muted-foreground" />
                     <span className="text-sm">Settings</span>
                   </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left">
+                  <button
+                    onClick={() => {
+                      navigate('/settings');
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left"
+                  >
                     <CreditCard size={16} className="text-muted-foreground" />
                     <span className="text-sm">Billing</span>
                   </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left">
+                  <button
+                    onClick={() => {
+                      navigate('/settings');
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-secondary transition-colors text-left"
+                  >
                     <HelpCircle size={16} className="text-muted-foreground" />
                     <span className="text-sm">Help & Support</span>
                   </button>

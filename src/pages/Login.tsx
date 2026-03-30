@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import type { TenantTier } from '../lib/types';
+import { tenantTierLabels } from '../lib/authz';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -10,6 +12,8 @@ export default function Login() {
     firstName: '',
     lastName: '',
     companyName: '',
+    workspaceSlug: '',
+    tier: 'FREE' as TenantTier,
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +31,7 @@ export default function Login() {
         await login({
           email: formData.email,
           password: formData.password,
+          workspaceSlug: formData.workspaceSlug || undefined,
         });
         navigate('/');
       } else {
@@ -37,6 +42,8 @@ export default function Login() {
           email: formData.email,
           password: formData.password,
           companyName: formData.companyName,
+          workspaceSlug: formData.workspaceSlug || undefined,
+          tier: formData.tier,
         });
         navigate('/');
       }
@@ -60,13 +67,21 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
         <div>
+          <p className="text-center text-sm font-medium uppercase tracking-[0.2em] text-blue-600">
+            Multi-tenant CRM workspace
+          </p>
           <h2 className="text-center text-3xl font-extrabold text-gray-900">
             {isLogin ? 'Sign in to your account' : 'Create your account'}
           </h2>
+          <p className="mt-3 text-center text-sm text-gray-600">
+            {isLogin
+              ? 'Access your tenant workspace with role-based permissions. Add the workspace slug if your email exists in more than one tenant.'
+              : 'Create a dedicated tenant workspace with you as the initial admin.'}
+          </p>
           {!isLogin && (
             <div className="mt-3 rounded-md bg-blue-50 p-4">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Registration creates a new company account with you as the admin.
+                <strong>Note:</strong> Registration creates a new isolated workspace and assigns you the Admin role for that tenant.
               </p>
             </div>
           )}
@@ -109,7 +124,7 @@ export default function Login() {
                 </div>
                 <div>
                   <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
-                    Company Name
+                    Workspace / Company Name
                   </label>
                   <input
                     id="companyName"
@@ -119,6 +134,42 @@ export default function Login() {
                     onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
+                </div>
+                <div>
+                  <label htmlFor="workspaceSlugSignUp" className="block text-sm font-medium text-gray-700">
+                    Workspace Slug
+                  </label>
+                  <input
+                    id="workspaceSlugSignUp"
+                    type="text"
+                    value={formData.workspaceSlug}
+                    onChange={(e) => setFormData({ ...formData, workspaceSlug: e.target.value.toLowerCase() })}
+                    placeholder="acme-holdings"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Optional. We will generate one from the workspace name if left blank.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="tier" className="block text-sm font-medium text-gray-700">
+                    Workspace Tier
+                  </label>
+                  <select
+                    id="tier"
+                    value={formData.tier}
+                    onChange={(e) => setFormData({ ...formData, tier: e.target.value as TenantTier })}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {Object.entries(tenantTierLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Tier is stored on the tenant workspace. Billing workflows are still preview-only.
+                  </p>
                 </div>
               </>
             )}
@@ -136,6 +187,22 @@ export default function Login() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+
+            {isLogin && (
+              <div>
+                <label htmlFor="workspaceSlug" className="block text-sm font-medium text-gray-700">
+                  Workspace Slug
+                </label>
+                <input
+                  id="workspaceSlug"
+                  type="text"
+                  value={formData.workspaceSlug}
+                  onChange={(e) => setFormData({ ...formData, workspaceSlug: e.target.value.toLowerCase() })}
+                  placeholder="Optional unless your email is used in multiple workspaces"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">

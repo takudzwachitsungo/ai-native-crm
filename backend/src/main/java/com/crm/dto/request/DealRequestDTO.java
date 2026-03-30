@@ -1,5 +1,6 @@
 package com.crm.dto.request;
 
+import com.crm.entity.enums.DealRiskLevel;
 import com.crm.entity.enums.DealStage;
 import com.crm.entity.enums.DealType;
 import com.crm.entity.enums.LeadSource;
@@ -45,10 +46,28 @@ public class DealRequestDTO {
     private DealType dealType;
     
     private LeadSource leadSource;
+
+    private String territory;
     
     private String description;
     
     private String notes;
+
+    private String competitorName;
+
+    private String nextStep;
+
+    private LocalDate nextStepDueDate;
+
+    private String buyingCommitteeSummary;
+
+    private DealRiskLevel riskLevel;
+
+    private String winReason;
+
+    private String lossReason;
+
+    private String closeNotes;
     
     private UUID ownerId;
 }

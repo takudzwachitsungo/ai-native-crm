@@ -18,4 +18,7 @@ public class DashboardStatsDTO {
     private BigDecimal totalRevenue;
     private Double conversionRate;
     private Double winRate;
+    private Long activeDeals;
+    private Long stalledDealCount;
+    private Long dealsNeedingAttention;
 }

@@ -2,6 +2,7 @@ package com.crm.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,4 +20,10 @@ public class LoginRequest {
     
     @NotBlank(message = "Password is required")
     private String password;
+
+    @Pattern(
+        regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        message = "Workspace slug may only contain lowercase letters, numbers, and hyphens"
+    )
+    private String workspaceSlug;
 }

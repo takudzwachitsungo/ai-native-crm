@@ -24,4 +24,10 @@ public class DealStatsDTO {
     private Long wonDealsThisMonth;
     private BigDecimal wonValueThisMonth;
     private Double winRate;
+    private Long activeDeals;
+    private Long highRiskDealCount;
+    private Long stalledDealCount;
+    private Long overdueNextStepCount;
+    private Long dealsNeedingAttention;
+    private Long pendingApprovalCount;
 }

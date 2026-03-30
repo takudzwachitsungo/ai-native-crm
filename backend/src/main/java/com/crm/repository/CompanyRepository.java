@@ -24,4 +24,8 @@ public interface CompanyRepository extends JpaRepository<Company, UUID>, JpaSpec
     List<Company> searchByName(@Param("tenantId") UUID tenantId, @Param("name") String name);
     
     long countByTenantIdAndArchivedFalse(UUID tenantId);
+
+    long countByTenantIdAndParentCompanyIdAndArchivedFalse(UUID tenantId, UUID parentCompanyId);
+
+    long countByTenantIdAndOwnerIdAndArchivedFalse(UUID tenantId, UUID ownerId);
 }

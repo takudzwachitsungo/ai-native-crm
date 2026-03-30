@@ -1,6 +1,7 @@
 package com.crm.controller;
 
 import com.crm.dto.request.UserCreateRequestDTO;
+import com.crm.dto.request.UserRevenueOpsUpdateRequestDTO;
 import com.crm.dto.request.UserRoleUpdateRequestDTO;
 import com.crm.dto.request.UserStatusUpdateRequestDTO;
 import com.crm.dto.response.UserResponseDTO;
@@ -61,5 +62,14 @@ public class UserController {
             @Valid @RequestBody UserStatusUpdateRequestDTO request
     ) {
         return ResponseEntity.ok(userManagementService.updateStatus(id, request));
+    }
+
+    @PatchMapping("/{id}/revenue-ops")
+    @Operation(summary = "Update user quota and territory", description = "Update revenue operations fields for a user in the authenticated tenant")
+    public ResponseEntity<UserResponseDTO> updateRevenueOps(
+            @PathVariable UUID id,
+            @Valid @RequestBody UserRevenueOpsUpdateRequestDTO request
+    ) {
+        return ResponseEntity.ok(userManagementService.updateRevenueOps(id, request));
     }
 }

@@ -1,6 +1,8 @@
 import { Modal } from "./Modal";
 import { Icons } from "./icons";
 import { cn } from "../lib/utils";
+import { useAuth } from "../contexts/AuthContext";
+import { tenantTierLabels } from "../lib/authz";
 
 interface QuoteLineItem {
   id: string;
@@ -36,6 +38,7 @@ interface QuoteViewProps {
 }
 
 export function QuoteView({ isOpen, onClose, quote }: QuoteViewProps) {
+  const { user } = useAuth();
   if (!quote) return null;
 
   const lineItems = quote.lineItems || [];
@@ -102,6 +105,10 @@ export function QuoteView({ isOpen, onClose, quote }: QuoteViewProps) {
               <h1 className="text-3xl font-bold text-foreground mb-2">QUOTATION</h1>
               <p className="text-sm text-muted-foreground">
                 Quote Number: <span className="font-semibold text-foreground">{quote.quoteNumber || 'N/A'}</span>
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Issued by <span className="font-semibold text-foreground">{user?.tenantName || 'Workspace'}</span>
+                {user?.tenantTier ? ` · ${tenantTierLabels[user.tenantTier]} plan` : ''}
               </p>
             </div>
             <div className="text-right">

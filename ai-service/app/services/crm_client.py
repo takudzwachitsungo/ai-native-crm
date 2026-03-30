@@ -136,7 +136,7 @@ class CRMClient:
     
     async def get_pipeline_metrics(self) -> Dict[str, Any]:
         """Get pipeline metrics"""
-        return await self._request("GET", "/api/v1/deals/metrics")
+        return await self._request("GET", "/api/v1/deals/statistics")
     
     # Contacts endpoints
     async def search_contacts(
@@ -307,7 +307,25 @@ class CRMClient:
     # Global search
     async def global_search(self, query: str) -> Dict[str, Any]:
         """Perform global search across all entities"""
-        return await self._request("GET", "/api/v1/search", params={"q": query})
+        leads, deals, contacts, companies, tasks = await self.search_leads(
+            query=query, size=10
+        ), await self.search_deals(
+            query=query, size=10
+        ), await self.search_contacts(
+            query=query, size=10
+        ), await self.get_companies(
+            query=query, size=10
+        ), await self.search_tasks(
+            query=query, size=10
+        )
+
+        return {
+            "leads": leads,
+            "deals": deals,
+            "contacts": contacts,
+            "companies": companies,
+            "tasks": tasks,
+        }
     
     async def close(self):
         """Close HTTP client"""

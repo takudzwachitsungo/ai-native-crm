@@ -55,6 +55,9 @@ public class Company extends AbstractEntity {
     @Column(length = 100)
     private String country = "United States";
 
+    @Column(length = 120)
+    private String territory;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private CompanyStatus status = CompanyStatus.ACTIVE;
@@ -65,9 +68,20 @@ public class Company extends AbstractEntity {
     @Column(name = "owner_id")
     private UUID ownerId;
 
+    @Column(name = "parent_company_id")
+    private UUID parentCompanyId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", insertable = false, updatable = false)
     private User owner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_company_id", insertable = false, updatable = false)
+    private Company parentCompany;
+
+    @OneToMany(mappedBy = "parentCompany", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Company> childCompanies = new ArrayList<>();
 
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
@@ -85,5 +99,10 @@ public class Company extends AbstractEntity {
     @Transient
     public int getDealsCount() {
         return deals != null ? deals.size() : 0;
+    }
+
+    @Transient
+    public String getParentCompanyName() {
+        return parentCompany != null ? parentCompany.getName() : null;
     }
 }

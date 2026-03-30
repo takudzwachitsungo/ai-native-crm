@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.Collection;
+import java.util.Optional;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID>, JpaSpecificationExecutor<Task> {
@@ -28,4 +30,30 @@ public interface TaskRepository extends JpaRepository<Task, UUID>, JpaSpecificat
     List<Task> findOverdueTasks(@Param("tenantId") UUID tenantId, @Param("date") LocalDate date);
     
     long countByTenantIdAndStatusAndArchivedFalse(UUID tenantId, TaskStatus status);
+
+    List<Task> findByTenantIdAndRelatedEntityTypeAndRelatedEntityIdAndArchivedFalse(
+            UUID tenantId,
+            String relatedEntityType,
+            UUID relatedEntityId
+    );
+
+    List<Task> findByTenantIdAndRelatedEntityTypeAndArchivedFalse(
+            UUID tenantId,
+            String relatedEntityType
+    );
+
+    List<Task> findByTenantIdAndRelatedEntityTypeAndRelatedEntityIdInAndArchivedFalse(
+            UUID tenantId,
+            String relatedEntityType,
+            Collection<UUID> relatedEntityIds
+    );
+
+    boolean existsByTenantIdAndRelatedEntityTypeAndRelatedEntityIdAndArchivedFalseAndStatusIn(
+            UUID tenantId,
+            String relatedEntityType,
+            UUID relatedEntityId,
+            Collection<TaskStatus> statuses
+    );
+
+    Optional<Task> findByIdAndTenantIdAndArchivedFalse(UUID id, UUID tenantId);
 }

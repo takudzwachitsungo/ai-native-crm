@@ -50,8 +50,15 @@ function App() {
         setIsCommandPaletteOpen(true);
       }
     };
+    const handleOpenCommandPalette = () => {
+      setIsCommandPaletteOpen(true);
+    };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('crm:open-command-palette', handleOpenCommandPalette as EventListener);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('crm:open-command-palette', handleOpenCommandPalette as EventListener);
+    };
   }, []);
 
   return (

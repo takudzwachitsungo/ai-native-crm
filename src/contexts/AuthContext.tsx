@@ -27,7 +27,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedToken && storedUser && storedUser !== 'undefined') {
       try {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser) as Partial<User>;
+        setUser({
+          id: parsedUser.id || '',
+          firstName: parsedUser.firstName || '',
+          lastName: parsedUser.lastName || '',
+          email: parsedUser.email || '',
+          role: parsedUser.role || 'USER',
+          tenantId: parsedUser.tenantId || '',
+          tenantName: parsedUser.tenantName || parsedUser.tenant?.name || 'Workspace',
+          tenantSlug: parsedUser.tenantSlug || parsedUser.tenant?.slug || '',
+          tenantTier: parsedUser.tenantTier || parsedUser.tenant?.tier || 'FREE',
+          tenant: {
+            id: parsedUser.tenant?.id || parsedUser.tenantId || '',
+            name: parsedUser.tenant?.name || parsedUser.tenantName || 'Workspace',
+            slug: parsedUser.tenant?.slug || parsedUser.tenantSlug || '',
+            tier: parsedUser.tenant?.tier || parsedUser.tenantTier || 'FREE',
+          },
+        });
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('token');
@@ -47,6 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: response.email,
         role: response.role,
         tenantId: response.tenantId,
+        tenantName: response.tenantName,
+        tenantSlug: response.tenantSlug,
+        tenantTier: response.tenantTier,
+        tenant: {
+          id: response.tenantId,
+          name: response.tenantName,
+          slug: response.tenantSlug,
+          tier: response.tenantTier,
+        },
       };
       setToken(response.accessToken);
       setUser(user);
@@ -68,6 +94,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: response.email,
         role: response.role,
         tenantId: response.tenantId,
+        tenantName: response.tenantName,
+        tenantSlug: response.tenantSlug,
+        tenantTier: response.tenantTier,
+        tenant: {
+          id: response.tenantId,
+          name: response.tenantName,
+          slug: response.tenantSlug,
+          tier: response.tenantTier,
+        },
       };
       setToken(response.accessToken);
       setUser(user);

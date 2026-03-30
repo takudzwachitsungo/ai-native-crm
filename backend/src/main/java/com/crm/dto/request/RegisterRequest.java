@@ -3,6 +3,7 @@ package com.crm.dto.request;
 import com.crm.entity.enums.TenantTier;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +35,12 @@ public class RegisterRequest {
     @NotBlank(message = "Company name is required")
     @Size(max = 200, message = "Company name must be less than 200 characters")
     private String companyName;
+
+    @Pattern(
+        regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        message = "Workspace slug may only contain lowercase letters, numbers, and hyphens"
+    )
+    private String workspaceSlug;
     
     private TenantTier tier = TenantTier.FREE;
 }

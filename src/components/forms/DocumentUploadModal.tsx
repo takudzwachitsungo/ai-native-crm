@@ -5,9 +5,8 @@ import { Icons } from "../icons";
 interface DocumentUploadData {
   name: string;
   category: string;
-  relatedTo: string;
+  relatedEntityId: string;
   relatedType: string;
-  tags: string;
   description: string;
   file?: File;
 }
@@ -22,9 +21,8 @@ export function DocumentUploadModal({ isOpen, onClose, onSubmit }: DocumentUploa
   const [formData, setFormData] = useState<DocumentUploadData>({
     name: "",
     category: "",
-    relatedTo: "",
+    relatedEntityId: "",
     relatedType: "",
-    tags: "",
     description: "",
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -71,9 +69,8 @@ export function DocumentUploadModal({ isOpen, onClose, onSubmit }: DocumentUploa
       setFormData({
         name: "",
         category: "",
-        relatedTo: "",
+        relatedEntityId: "",
         relatedType: "",
-        tags: "",
         description: "",
       });
       setSelectedFile(null);
@@ -195,12 +192,13 @@ export function DocumentUploadModal({ isOpen, onClose, onSubmit }: DocumentUploa
                 className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="">Select Category</option>
-                <option value="contracts">Contracts</option>
-                <option value="proposals">Proposals</option>
-                <option value="invoices">Invoices</option>
-                <option value="presentations">Presentations</option>
-                <option value="reports">Reports</option>
-                <option value="other">Other</option>
+                <option value="CONTRACTS">Contracts</option>
+                <option value="PROPOSALS">Proposals</option>
+                <option value="REPORTS">Reports</option>
+                <option value="TEMPLATES">Templates</option>
+                <option value="MARKETING">Marketing</option>
+                <option value="PRESENTATIONS">Presentations</option>
+                <option value="ASSETS">Assets</option>
               </select>
             </div>
             <div>
@@ -211,7 +209,7 @@ export function DocumentUploadModal({ isOpen, onClose, onSubmit }: DocumentUploa
                   onChange={(e) => setFormData({ ...formData, relatedType: e.target.value })}
                   className="w-28 px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="">Type</option>
+                <option value="">Type</option>
                   <option value="contact">Contact</option>
                   <option value="company">Company</option>
                   <option value="deal">Deal</option>
@@ -219,24 +217,13 @@ export function DocumentUploadModal({ isOpen, onClose, onSubmit }: DocumentUploa
                 </select>
                 <input
                   type="text"
-                  value={formData.relatedTo}
-                  onChange={(e) => setFormData({ ...formData, relatedTo: e.target.value })}
-                  placeholder="Search..."
+                  value={formData.relatedEntityId}
+                  onChange={(e) => setFormData({ ...formData, relatedEntityId: e.target.value })}
+                  placeholder="Related entity UUID"
                   className="flex-1 px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Tags</label>
-            <input
-              type="text"
-              value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              placeholder="Comma-separated tags"
-            />
           </div>
 
           <div>

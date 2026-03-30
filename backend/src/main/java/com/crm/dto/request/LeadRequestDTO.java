@@ -39,6 +39,9 @@ public class LeadRequestDTO {
     
     @Size(max = 100, message = "Title must be less than 100 characters")
     private String title;
+
+    @Size(max = 120, message = "Territory must be less than 120 characters")
+    private String territory;
     
     private LeadSource source;
     

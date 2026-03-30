@@ -4,11 +4,14 @@ import com.crm.entity.enums.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 
 @Data
 @Builder
@@ -36,4 +39,13 @@ public class UserCreateRequestDTO {
     private UserRole role;
 
     private Boolean isActive;
+
+    @Size(max = 120, message = "Territory must be less than 120 characters")
+    private String territory;
+
+    @PositiveOrZero(message = "Quarterly quota must be zero or positive")
+    private BigDecimal quarterlyQuota;
+
+    @PositiveOrZero(message = "Annual quota must be zero or positive")
+    private BigDecimal annualQuota;
 }

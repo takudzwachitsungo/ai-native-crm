@@ -10,7 +10,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -29,7 +28,7 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserDetailsService userDetailsService;
+    private final CustomUserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(
@@ -48,17 +47,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             final String jwt = authHeader.substring(7);
             final String userEmail = jwtTokenProvider.extractUsername(jwt);
+            final UUID tenantId = jwtTokenProvider.extractTenantId(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+                if (tenantId != null) {
+                    TenantContext.setTenantId(tenantId);
+                }
+                UserDetails userDetails = tenantId != null
+                        ? userDetailsService.loadUserByUsernameAndTenantId(userEmail, tenantId)
+                        : userDetailsService.loadUserByUsername(userEmail);
 
                 if (jwtTokenProvider.isTokenValid(jwt, userDetails)) {
-                    // Extract tenant ID and set in context
-                    UUID tenantId = jwtTokenProvider.extractTenantId(jwt);
-                    if (tenantId != null) {
-                        TenantContext.setTenantId(tenantId);
-                    }
-
                     // Set authentication
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
@@ -72,6 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
+            TenantContext.clear();
             log.error("Cannot set user authentication: {}", e.getMessage());
         }
 

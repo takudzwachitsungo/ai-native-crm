@@ -128,6 +128,8 @@ class ChatResponse(BaseModel):
     message: str
     tool_calls: Optional[List[Dict[str, Any]]] = None
     sources: Optional[List[Dict[str, Any]]] = None
+    degraded_mode: bool = False
+    degraded_reason: Optional[str] = None
 
 
 @app.get("/")
@@ -227,7 +229,9 @@ async def chat(request: ChatRequest, authorization: Optional[str] = Header(None)
         return ChatResponse(
             message=result["message"],
             tool_calls=result.get("tool_calls"),
-            sources=result.get("sources")
+            sources=result.get("sources"),
+            degraded_mode=result.get("degraded_mode", False),
+            degraded_reason=result.get("degraded_reason"),
         )
         
     except Exception as e:
@@ -497,6 +501,8 @@ class LeadScoringResponse(BaseModel):
     draft_email: Optional[str] = None
     task_created: bool = False
     error: Optional[str] = None
+    degraded_mode: bool = False
+    degraded_reason: Optional[str] = None
 
 
 @app.post("/agents/score-lead", response_model=LeadScoringResponse)
@@ -708,6 +714,8 @@ class ForecastingResponse(BaseModel):
     recommendations: Optional[List[str]] = None
     stage_conversion_rates: Optional[Dict[str, float]] = None
     error: Optional[str] = None
+    degraded_mode: bool = False
+    degraded_reason: Optional[str] = None
 
 
 @app.post("/forecasting/generate", response_model=ForecastingResponse)
@@ -925,6 +933,8 @@ class ReportResponse(BaseModel):
     sections: List[Dict[str, Any]]
     generated_at: str
     error: Optional[str] = None
+    degraded_mode: bool = False
+    degraded_reason: Optional[str] = None
 
 
 @app.post("/reports/generate", response_model=ReportResponse)

@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,9 +27,13 @@ public interface DealRepository extends JpaRepository<Deal, UUID>, JpaSpecificat
     
     @Query("SELECT SUM(d.value) FROM Deal d WHERE d.tenantId = :tenantId AND d.stage = :stage AND d.archived = false")
     BigDecimal sumValueByStage(@Param("tenantId") UUID tenantId, @Param("stage") DealStage stage);
+
+    List<Deal> findByTenantIdAndCompanyIdAndArchivedFalse(UUID tenantId, UUID companyId);
     
     @Query("SELECT COUNT(d) FROM Deal d WHERE d.tenantId = :tenantId AND d.stage IN :stages AND d.archived = false")
     long countByStages(@Param("tenantId") UUID tenantId, @Param("stages") List<DealStage> stages);
     
     long countByTenantIdAndStageAndArchivedFalse(UUID tenantId, DealStage stage);
+
+    long countByTenantIdAndOwnerIdAndArchivedFalseAndStageNotIn(UUID tenantId, UUID ownerId, Collection<DealStage> stages);
 }

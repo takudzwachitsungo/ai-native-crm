@@ -1,6 +1,9 @@
 package com.crm.dto.request;
 
 import com.crm.entity.enums.ContactStatus;
+import com.crm.entity.enums.InfluenceLevel;
+import com.crm.entity.enums.PreferredContactMethod;
+import com.crm.entity.enums.StakeholderRole;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,6 +39,17 @@ public class ContactRequestDTO {
     
     @Size(max = 100, message = "Title must be less than 100 characters")
     private String title;
+
+    @Size(max = 100, message = "Department must be less than 100 characters")
+    private String department;
+
+    private Boolean isPrimary;
+
+    private StakeholderRole stakeholderRole;
+
+    private InfluenceLevel influenceLevel;
+
+    private PreferredContactMethod preferredContactMethod;
     
     @Size(max = 200, message = "Address must be less than 200 characters")
     private String address;
@@ -65,4 +79,6 @@ public class ContactRequestDTO {
     private String notes;
     
     private UUID companyId;
+
+    private UUID reportsToId;
 }

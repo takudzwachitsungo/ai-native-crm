@@ -72,6 +72,7 @@ import {
   ArrowRight,
   BarChart,
   RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 
 export function LogoSmall() {
@@ -211,6 +212,7 @@ export const Icons = {
   ArrowLeft: ArrowLeft,
   BarChart: BarChart,
   RefreshCw: RefreshCw,
+  ExternalLink: ExternalLink,
   
   // Logo
   LogoSmall: LogoSmall,

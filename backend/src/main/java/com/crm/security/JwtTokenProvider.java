@@ -46,9 +46,10 @@ public class JwtTokenProvider {
     /**
      * Generate refresh token
      */
-    public String generateRefreshToken(UserDetails userDetails, UUID userId) {
+    public String generateRefreshToken(UserDetails userDetails, UUID userId, UUID tenantId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId.toString());
+        claims.put("tenantId", tenantId.toString());
         claims.put("type", "refresh");
         
         return buildToken(claims, userDetails.getUsername(), refreshTokenExpiration);

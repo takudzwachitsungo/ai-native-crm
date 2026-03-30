@@ -15,6 +15,7 @@ export function LeadForm({ isOpen, onClose, onSubmit, initialData }: LeadFormPro
     phone: initialData?.phone || '',
     company: initialData?.company || '',
     title: initialData?.title || '',
+    territory: initialData?.territory || '',
     source: initialData?.source || 'WEBSITE',
     status: initialData?.status?.toLowerCase() || 'new',
     value: initialData?.estimatedValue || '',
@@ -30,6 +31,7 @@ export function LeadForm({ isOpen, onClose, onSubmit, initialData }: LeadFormPro
         phone: initialData.phone || '',
         company: initialData.company || '',
         title: initialData.title || '',
+        territory: initialData.territory || '',
         source: initialData.source || 'WEBSITE',
         status: initialData.status?.toLowerCase() || 'new',
         value: initialData.estimatedValue || '',
@@ -43,6 +45,7 @@ export function LeadForm({ isOpen, onClose, onSubmit, initialData }: LeadFormPro
         phone: '',
         company: '',
         title: '',
+        territory: '',
         source: 'WEBSITE',
         status: 'new',
         value: '',
@@ -66,6 +69,7 @@ export function LeadForm({ isOpen, onClose, onSubmit, initialData }: LeadFormPro
       phone: formData.phone || null,
       company: formData.company || null,
       title: formData.title || null,
+      territory: formData.territory || null,
       source: formData.source || null,
       status: formData.status.toUpperCase(),
       estimatedValue: formData.value ? parseFloat(formData.value) : null,
@@ -155,6 +159,19 @@ export function LeadForm({ isOpen, onClose, onSubmit, initialData }: LeadFormPro
             />
           </div>
           <div>
+            <label className="block text-sm font-medium mb-1">Territory</label>
+            <input
+              type="text"
+              value={formData.territory}
+              onChange={(e) => setFormData({ ...formData, territory: e.target.value })}
+              className="w-full px-3 py-2 border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder="e.g. Harare, West Coast, EMEA"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
             <label className="block text-sm font-medium mb-1">Lead Source</label>
             <select
               value={formData.source}
@@ -183,6 +200,7 @@ export function LeadForm({ isOpen, onClose, onSubmit, initialData }: LeadFormPro
               <option value="contacted">Contacted</option>
               <option value="qualified">Qualified</option>
               <option value="unqualified">Unqualified</option>
+              <option value="lost">Lost</option>
             </select>
           </div>
           <div>

@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
 
-interface FilterOption {
-  label: string;
-  value: string;
-}
-
 export interface FilterValues {
   dateRange?: {
     from: string;

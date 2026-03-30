@@ -1,5 +1,7 @@
 package com.crm.entity;
 
+import com.crm.entity.enums.DealRiskLevel;
+import com.crm.entity.enums.DealApprovalStatus;
 import com.crm.entity.enums.DealStage;
 import com.crm.entity.enums.DealType;
 import jakarta.persistence.*;
@@ -7,6 +9,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -58,11 +61,42 @@ public class Deal extends AbstractEntity {
     @Column(name = "lead_source", length = 50)
     private String leadSource;
 
+    @Column(length = 120)
+    private String territory;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    @Column(name = "competitor_name", length = 255)
+    private String competitorName;
+
+    @Column(name = "next_step", length = 255)
+    private String nextStep;
+
+    @Column(name = "next_step_due_date")
+    private LocalDate nextStepDueDate;
+
+    @Column(name = "buying_committee_summary", columnDefinition = "TEXT")
+    private String buyingCommitteeSummary;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "risk_level", length = 20)
+    private DealRiskLevel riskLevel;
+
+    @Column(name = "win_reason", columnDefinition = "TEXT")
+    private String winReason;
+
+    @Column(name = "loss_reason", columnDefinition = "TEXT")
+    private String lossReason;
+
+    @Column(name = "close_notes", columnDefinition = "TEXT")
+    private String closeNotes;
+
+    @Column(name = "stage_changed_at")
+    private LocalDateTime stageChangedAt;
 
     @Column(name = "owner_id")
     private UUID ownerId;
@@ -70,6 +104,43 @@ public class Deal extends AbstractEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", insertable = false, updatable = false)
     private User owner;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", nullable = false, length = 20)
+    private DealApprovalStatus approvalStatus = DealApprovalStatus.NONE;
+
+    @Column(name = "approval_requested_at")
+    private LocalDateTime approvalRequestedAt;
+
+    @Column(name = "approval_requested_by")
+    private UUID approvalRequestedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approval_requested_by", insertable = false, updatable = false)
+    private User approvalRequester;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "approved_by")
+    private UUID approvedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by", insertable = false, updatable = false)
+    private User approver;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "rejected_by")
+    private UUID rejectedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rejected_by", insertable = false, updatable = false)
+    private User rejector;
+
+    @Column(name = "approval_notes", columnDefinition = "TEXT")
+    private String approvalNotes;
 
     @Transient
     public String getCompanyName() {

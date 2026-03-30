@@ -44,6 +44,8 @@ class ReportState(TypedDict):
     
     # Error handling
     error: Optional[str]
+    degraded_mode: bool
+    degraded_reasons: List[str]
 
 
 class ReportAgent:
@@ -99,6 +101,91 @@ class ReportAgent:
         self.workflow = self._build_workflow()
         
         logger.info("Report Agent initialized")
+
+    @staticmethod
+    def _format_currency(value: Any) -> str:
+        try:
+            return f"${float(value or 0):,.0f}"
+        except (TypeError, ValueError):
+            return "$0"
+
+    def _build_fallback_insights(self, report_type: str, metrics: Dict[str, Any]) -> List[str]:
+        if report_type == "sales_pipeline":
+            active_deals = metrics.get("active_deal_count", 0)
+            pipeline_value = metrics.get("pipeline_value", 0)
+            win_rate = metrics.get("win_rate", 0)
+            deals_by_stage = metrics.get("deals_by_stage", {}) or {}
+            value_by_stage = metrics.get("value_by_stage", {}) or {}
+            top_stage = max(value_by_stage.items(), key=lambda item: item[1])[0] if value_by_stage else None
+
+            insights = [
+                f"Active pipeline stands at {self._format_currency(pipeline_value)} across {active_deals} open deals.",
+                f"Current win rate is {win_rate:.1f}% based on closed outcomes in the CRM.",
+            ]
+            if top_stage:
+                insights.append(
+                    f"The largest concentration of pipeline value is in {top_stage}, which makes that stage the biggest lever for near-term movement."
+                )
+            elif deals_by_stage:
+                insights.append("Pipeline is spread across multiple stages, so conversion discipline will matter more than top-of-funnel volume alone.")
+            return insights
+
+        if report_type == "lead_conversion":
+            return [
+                f"Lead conversion is running at {metrics.get('conversion_rate', 0):.1f}% with qualification at {metrics.get('qualification_rate', 0):.1f}%.",
+                f"There are {metrics.get('qualified_leads', 0)} qualified leads currently available to progress.",
+                "Lead source mix should be reviewed to double down on channels producing the most converted opportunities.",
+            ]
+
+        if report_type == "activity_summary" or "total_events" in metrics:
+            return [
+                f"There are {metrics.get('total_events', 0)} tracked events in the selected period.",
+                f"Upcoming events account for {metrics.get('upcoming_events', 0)} items, which helps indicate current engagement momentum.",
+                "Event mix by type can highlight whether the team is spending time on the highest-conversion activities.",
+            ]
+
+        return [
+            f"The report contains {len(metrics)} key metrics derived from live CRM data.",
+            "The current data set is usable even though the AI provider was unavailable for narrative analysis.",
+        ]
+
+    def _build_fallback_recommendations(self, report_type: str, metrics: Dict[str, Any]) -> List[str]:
+        if report_type == "sales_pipeline":
+            value_by_stage = metrics.get("value_by_stage", {}) or {}
+            top_stage = max(value_by_stage.items(), key=lambda item: item[1])[0] if value_by_stage else None
+            recommendations = [
+                "Prioritize follow-up on late-stage deals to turn pipeline value into closed revenue.",
+                "Review stalled deals and either re-engage them or clean them out of the active pipeline.",
+                "Use owner-level pipeline reviews to identify where coaching or support is needed.",
+            ]
+            if top_stage:
+                recommendations[0] = f"Focus inspection and follow-up on the {top_stage} stage, since it holds the most pipeline value."
+            return recommendations
+
+        if report_type == "lead_conversion":
+            return [
+                "Audit the highest-volume lead sources and prioritize the ones that produce qualified leads fastest.",
+                "Tighten lead follow-up SLAs so qualified leads do not stall before first contact.",
+                "Add nurture steps for lower-intent leads instead of treating the funnel as one-size-fits-all.",
+            ]
+
+        if report_type == "activity_summary" or "total_events" in metrics:
+            return [
+                "Increase consistency in the highest-value event types and trim low-signal activity.",
+                "Review no-show or low-conversion meeting patterns and improve scheduling hygiene.",
+                "Link more activities to deals or leads so reporting can show clearer impact.",
+            ]
+
+        return [
+            "Review the top metrics with the team and convert them into one or two concrete actions.",
+            "Validate whether the underlying CRM records are complete enough for the next reporting cycle.",
+        ]
+
+    def _build_fallback_summary(self, report_title: str, metrics: Dict[str, Any], insights: List[str]) -> str:
+        if metrics:
+            first_insight = insights[0] if insights else "This report is based on live CRM metrics."
+            return f"{report_title} generated from current CRM data. {first_insight}"
+        return f"{report_title} generated successfully from the available CRM data."
     
     def _build_workflow(self) -> StateGraph:
         """Build LangGraph workflow for report generation"""
@@ -153,7 +240,9 @@ class ReportAgent:
             report_type=report_type,
             custom_query=custom_query,
             date_range=date_range,
-            filters=filters or {}
+            filters=filters or {},
+            degraded_mode=False,
+            degraded_reasons=[],
         )
         
         try:
@@ -171,7 +260,9 @@ class ReportAgent:
                 "recommendations": result.get("recommendations", []),
                 "sections": result.get("sections", []),
                 "generated_at": datetime.now().isoformat(),
-                "error": result.get("error")
+                "error": result.get("error"),
+                "degraded_mode": result.get("degraded_mode", False),
+                "degraded_reason": "; ".join(result.get("degraded_reasons", [])) if result.get("degraded_reasons") else None,
             }
         except Exception as e:
             logger.error(f"Error generating report: {str(e)}")
@@ -219,7 +310,7 @@ class ReportAgent:
                     deals_response = await client.get(
                         f"{self.backend_url}/api/v1/deals",
                         headers=headers,
-                        params={"limit": 1000}
+                        params={"size": 1000}
                     )
                     deals_response.raise_for_status()
                     deals_data = deals_response.json()
@@ -233,7 +324,7 @@ class ReportAgent:
                     leads_response = await client.get(
                         f"{self.backend_url}/api/v1/leads",
                         headers=headers,
-                        params={"limit": 1000}
+                        params={"size": 1000}
                     )
                     leads_response.raise_for_status()
                     leads_data = leads_response.json()
@@ -247,7 +338,7 @@ class ReportAgent:
                     contacts_response = await client.get(
                         f"{self.backend_url}/api/v1/contacts",
                         headers=headers,
-                        params={"limit": 500}
+                        params={"size": 500}
                     )
                     contacts_response.raise_for_status()
                     contacts_data = contacts_response.json()
@@ -262,7 +353,7 @@ class ReportAgent:
                         events_response = await client.get(
                             f"{self.backend_url}/api/v1/events",
                             headers=headers,
-                            params={"limit": 1000}
+                            params={"size": 1000}
                         )
                         events_response.raise_for_status()
                         events_data = events_response.json()
@@ -442,7 +533,7 @@ class ReportAgent:
         # Count by type
         events_by_type = {}
         for event in events:
-            event_type = event.get("type", "Unknown")
+            event_type = event.get("eventType", "Unknown")
             events_by_type[event_type] = events_by_type.get(event_type, 0) + 1
         
         # Count by location
@@ -470,9 +561,9 @@ class ReportAgent:
                 pass
         
         # Count by related entity
-        events_with_contacts = sum(1 for e in events if e.get("contactId"))
-        events_with_deals = sum(1 for e in events if e.get("dealId"))
-        events_with_leads = sum(1 for e in events if e.get("leadId"))
+        events_with_contacts = sum(1 for e in events if e.get("relatedEntityType") == "Contact")
+        events_with_deals = sum(1 for e in events if e.get("relatedEntityType") == "Deal")
+        events_with_leads = sum(1 for e in events if e.get("relatedEntityType") == "Lead")
         
         return {
             "total_events": total_events,
@@ -655,6 +746,11 @@ RECOMMENDATIONS:
                     elif text and current_section == 'recommendations':
                         recommendations.append(text)
             
+            if not insights:
+                insights = self._build_fallback_insights(report_type, metrics)
+            if not recommendations:
+                recommendations = self._build_fallback_recommendations(report_type, metrics)
+
             state["insights"] = insights[:5]  # Max 5
             state["recommendations"] = recommendations[:5]  # Max 5
             
@@ -662,8 +758,12 @@ RECOMMENDATIONS:
             
         except Exception as e:
             logger.error(f"Error analyzing insights: {str(e)}")
-            state["insights"] = []
-            state["recommendations"] = []
+            state["degraded_mode"] = True
+            reasons = state.get("degraded_reasons", [])
+            reasons.append("AI report insights unavailable; using metric-based fallback insights.")
+            state["degraded_reasons"] = reasons
+            state["insights"] = self._build_fallback_insights(report_type, metrics)
+            state["recommendations"] = self._build_fallback_recommendations(report_type, metrics)
         
         return state
     
@@ -701,10 +801,23 @@ Top Insights: {insights_text}
 Make it concise and actionable.
 """
             response = await self.llm.ainvoke(summary_prompt)
-            state["report_summary"] = response.content.strip()
+            summary = response.content.strip()
+            state["report_summary"] = summary or self._build_fallback_summary(
+                state["report_title"],
+                state.get("metrics", {}),
+                state.get("insights", []),
+            )
         except Exception as e:
             logger.error(f"Error generating summary: {str(e)}")
-            state["report_summary"] = template.get("description", "Report generated successfully")
+            state["degraded_mode"] = True
+            reasons = state.get("degraded_reasons", [])
+            reasons.append("AI executive summary unavailable; using metric-based fallback summary.")
+            state["degraded_reasons"] = reasons
+            state["report_summary"] = self._build_fallback_summary(
+                state["report_title"],
+                state.get("metrics", {}),
+                state.get("insights", []),
+            )
         
         # Create sections
         state["sections"] = [

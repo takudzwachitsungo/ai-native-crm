@@ -196,3 +196,17 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
   shutdown: graceful
+
+tenancy:
+  provisioning:
+    enabled: ${TENANCY_PROVISIONING_ENABLED:true}
+    database-name-prefix: ${TENANCY_DATABASE_NAME_PREFIX:crm_tenant}
+    admin-database-name: ${TENANCY_ADMIN_DATABASE_NAME:postgres}
+  security:
+    database-credentials-key: ${TENANCY_DATABASE_CREDENTIALS_KEY:${JWT_SECRET:change-this-tenant-db-key}}
+
+governance:
+  automation:
+    enabled: ${GOVERNANCE_AUTOMATION_ENABLED:true}
+    interval-ms: ${GOVERNANCE_AUTOMATION_INTERVAL_MS:3600000}
+    initial-delay-ms: ${GOVERNANCE_AUTOMATION_INITIAL_DELAY_MS:300000}
