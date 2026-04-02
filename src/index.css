@@ -32,3 +32,83 @@
     font-family: system-ui, -apple-system, sans-serif;
   }
 }
+
+@keyframes auth-step-in-forward {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes auth-step-in-backward {
+  from {
+    opacity: 0;
+    transform: translate3d(-28px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes auth-step-shell-in-forward {
+  from {
+    opacity: 0;
+    transform: translate3d(32px, 18px, 0) scale(0.965);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes auth-step-shell-in-backward {
+  from {
+    opacity: 0;
+    transform: translate3d(-32px, 18px, 0) scale(0.965);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@layer components {
+  .auth-step-panel {
+    will-change: transform, opacity;
+  }
+
+  .auth-step-panel-forward {
+    animation: auth-step-in-forward 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .auth-step-panel-backward {
+    animation: auth-step-in-backward 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .auth-step-shell {
+    will-change: transform, opacity, filter;
+    transform-origin: center;
+  }
+
+  .auth-step-shell-soft {
+    animation-duration: 340ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .auth-step-shell-forward {
+    animation: auth-step-shell-in-forward 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .auth-step-shell-backward {
+    animation: auth-step-shell-in-backward 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
