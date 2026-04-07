@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Workspace Admin", description = "Workspace administration endpoints")
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@PreAuthorize("hasAuthority('WORKSPACE_DATABASE_MANAGE')")
 public class TenantAdminController {
 
     private final TenantAdminService tenantAdminService;

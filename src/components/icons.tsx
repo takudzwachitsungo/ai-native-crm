@@ -47,6 +47,8 @@ import {
   CircleDollarSign,
   Activity,
   Percent,
+  Megaphone,
+  LifeBuoy,
   // Additional icons
   Filter,
   Edit,
@@ -185,6 +187,8 @@ export const Icons = {
   Activity: Activity,
   Percent: Percent,
   Briefcase: Briefcase,
+  Campaigns: Megaphone,
+  Cases: LifeBuoy,
   
   // User & Settings
   User: User,

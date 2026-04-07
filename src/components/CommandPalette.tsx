@@ -27,6 +27,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     { id: 'nav-leads', label: 'Go to Leads', icon: <Icons.Leads size={16} />, action: () => navigate('/leads'), category: 'Navigation' },
     { id: 'nav-contacts', label: 'Go to Contacts', icon: <Icons.Contacts size={16} />, action: () => navigate('/contacts'), category: 'Navigation' },
     { id: 'nav-companies', label: 'Go to Companies', icon: <Icons.Building2 size={16} />, action: () => navigate('/companies'), category: 'Navigation' },
+    { id: 'nav-campaigns', label: 'Go to Campaigns', icon: <Icons.Campaigns size={16} />, action: () => navigate('/campaigns'), category: 'Navigation' },
+    { id: 'nav-cases', label: 'Go to Cases', icon: <Icons.Cases size={16} />, action: () => navigate('/cases'), category: 'Navigation' },
     { id: 'nav-deals', label: 'Go to Deals', icon: <Icons.Deals size={16} />, action: () => navigate('/deals'), category: 'Navigation' },
     { id: 'nav-tasks', label: 'Go to Tasks', icon: <Icons.Tasks size={16} />, action: () => navigate('/tasks'), category: 'Navigation' },
     { id: 'nav-calendar', label: 'Go to Calendar', icon: <Icons.Calendar size={16} />, action: () => navigate('/calendar'), category: 'Navigation' },
@@ -39,6 +41,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     // Actions
     { id: 'action-new-lead', label: 'Create New Lead', icon: <Icons.UserPlus size={16} />, action: () => navigate('/leads?create=1'), category: 'Actions' },
     { id: 'action-new-contact', label: 'Create New Contact', icon: <Icons.Contact size={16} />, action: () => navigate('/contacts?create=1'), category: 'Actions' },
+    { id: 'action-new-campaign', label: 'Create New Campaign', icon: <Icons.Campaigns size={16} />, action: () => navigate('/campaigns?create=1'), category: 'Actions' },
+    { id: 'action-new-case', label: 'Create New Case', icon: <Icons.Cases size={16} />, action: () => navigate('/cases?create=1'), category: 'Actions' },
     { id: 'action-new-deal', label: 'Create New Deal', icon: <Icons.Handshake size={16} />, action: () => navigate('/deals?create=1'), category: 'Actions' },
     { id: 'action-new-task', label: 'Create New Task', icon: <Icons.CheckSquare size={16} />, action: () => navigate('/tasks?create=1'), category: 'Actions' },
     { id: 'action-compose-email', label: 'Compose Email', icon: <Icons.Mail size={16} />, action: () => navigate('/email?compose=1'), category: 'Actions' },

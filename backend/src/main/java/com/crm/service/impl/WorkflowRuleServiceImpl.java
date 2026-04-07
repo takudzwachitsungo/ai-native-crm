@@ -1,12 +1,18 @@
 package com.crm.service.impl;
 
 import com.crm.config.TenantContext;
+import com.crm.dto.request.CampaignNurtureWorkflowRequestDTO;
+import com.crm.dto.request.CaseAssignmentWorkflowRequestDTO;
+import com.crm.dto.request.CaseSlaWorkflowRequestDTO;
 import com.crm.dto.request.DealApprovalWorkflowRequestDTO;
 import com.crm.dto.request.DealRescueWorkflowRequestDTO;
 import com.crm.dto.request.GovernanceOpsWorkflowRequestDTO;
 import com.crm.dto.request.LeadIntakeWorkflowRequestDTO;
 import com.crm.dto.request.QuotaRiskWorkflowRequestDTO;
 import com.crm.dto.request.TerritoryEscalationWorkflowRequestDTO;
+import com.crm.dto.response.CampaignNurtureWorkflowResponseDTO;
+import com.crm.dto.response.CaseAssignmentWorkflowResponseDTO;
+import com.crm.dto.response.CaseSlaWorkflowResponseDTO;
 import com.crm.dto.response.DealApprovalWorkflowResponseDTO;
 import com.crm.dto.response.DealRescueWorkflowResponseDTO;
 import com.crm.dto.response.GovernanceOpsWorkflowResponseDTO;
@@ -35,6 +41,15 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
     private static final String DEFAULT_LEAD_INTAKE_NAME = "Lead Intake Automation";
     private static final String DEFAULT_LEAD_INTAKE_DESCRIPTION =
             "Controls lead auto-assignment, fast-track thresholds, and follow-up timing for this workspace.";
+    private static final String DEFAULT_CAMPAIGN_NURTURE_NAME = "Campaign Nurture Attribution";
+    private static final String DEFAULT_CAMPAIGN_NURTURE_DESCRIPTION =
+            "Controls campaign-attributed lead acceleration, campaign score boosts, and how urgently campaign follow-up tasks are routed.";
+    private static final String DEFAULT_CASE_ASSIGNMENT_NAME = "Support Case Assignment";
+    private static final String DEFAULT_CASE_ASSIGNMENT_DESCRIPTION =
+            "Controls how unassigned or escalated support cases are routed, whether account owners are preferred, and how quickly assignment tasks are due.";
+    private static final String DEFAULT_CASE_SLA_NAME = "Support Case SLA Automation";
+    private static final String DEFAULT_CASE_SLA_DESCRIPTION =
+            "Controls default response and resolution targets plus follow-up task routing for breached support-case SLAs.";
     private static final String DEFAULT_DEAL_RESCUE_NAME = "Deal Rescue Automation";
     private static final String DEFAULT_DEAL_RESCUE_DESCRIPTION =
             "Controls stalled-deal detection, rescue task timing, and which risky deals should be escalated for action.";
@@ -98,6 +113,155 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
         }
         return workflowRuleRepository.findByTenantIdAndRuleTypeAndArchivedFalse(tenantId, WorkflowRuleType.LEAD_INTAKE)
                 .orElseGet(() -> defaultLeadIntakeWorkflow(tenantId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CampaignNurtureWorkflowResponseDTO getCampaignNurtureWorkflow() {
+        UUID tenantId = requireTenant();
+        return toCampaignNurtureDto(resolveCampaignNurtureWorkflow(tenantId));
+    }
+
+    @Override
+    @Transactional
+    public CampaignNurtureWorkflowResponseDTO updateCampaignNurtureWorkflow(CampaignNurtureWorkflowRequestDTO request) {
+        UUID tenantId = requireTenant();
+        validateCampaignNurtureRequest(request);
+
+        WorkflowRule workflowRule = workflowRuleRepository
+                .findByTenantIdAndRuleTypeAndArchivedFalse(tenantId, WorkflowRuleType.CAMPAIGN_NURTURE)
+                .orElseGet(() -> defaultCampaignNurtureWorkflow(tenantId));
+
+        workflowRule.setName(normalizeCampaignNurtureName(request.getName()));
+        workflowRule.setDescription(normalizeCampaignNurtureDescription(request.getDescription()));
+        workflowRule.setIsActive(request.getIsActive());
+        workflowRule.setRequireActiveCampaign(request.getRequireActiveCampaign());
+        workflowRule.setCampaignScoreBoost(request.getCampaignScoreBoost());
+        workflowRule.setCampaignFollowUpDays(request.getCampaignFollowUpDays());
+        workflowRule.setCampaignTaskPriority(request.getCampaignTaskPriority());
+
+        WorkflowRule saved = workflowRuleRepository.save(workflowRule);
+        log.info("Updated campaign nurture workflow for tenant {}", tenantId);
+        return toCampaignNurtureDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WorkflowRule resolveCampaignNurtureWorkflow(UUID tenantId) {
+        if (tenantId == null) {
+            return defaultCampaignNurtureWorkflow(null);
+        }
+        return workflowRuleRepository.findByTenantIdAndRuleTypeAndArchivedFalse(tenantId, WorkflowRuleType.CAMPAIGN_NURTURE)
+                .orElseGet(() -> defaultCampaignNurtureWorkflow(tenantId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CaseAssignmentWorkflowResponseDTO getCaseAssignmentWorkflow() {
+        UUID tenantId = requireTenant();
+        return toCaseAssignmentDto(resolveCaseAssignmentWorkflow(tenantId));
+    }
+
+    @Override
+    @Transactional
+    public CaseAssignmentWorkflowResponseDTO updateCaseAssignmentWorkflow(CaseAssignmentWorkflowRequestDTO request) {
+        UUID tenantId = requireTenant();
+        validateCaseAssignmentRequest(request);
+
+        WorkflowRule workflowRule = workflowRuleRepository
+                .findByTenantIdAndRuleTypeAndArchivedFalse(tenantId, WorkflowRuleType.CASE_ASSIGNMENT)
+                .orElseGet(() -> defaultCaseAssignmentWorkflow(tenantId));
+
+        workflowRule.setName(normalizeCaseAssignmentName(request.getName()));
+        workflowRule.setDescription(normalizeCaseAssignmentDescription(request.getDescription()));
+        workflowRule.setIsActive(request.getIsActive());
+        workflowRule.setAutoAssignUnassignedCases(request.getAutoAssignUnassignedCases());
+        workflowRule.setAutoReassignEscalatedCases(request.getAutoReassignEscalatedCases());
+        workflowRule.setPreferAccountOwner(request.getPreferAccountOwner());
+        workflowRule.setPreferSeniorCoverageForHighTouch(request.getPreferSeniorCoverageForHighTouch());
+        workflowRule.setPreferFrontlineForTierOne(request.getPreferFrontlineForTierOne());
+        workflowRule.setPreferSpecialistCoverage(request.getPreferSpecialistCoverage());
+        workflowRule.setCreateAssignmentTasks(request.getCreateAssignmentTasks());
+        workflowRule.setDefaultAssignmentTaskDueDays(request.getDefaultAssignmentTaskDueDays());
+        workflowRule.setUrgentAssignmentTaskDueDays(request.getUrgentAssignmentTaskDueDays());
+        workflowRule.setDefaultAssignmentTaskPriority(request.getDefaultAssignmentTaskPriority());
+        workflowRule.setUrgentAssignmentTaskPriority(request.getUrgentAssignmentTaskPriority());
+        workflowRule.setFrontlineQueueCapacity(request.getFrontlineQueueCapacity());
+        workflowRule.setSpecialistQueueCapacity(request.getSpecialistQueueCapacity());
+
+        WorkflowRule saved = workflowRuleRepository.save(workflowRule);
+        log.info("Updated case assignment workflow for tenant {}", tenantId);
+        return toCaseAssignmentDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WorkflowRule resolveCaseAssignmentWorkflow(UUID tenantId) {
+        if (tenantId == null) {
+            return defaultCaseAssignmentWorkflow(null);
+        }
+        return workflowRuleRepository.findByTenantIdAndRuleTypeAndArchivedFalse(tenantId, WorkflowRuleType.CASE_ASSIGNMENT)
+                .orElseGet(() -> defaultCaseAssignmentWorkflow(tenantId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CaseSlaWorkflowResponseDTO getCaseSlaWorkflow() {
+        UUID tenantId = requireTenant();
+        return toCaseSlaDto(resolveCaseSlaWorkflow(tenantId));
+    }
+
+    @Override
+    @Transactional
+    public CaseSlaWorkflowResponseDTO updateCaseSlaWorkflow(CaseSlaWorkflowRequestDTO request) {
+        UUID tenantId = requireTenant();
+        validateCaseSlaRequest(request);
+
+        WorkflowRule workflowRule = workflowRuleRepository
+                .findByTenantIdAndRuleTypeAndArchivedFalse(tenantId, WorkflowRuleType.CASE_SLA)
+                .orElseGet(() -> defaultCaseSlaWorkflow(tenantId));
+
+        workflowRule.setName(normalizeCaseSlaName(request.getName()));
+        workflowRule.setDescription(normalizeCaseSlaDescription(request.getDescription()));
+        workflowRule.setIsActive(request.getIsActive());
+        workflowRule.setAutoResponseTargetsEnabled(request.getAutoResponseTargetsEnabled());
+        workflowRule.setAutoResolutionTargetsEnabled(request.getAutoResolutionTargetsEnabled());
+        workflowRule.setUrgentResponseHours(request.getUrgentResponseHours());
+        workflowRule.setHighResponseHours(request.getHighResponseHours());
+        workflowRule.setMediumResponseHours(request.getMediumResponseHours());
+        workflowRule.setLowResponseHours(request.getLowResponseHours());
+        workflowRule.setUrgentResolutionHours(request.getUrgentResolutionHours());
+        workflowRule.setHighResolutionHours(request.getHighResolutionHours());
+        workflowRule.setMediumResolutionHours(request.getMediumResolutionHours());
+        workflowRule.setLowResolutionHours(request.getLowResolutionHours());
+        workflowRule.setPremiumResponseMultiplierPercent(request.getPremiumResponseMultiplierPercent());
+        workflowRule.setStrategicResponseMultiplierPercent(request.getStrategicResponseMultiplierPercent());
+        workflowRule.setPremiumResolutionMultiplierPercent(request.getPremiumResolutionMultiplierPercent());
+        workflowRule.setStrategicResolutionMultiplierPercent(request.getStrategicResolutionMultiplierPercent());
+        workflowRule.setCreateBreachTasks(request.getCreateBreachTasks());
+        workflowRule.setResponseBreachTaskDueDays(request.getResponseBreachTaskDueDays());
+        workflowRule.setResolutionBreachTaskDueDays(request.getResolutionBreachTaskDueDays());
+        workflowRule.setResponseBreachTaskPriority(request.getResponseBreachTaskPriority());
+        workflowRule.setResolutionBreachTaskPriority(request.getResolutionBreachTaskPriority());
+        workflowRule.setAutoEscalateBreachedCases(request.getAutoEscalateBreachedCases());
+        workflowRule.setEscalateOnResponseBreach(request.getEscalateOnResponseBreach());
+        workflowRule.setEscalateOnResolutionBreach(request.getEscalateOnResolutionBreach());
+        workflowRule.setEscalationTaskDueDays(request.getEscalationTaskDueDays());
+        workflowRule.setEscalationTaskPriority(request.getEscalationTaskPriority());
+
+        WorkflowRule saved = workflowRuleRepository.save(workflowRule);
+        log.info("Updated case SLA workflow for tenant {}", tenantId);
+        return toCaseSlaDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WorkflowRule resolveCaseSlaWorkflow(UUID tenantId) {
+        if (tenantId == null) {
+            return defaultCaseSlaWorkflow(null);
+        }
+        return workflowRuleRepository.findByTenantIdAndRuleTypeAndArchivedFalse(tenantId, WorkflowRuleType.CASE_SLA)
+                .orElseGet(() -> defaultCaseSlaWorkflow(tenantId));
     }
 
     @Override
@@ -348,6 +512,83 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
                 .build();
     }
 
+    private CampaignNurtureWorkflowResponseDTO toCampaignNurtureDto(WorkflowRule workflowRule) {
+        return CampaignNurtureWorkflowResponseDTO.builder()
+                .id(workflowRule.getId())
+                .ruleType(workflowRule.getRuleType() != null ? workflowRule.getRuleType().name() : WorkflowRuleType.CAMPAIGN_NURTURE.name())
+                .name(workflowRule.getName())
+                .description(workflowRule.getDescription())
+                .isActive(workflowRule.getIsActive())
+                .requireActiveCampaign(workflowRule.getRequireActiveCampaign())
+                .campaignScoreBoost(workflowRule.getCampaignScoreBoost())
+                .campaignFollowUpDays(workflowRule.getCampaignFollowUpDays())
+                .campaignTaskPriority(workflowRule.getCampaignTaskPriority())
+                .createdAt(workflowRule.getCreatedAt())
+                .updatedAt(workflowRule.getUpdatedAt())
+                .build();
+    }
+
+    private CaseAssignmentWorkflowResponseDTO toCaseAssignmentDto(WorkflowRule workflowRule) {
+        return CaseAssignmentWorkflowResponseDTO.builder()
+                .id(workflowRule.getId())
+                .ruleType(workflowRule.getRuleType() != null ? workflowRule.getRuleType().name() : WorkflowRuleType.CASE_ASSIGNMENT.name())
+                .name(workflowRule.getName())
+                .description(workflowRule.getDescription())
+                .isActive(workflowRule.getIsActive())
+                .autoAssignUnassignedCases(workflowRule.getAutoAssignUnassignedCases())
+                .autoReassignEscalatedCases(workflowRule.getAutoReassignEscalatedCases())
+                .preferAccountOwner(workflowRule.getPreferAccountOwner())
+                .preferSeniorCoverageForHighTouch(workflowRule.getPreferSeniorCoverageForHighTouch())
+                .preferFrontlineForTierOne(workflowRule.getPreferFrontlineForTierOne())
+                .preferSpecialistCoverage(workflowRule.getPreferSpecialistCoverage())
+                .createAssignmentTasks(workflowRule.getCreateAssignmentTasks())
+                .defaultAssignmentTaskDueDays(workflowRule.getDefaultAssignmentTaskDueDays())
+                .urgentAssignmentTaskDueDays(workflowRule.getUrgentAssignmentTaskDueDays())
+                .defaultAssignmentTaskPriority(workflowRule.getDefaultAssignmentTaskPriority())
+                .urgentAssignmentTaskPriority(workflowRule.getUrgentAssignmentTaskPriority())
+                .frontlineQueueCapacity(workflowRule.getFrontlineQueueCapacity())
+                .specialistQueueCapacity(workflowRule.getSpecialistQueueCapacity())
+                .createdAt(workflowRule.getCreatedAt())
+                .updatedAt(workflowRule.getUpdatedAt())
+                .build();
+    }
+
+    private CaseSlaWorkflowResponseDTO toCaseSlaDto(WorkflowRule workflowRule) {
+        return CaseSlaWorkflowResponseDTO.builder()
+                .id(workflowRule.getId())
+                .ruleType(workflowRule.getRuleType() != null ? workflowRule.getRuleType().name() : WorkflowRuleType.CASE_SLA.name())
+                .name(workflowRule.getName())
+                .description(workflowRule.getDescription())
+                .isActive(workflowRule.getIsActive())
+                .autoResponseTargetsEnabled(workflowRule.getAutoResponseTargetsEnabled())
+                .autoResolutionTargetsEnabled(workflowRule.getAutoResolutionTargetsEnabled())
+                .urgentResponseHours(workflowRule.getUrgentResponseHours())
+                .highResponseHours(workflowRule.getHighResponseHours())
+                .mediumResponseHours(workflowRule.getMediumResponseHours())
+                .lowResponseHours(workflowRule.getLowResponseHours())
+                .urgentResolutionHours(workflowRule.getUrgentResolutionHours())
+                .highResolutionHours(workflowRule.getHighResolutionHours())
+                .mediumResolutionHours(workflowRule.getMediumResolutionHours())
+                .lowResolutionHours(workflowRule.getLowResolutionHours())
+                .premiumResponseMultiplierPercent(workflowRule.getPremiumResponseMultiplierPercent())
+                .strategicResponseMultiplierPercent(workflowRule.getStrategicResponseMultiplierPercent())
+                .premiumResolutionMultiplierPercent(workflowRule.getPremiumResolutionMultiplierPercent())
+                .strategicResolutionMultiplierPercent(workflowRule.getStrategicResolutionMultiplierPercent())
+                .createBreachTasks(workflowRule.getCreateBreachTasks())
+                .responseBreachTaskDueDays(workflowRule.getResponseBreachTaskDueDays())
+                .resolutionBreachTaskDueDays(workflowRule.getResolutionBreachTaskDueDays())
+                .responseBreachTaskPriority(workflowRule.getResponseBreachTaskPriority())
+                .resolutionBreachTaskPriority(workflowRule.getResolutionBreachTaskPriority())
+                .autoEscalateBreachedCases(workflowRule.getAutoEscalateBreachedCases())
+                .escalateOnResponseBreach(workflowRule.getEscalateOnResponseBreach())
+                .escalateOnResolutionBreach(workflowRule.getEscalateOnResolutionBreach())
+                .escalationTaskDueDays(workflowRule.getEscalationTaskDueDays())
+                .escalationTaskPriority(workflowRule.getEscalationTaskPriority())
+                .createdAt(workflowRule.getCreatedAt())
+                .updatedAt(workflowRule.getUpdatedAt())
+                .build();
+    }
+
     private DealRescueWorkflowResponseDTO toDealRescueDto(WorkflowRule workflowRule) {
         return DealRescueWorkflowResponseDTO.builder()
                 .id(workflowRule.getId())
@@ -488,9 +729,76 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
                 .approvalTaskDueDays(1)
                 .approvalTaskPriority(TaskPriority.HIGH)
                 .build();
+        applyCampaignNurtureDefaults(workflowRule);
+        applyCaseSlaDefaults(workflowRule);
+        applyCaseAssignmentDefaults(workflowRule);
         applyGovernanceOpsDefaults(workflowRule);
         applyTerritoryEscalationDefaults(workflowRule);
         workflowRule.setTenantId(tenantId);
+        return workflowRule;
+    }
+
+    private WorkflowRule defaultCampaignNurtureWorkflow(UUID tenantId) {
+        WorkflowRule workflowRule = WorkflowRule.builder()
+                .ruleType(WorkflowRuleType.CAMPAIGN_NURTURE)
+                .name(DEFAULT_CAMPAIGN_NURTURE_NAME)
+                .description(DEFAULT_CAMPAIGN_NURTURE_DESCRIPTION)
+                .isActive(true)
+                .autoAssignmentEnabled(true)
+                .preferTerritoryMatch(true)
+                .fallbackToLoadBalance(true)
+                .autoFollowUpEnabled(true)
+                .defaultFollowUpDays(3)
+                .referralFollowUpDays(2)
+                .fastTrackFollowUpDays(1)
+                .fastTrackScoreThreshold(80)
+                .fastTrackValueThreshold(BigDecimal.valueOf(50000))
+                .defaultTaskPriority(TaskPriority.MEDIUM)
+                .fastTrackTaskPriority(TaskPriority.HIGH)
+                .reviewStalledDeals(true)
+                .reviewHighRiskDeals(true)
+                .reviewOverdueNextSteps(true)
+                .reviewTerritoryMismatch(true)
+                .stalledDealDays(14)
+                .rescueTaskDueDays(1)
+                .rescueTaskPriority(TaskPriority.HIGH)
+                .includeWatchReps(true)
+                .includeAtRiskReps(true)
+                .watchTaskDueDays(1)
+                .atRiskTaskDueDays(0)
+                .watchTaskPriority(TaskPriority.MEDIUM)
+                .atRiskTaskPriority(TaskPriority.HIGH)
+                .requireApprovalForHighRisk(true)
+                .valueApprovalThreshold(BigDecimal.valueOf(100000))
+                .approvalTaskDueDays(1)
+                .approvalTaskPriority(TaskPriority.HIGH)
+                .build();
+        applyCampaignNurtureDefaults(workflowRule);
+        applyCaseSlaDefaults(workflowRule);
+        applyCaseAssignmentDefaults(workflowRule);
+        applyGovernanceOpsDefaults(workflowRule);
+        applyTerritoryEscalationDefaults(workflowRule);
+        workflowRule.setTenantId(tenantId);
+        return workflowRule;
+    }
+
+    private WorkflowRule defaultCaseSlaWorkflow(UUID tenantId) {
+        WorkflowRule workflowRule = defaultLeadIntakeWorkflow(tenantId);
+        workflowRule.setRuleType(WorkflowRuleType.CASE_SLA);
+        workflowRule.setName(DEFAULT_CASE_SLA_NAME);
+        workflowRule.setDescription(DEFAULT_CASE_SLA_DESCRIPTION);
+        workflowRule.setIsActive(true);
+        applyCaseSlaDefaults(workflowRule);
+        return workflowRule;
+    }
+
+    private WorkflowRule defaultCaseAssignmentWorkflow(UUID tenantId) {
+        WorkflowRule workflowRule = defaultLeadIntakeWorkflow(tenantId);
+        workflowRule.setRuleType(WorkflowRuleType.CASE_ASSIGNMENT);
+        workflowRule.setName(DEFAULT_CASE_ASSIGNMENT_NAME);
+        workflowRule.setDescription(DEFAULT_CASE_ASSIGNMENT_DESCRIPTION);
+        workflowRule.setIsActive(true);
+        applyCaseAssignmentDefaults(workflowRule);
         return workflowRule;
     }
 
@@ -529,6 +837,9 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
                 .approvalTaskDueDays(1)
                 .approvalTaskPriority(TaskPriority.HIGH)
                 .build();
+        applyCampaignNurtureDefaults(workflowRule);
+        applyCaseSlaDefaults(workflowRule);
+        applyCaseAssignmentDefaults(workflowRule);
         applyGovernanceOpsDefaults(workflowRule);
         applyTerritoryEscalationDefaults(workflowRule);
         workflowRule.setTenantId(tenantId);
@@ -570,6 +881,9 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
                 .approvalTaskDueDays(1)
                 .approvalTaskPriority(TaskPriority.HIGH)
                 .build();
+        applyCampaignNurtureDefaults(workflowRule);
+        applyCaseSlaDefaults(workflowRule);
+        applyCaseAssignmentDefaults(workflowRule);
         applyGovernanceOpsDefaults(workflowRule);
         applyTerritoryEscalationDefaults(workflowRule);
         workflowRule.setTenantId(tenantId);
@@ -611,6 +925,9 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
                 .approvalTaskDueDays(1)
                 .approvalTaskPriority(TaskPriority.HIGH)
                 .build();
+        applyCampaignNurtureDefaults(workflowRule);
+        applyCaseSlaDefaults(workflowRule);
+        applyCaseAssignmentDefaults(workflowRule);
         applyGovernanceOpsDefaults(workflowRule);
         applyTerritoryEscalationDefaults(workflowRule);
         workflowRule.setTenantId(tenantId);
@@ -652,6 +969,9 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
                 .approvalTaskDueDays(1)
                 .approvalTaskPriority(TaskPriority.HIGH)
                 .build();
+        applyCampaignNurtureDefaults(workflowRule);
+        applyCaseSlaDefaults(workflowRule);
+        applyCaseAssignmentDefaults(workflowRule);
         applyGovernanceOpsDefaults(workflowRule);
         applyTerritoryEscalationDefaults(workflowRule);
         workflowRule.setTenantId(tenantId);
@@ -693,10 +1013,63 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
                 .approvalTaskDueDays(1)
                 .approvalTaskPriority(TaskPriority.HIGH)
                 .build();
+        applyCampaignNurtureDefaults(workflowRule);
+        applyCaseSlaDefaults(workflowRule);
+        applyCaseAssignmentDefaults(workflowRule);
         applyGovernanceOpsDefaults(workflowRule);
         applyTerritoryEscalationDefaults(workflowRule);
         workflowRule.setTenantId(tenantId);
         return workflowRule;
+    }
+
+    private void applyCampaignNurtureDefaults(WorkflowRule workflowRule) {
+        workflowRule.setRequireActiveCampaign(true);
+        workflowRule.setCampaignScoreBoost(10);
+        workflowRule.setCampaignFollowUpDays(1);
+        workflowRule.setCampaignTaskPriority(TaskPriority.HIGH);
+    }
+
+    private void applyCaseSlaDefaults(WorkflowRule workflowRule) {
+        workflowRule.setAutoResponseTargetsEnabled(true);
+        workflowRule.setAutoResolutionTargetsEnabled(true);
+        workflowRule.setUrgentResponseHours(1);
+        workflowRule.setHighResponseHours(4);
+        workflowRule.setMediumResponseHours(8);
+        workflowRule.setLowResponseHours(24);
+        workflowRule.setUrgentResolutionHours(8);
+        workflowRule.setHighResolutionHours(24);
+        workflowRule.setMediumResolutionHours(48);
+        workflowRule.setLowResolutionHours(120);
+        workflowRule.setPremiumResponseMultiplierPercent(75);
+        workflowRule.setStrategicResponseMultiplierPercent(50);
+        workflowRule.setPremiumResolutionMultiplierPercent(75);
+        workflowRule.setStrategicResolutionMultiplierPercent(50);
+        workflowRule.setCreateBreachTasks(true);
+        workflowRule.setResponseBreachTaskDueDays(0);
+        workflowRule.setResolutionBreachTaskDueDays(0);
+        workflowRule.setResponseBreachTaskPriority(TaskPriority.HIGH);
+        workflowRule.setResolutionBreachTaskPriority(TaskPriority.HIGH);
+        workflowRule.setAutoEscalateBreachedCases(true);
+        workflowRule.setEscalateOnResponseBreach(true);
+        workflowRule.setEscalateOnResolutionBreach(true);
+        workflowRule.setEscalationTaskDueDays(0);
+        workflowRule.setEscalationTaskPriority(TaskPriority.HIGH);
+    }
+
+    private void applyCaseAssignmentDefaults(WorkflowRule workflowRule) {
+        workflowRule.setAutoAssignUnassignedCases(true);
+        workflowRule.setAutoReassignEscalatedCases(true);
+        workflowRule.setPreferAccountOwner(true);
+        workflowRule.setPreferSeniorCoverageForHighTouch(true);
+        workflowRule.setPreferFrontlineForTierOne(true);
+        workflowRule.setPreferSpecialistCoverage(true);
+        workflowRule.setCreateAssignmentTasks(true);
+        workflowRule.setDefaultAssignmentTaskDueDays(1);
+        workflowRule.setUrgentAssignmentTaskDueDays(0);
+        workflowRule.setDefaultAssignmentTaskPriority(TaskPriority.MEDIUM);
+        workflowRule.setUrgentAssignmentTaskPriority(TaskPriority.HIGH);
+        workflowRule.setFrontlineQueueCapacity(8);
+        workflowRule.setSpecialistQueueCapacity(5);
     }
 
     private void applyGovernanceOpsDefaults(WorkflowRule workflowRule) {
@@ -743,6 +1116,58 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
         }
         if (request.getFastTrackFollowUpDays() > request.getDefaultFollowUpDays()) {
             throw new BadRequestException("Fast-track follow-up cannot be slower than the default follow-up");
+        }
+    }
+
+    private void validateCampaignNurtureRequest(CampaignNurtureWorkflowRequestDTO request) {
+        if (Boolean.TRUE.equals(request.getIsActive())
+                && request.getCampaignScoreBoost() <= 0
+                && request.getCampaignFollowUpDays() >= 3) {
+            throw new BadRequestException("Campaign nurture workflow needs either a score boost or an accelerated follow-up policy");
+        }
+    }
+
+    private void validateCaseSlaRequest(CaseSlaWorkflowRequestDTO request) {
+        if (!Boolean.TRUE.equals(request.getAutoResponseTargetsEnabled())
+                && !Boolean.TRUE.equals(request.getAutoResolutionTargetsEnabled())
+                && !Boolean.TRUE.equals(request.getCreateBreachTasks())
+                && !Boolean.TRUE.equals(request.getAutoEscalateBreachedCases())) {
+            throw new BadRequestException("At least one case SLA automation behavior must stay enabled");
+        }
+        if (request.getUrgentResponseHours() > request.getHighResponseHours()
+                || request.getHighResponseHours() > request.getMediumResponseHours()
+                || request.getMediumResponseHours() > request.getLowResponseHours()) {
+            throw new BadRequestException("Response SLA hours must get slower as priority decreases");
+        }
+        if (request.getUrgentResolutionHours() > request.getHighResolutionHours()
+                || request.getHighResolutionHours() > request.getMediumResolutionHours()
+                || request.getMediumResolutionHours() > request.getLowResolutionHours()) {
+            throw new BadRequestException("Resolution SLA hours must get slower as priority decreases");
+        }
+        if (request.getStrategicResponseMultiplierPercent() > request.getPremiumResponseMultiplierPercent()) {
+            throw new BadRequestException("Strategic response targets must be at least as fast as premium targets");
+        }
+        if (request.getStrategicResolutionMultiplierPercent() > request.getPremiumResolutionMultiplierPercent()) {
+            throw new BadRequestException("Strategic resolution targets must be at least as fast as premium targets");
+        }
+        if (!Boolean.TRUE.equals(request.getEscalateOnResponseBreach())
+                && !Boolean.TRUE.equals(request.getEscalateOnResolutionBreach())
+                && Boolean.TRUE.equals(request.getAutoEscalateBreachedCases())) {
+            throw new BadRequestException("Choose at least one breach trigger when automatic case escalation is enabled");
+        }
+    }
+
+    private void validateCaseAssignmentRequest(CaseAssignmentWorkflowRequestDTO request) {
+        if (Boolean.TRUE.equals(request.getIsActive())
+                && !Boolean.TRUE.equals(request.getAutoAssignUnassignedCases())
+                && !Boolean.TRUE.equals(request.getAutoReassignEscalatedCases())) {
+            throw new BadRequestException("At least one case assignment trigger must stay enabled while the workflow is active");
+        }
+        if (request.getUrgentAssignmentTaskDueDays() > request.getDefaultAssignmentTaskDueDays()) {
+            throw new BadRequestException("Urgent assignment follow-up cannot be slower than the default assignment SLA");
+        }
+        if (request.getSpecialistQueueCapacity() > request.getFrontlineQueueCapacity()) {
+            throw new BadRequestException("Specialist queue capacity cannot exceed frontline capacity");
         }
     }
 
@@ -835,6 +1260,48 @@ public class WorkflowRuleServiceImpl implements WorkflowRuleService {
     private String normalizeDealRescueDescription(String value) {
         if (value == null || value.isBlank()) {
             return DEFAULT_DEAL_RESCUE_DESCRIPTION;
+        }
+        return value.trim();
+    }
+
+    private String normalizeCampaignNurtureName(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_CAMPAIGN_NURTURE_NAME;
+        }
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private String normalizeCampaignNurtureDescription(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_CAMPAIGN_NURTURE_DESCRIPTION;
+        }
+        return value.trim();
+    }
+
+    private String normalizeCaseAssignmentName(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_CASE_ASSIGNMENT_NAME;
+        }
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private String normalizeCaseAssignmentDescription(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_CASE_ASSIGNMENT_DESCRIPTION;
+        }
+        return value.trim();
+    }
+
+    private String normalizeCaseSlaName(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_CASE_SLA_NAME;
+        }
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private String normalizeCaseSlaDescription(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_CASE_SLA_DESCRIPTION;
         }
         return value.trim();
     }

@@ -72,6 +72,135 @@ public class WorkflowRule extends AbstractEntity {
     @Column(name = "fast_track_task_priority", nullable = false, length = 20)
     private TaskPriority fastTrackTaskPriority = TaskPriority.HIGH;
 
+    @Column(name = "require_active_campaign", nullable = false)
+    private Boolean requireActiveCampaign = true;
+
+    @Column(name = "campaign_score_boost", nullable = false)
+    private Integer campaignScoreBoost = 10;
+
+    @Column(name = "campaign_follow_up_days", nullable = false)
+    private Integer campaignFollowUpDays = 1;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "campaign_task_priority", nullable = false, length = 20)
+    private TaskPriority campaignTaskPriority = TaskPriority.HIGH;
+
+    @Column(name = "auto_response_targets_enabled", nullable = false)
+    private Boolean autoResponseTargetsEnabled = true;
+
+    @Column(name = "auto_resolution_targets_enabled", nullable = false)
+    private Boolean autoResolutionTargetsEnabled = true;
+
+    @Column(name = "urgent_response_hours", nullable = false)
+    private Integer urgentResponseHours = 1;
+
+    @Column(name = "high_response_hours", nullable = false)
+    private Integer highResponseHours = 4;
+
+    @Column(name = "medium_response_hours", nullable = false)
+    private Integer mediumResponseHours = 8;
+
+    @Column(name = "low_response_hours", nullable = false)
+    private Integer lowResponseHours = 24;
+
+    @Column(name = "urgent_resolution_hours", nullable = false)
+    private Integer urgentResolutionHours = 8;
+
+    @Column(name = "high_resolution_hours", nullable = false)
+    private Integer highResolutionHours = 24;
+
+    @Column(name = "medium_resolution_hours", nullable = false)
+    private Integer mediumResolutionHours = 48;
+
+    @Column(name = "low_resolution_hours", nullable = false)
+    private Integer lowResolutionHours = 120;
+
+    @Column(name = "premium_response_multiplier_percent", nullable = false)
+    private Integer premiumResponseMultiplierPercent = 75;
+
+    @Column(name = "strategic_response_multiplier_percent", nullable = false)
+    private Integer strategicResponseMultiplierPercent = 50;
+
+    @Column(name = "premium_resolution_multiplier_percent", nullable = false)
+    private Integer premiumResolutionMultiplierPercent = 75;
+
+    @Column(name = "strategic_resolution_multiplier_percent", nullable = false)
+    private Integer strategicResolutionMultiplierPercent = 50;
+
+    @Column(name = "create_breach_tasks", nullable = false)
+    private Boolean createBreachTasks = true;
+
+    @Column(name = "response_breach_task_due_days", nullable = false)
+    private Integer responseBreachTaskDueDays = 0;
+
+    @Column(name = "resolution_breach_task_due_days", nullable = false)
+    private Integer resolutionBreachTaskDueDays = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "response_breach_task_priority", nullable = false, length = 20)
+    private TaskPriority responseBreachTaskPriority = TaskPriority.HIGH;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resolution_breach_task_priority", nullable = false, length = 20)
+    private TaskPriority resolutionBreachTaskPriority = TaskPriority.HIGH;
+
+    @Column(name = "auto_escalate_breached_cases", nullable = false)
+    private Boolean autoEscalateBreachedCases = true;
+
+    @Column(name = "escalate_on_response_breach", nullable = false)
+    private Boolean escalateOnResponseBreach = true;
+
+    @Column(name = "escalate_on_resolution_breach", nullable = false)
+    private Boolean escalateOnResolutionBreach = true;
+
+    @Column(name = "escalation_task_due_days", nullable = false)
+    private Integer escalationTaskDueDays = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "escalation_task_priority", nullable = false, length = 20)
+    private TaskPriority escalationTaskPriority = TaskPriority.HIGH;
+
+    @Column(name = "auto_assign_unassigned_cases", nullable = false)
+    private Boolean autoAssignUnassignedCases = true;
+
+    @Column(name = "auto_reassign_escalated_cases", nullable = false)
+    private Boolean autoReassignEscalatedCases = true;
+
+    @Column(name = "prefer_account_owner", nullable = false)
+    private Boolean preferAccountOwner = true;
+
+    @Column(name = "prefer_senior_coverage_for_high_touch", nullable = false)
+    private Boolean preferSeniorCoverageForHighTouch = true;
+
+    @Column(name = "prefer_frontline_for_tier_one", nullable = false)
+    private Boolean preferFrontlineForTierOne = true;
+
+    @Column(name = "prefer_specialist_coverage", nullable = false)
+    private Boolean preferSpecialistCoverage = true;
+
+    @Column(name = "create_assignment_tasks", nullable = false)
+    private Boolean createAssignmentTasks = true;
+
+    @Column(name = "default_assignment_task_due_days", nullable = false)
+    private Integer defaultAssignmentTaskDueDays = 1;
+
+    @Column(name = "urgent_assignment_task_due_days", nullable = false)
+    private Integer urgentAssignmentTaskDueDays = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "default_assignment_task_priority", nullable = false, length = 20)
+    private TaskPriority defaultAssignmentTaskPriority = TaskPriority.MEDIUM;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "urgent_assignment_task_priority", nullable = false, length = 20)
+    private TaskPriority urgentAssignmentTaskPriority = TaskPriority.HIGH;
+
+    @Column(name = "frontline_queue_capacity", nullable = false)
+    private Integer frontlineQueueCapacity = 8;
+
+    @Column(name = "specialist_queue_capacity", nullable = false)
+    private Integer specialistQueueCapacity = 5;
+
     @Column(name = "review_stalled_deals", nullable = false)
     private Boolean reviewStalledDeals = true;
 

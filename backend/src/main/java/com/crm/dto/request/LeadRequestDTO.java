@@ -1,5 +1,7 @@
 package com.crm.dto.request;
 
+import com.crm.entity.enums.CustomerPrivacyStatus;
+import com.crm.entity.enums.DataEnrichmentStatus;
 import com.crm.entity.enums.LeadSource;
 import com.crm.entity.enums.LeadStatus;
 import jakarta.validation.constraints.*;
@@ -10,6 +12,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,4 +64,23 @@ public class LeadRequestDTO {
     private LocalDate lastContactDate;
     
     private UUID ownerId;
+
+    private UUID campaignId;
+
+    private Boolean marketingConsent;
+
+    private LocalDateTime consentCapturedAt;
+
+    @Size(max = 120, message = "Consent source must be less than 120 characters")
+    private String consentSource;
+
+    private CustomerPrivacyStatus privacyStatus;
+
+    @Min(value = 0, message = "Data quality score must be between 0 and 100")
+    @Max(value = 100, message = "Data quality score must be between 0 and 100")
+    private Integer dataQualityScore;
+
+    private DataEnrichmentStatus enrichmentStatus;
+
+    private LocalDateTime enrichmentLastCheckedAt;
 }

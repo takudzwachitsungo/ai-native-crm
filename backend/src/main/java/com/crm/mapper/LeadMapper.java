@@ -11,6 +11,7 @@ public interface LeadMapper {
     @Mapping(target = "ownerName", expression = "java(getOwnerName(lead))")
     @Mapping(target = "ownerTerritory", expression = "java(getOwnerTerritory(lead))")
     @Mapping(target = "territoryMismatch", expression = "java(hasTerritoryMismatch(lead))")
+    @Mapping(target = "campaignName", expression = "java(getCampaignName(lead))")
     LeadResponseDTO toDto(Lead lead);
     
     Lead toEntity(LeadRequestDTO dto);
@@ -35,6 +36,10 @@ public interface LeadMapper {
         return territory != null && ownerTerritory != null
                 ? !territory.equalsIgnoreCase(ownerTerritory)
                 : Boolean.FALSE;
+    }
+
+    default String getCampaignName(Lead lead) {
+        return lead.getCampaign() != null ? lead.getCampaign().getName() : null;
     }
 
     default String normalizeTerritory(String territory) {

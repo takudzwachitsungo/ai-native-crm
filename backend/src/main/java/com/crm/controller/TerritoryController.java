@@ -26,20 +26,21 @@ public class TerritoryController {
     private final TerritoryService territoryService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('TERRITORY_VIEW')")
     @Operation(summary = "List workspace territories", description = "Get all workspace territories for the authenticated tenant")
     public ResponseEntity<List<TerritoryResponseDTO>> getTerritories() {
         return ResponseEntity.ok(territoryService.findAll());
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('TERRITORY_MANAGE')")
     @Operation(summary = "Create workspace territory", description = "Create a governed territory for the authenticated tenant")
     public ResponseEntity<TerritoryResponseDTO> createTerritory(@Valid @RequestBody TerritoryRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(territoryService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('TERRITORY_MANAGE')")
     @Operation(summary = "Update workspace territory", description = "Update a governed territory for the authenticated tenant")
     public ResponseEntity<TerritoryResponseDTO> updateTerritory(
             @PathVariable UUID id,
@@ -49,7 +50,7 @@ public class TerritoryController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('TERRITORY_MANAGE')")
     @Operation(summary = "Delete workspace territory", description = "Archive a governed territory that is no longer needed")
     public ResponseEntity<Void> deleteTerritory(@PathVariable UUID id) {
         territoryService.delete(id);

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -36,4 +37,8 @@ public interface DealRepository extends JpaRepository<Deal, UUID>, JpaSpecificat
     long countByTenantIdAndStageAndArchivedFalse(UUID tenantId, DealStage stage);
 
     long countByTenantIdAndOwnerIdAndArchivedFalseAndStageNotIn(UUID tenantId, UUID ownerId, Collection<DealStage> stages);
+
+    @Modifying
+    @Query("UPDATE Deal d SET d.contactId = :targetId WHERE d.tenantId = :tenantId AND d.archived = false AND d.contactId = :sourceId")
+    int reassignContact(@Param("tenantId") UUID tenantId, @Param("sourceId") UUID sourceId, @Param("targetId") UUID targetId);
 }

@@ -5,12 +5,16 @@ import com.crm.dto.request.LeadFilterDTO;
 import com.crm.dto.request.LeadRequestDTO;
 import com.crm.dto.response.LeadResponseDTO;
 import com.crm.dto.response.LeadStatsDTO;
+import com.crm.entity.Campaign;
 import com.crm.entity.Company;
 import com.crm.entity.Contact;
 import com.crm.entity.Lead;
+import com.crm.entity.NurtureJourneyStep;
 import com.crm.entity.Task;
 import com.crm.entity.User;
 import com.crm.entity.WorkflowRule;
+import com.crm.entity.enums.AutomationEventType;
+import com.crm.entity.enums.CampaignStatus;
 import com.crm.entity.enums.ContactStatus;
 import com.crm.entity.enums.LeadStatus;
 import com.crm.entity.enums.LeadSource;
@@ -20,18 +24,23 @@ import com.crm.entity.enums.UserRole;
 import com.crm.exception.BadRequestException;
 import com.crm.exception.ResourceNotFoundException;
 import com.crm.mapper.LeadMapper;
+import com.crm.repository.CampaignRepository;
 import com.crm.repository.CompanyRepository;
 import com.crm.repository.ContactRepository;
 import com.crm.repository.LeadRepository;
+import com.crm.repository.NurtureJourneyStepRepository;
 import com.crm.repository.TaskRepository;
 import com.crm.repository.UserRepository;
+import com.crm.security.RecordAccessService;
+import com.crm.service.AutomationExecutionService;
+import com.crm.service.AutomationExecutionTargets;
+import com.crm.service.CustomerDataGovernancePolicy;
 import com.crm.service.LeadService;
 import com.crm.service.WorkflowRuleService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -54,13 +63,22 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LeadServiceImpl implements LeadService {
 
+    private static final String CAMPAIGN_NURTURE_TAG = "campaign-nurture";
+    private static final String JOURNEY_TAG_PREFIX = "journey:";
+    private static final String JOURNEY_STEP_TAG_PREFIX = "journey-step:";
+
     private final LeadRepository leadRepository;
+    private final CampaignRepository campaignRepository;
     private final ContactRepository contactRepository;
     private final CompanyRepository companyRepository;
     private final TaskRepository taskRepository;
+    private final NurtureJourneyStepRepository nurtureJourneyStepRepository;
     private final UserRepository userRepository;
     private final LeadMapper leadMapper;
     private final WorkflowRuleService workflowRuleService;
+    private final CustomerDataGovernancePolicy customerDataGovernancePolicy;
+    private final RecordAccessService recordAccessService;
+    private final AutomationExecutionService automationExecutionService;
 
     private static final EnumSet<LeadStatus> CLOSED_LEAD_STATUSES = EnumSet.of(
             LeadStatus.CONVERTED,
@@ -82,6 +100,10 @@ public class LeadServiceImpl implements LeadService {
         List<Specification<Lead>> specs = new ArrayList<>();
         specs.add(SpecificationBuilder.tenantEquals(tenantId));
         specs.add(SpecificationBuilder.notArchived());
+        Specification<Lead> accessScope = recordAccessService.leadReadScope();
+        if (accessScope != null) {
+            specs.add(accessScope);
+        }
         
         if (filter != null) {
             if (filter.getSearch() != null && !filter.getSearch().isBlank()) {
@@ -136,13 +158,13 @@ public class LeadServiceImpl implements LeadService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "lead", key = "#id")
     public LeadResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         
         Lead lead = leadRepository.findById(id)
                 .filter(l -> l.getTenantId().equals(tenantId) && !l.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Lead", id));
+        recordAccessService.assertCanViewLead(lead);
         
         return leadMapper.toDto(lead);
     }
@@ -155,10 +177,16 @@ public class LeadServiceImpl implements LeadService {
         
         Lead lead = leadMapper.toEntity(request);
         lead.setTenantId(tenantId);
+        lead.setOwnerId(recordAccessService.resolveAssignableOwnerId(lead.getOwnerId()));
 
         applyLeadDefaults(tenantId, lead, request);
         lead = leadRepository.save(lead);
+        lead = applyAutomationRuleEvent(tenantId, lead, AutomationEventType.LEAD_CREATED);
+        if (lead.getCampaignId() != null) {
+            lead = applyAutomationRuleEvent(tenantId, lead, AutomationEventType.CAMPAIGN_ATTRIBUTED_LEAD);
+        }
         ensureLeadFollowUpTask(tenantId, lead);
+        syncCampaignAttributionMetrics(tenantId, lead.getCampaignId());
         hydrateLeadOwner(tenantId, lead);
         log.info("Created lead: {} for tenant: {}", lead.getId(), tenantId);
         
@@ -174,16 +202,37 @@ public class LeadServiceImpl implements LeadService {
         Lead lead = leadRepository.findById(id)
                 .filter(l -> l.getTenantId().equals(tenantId) && !l.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Lead", id));
+        recordAccessService.assertCanWriteLead(lead);
+        UUID previousCampaignId = lead.getCampaignId();
         
         leadMapper.updateEntity(request, lead);
+        lead.setOwnerId(recordAccessService.resolveAssignableOwnerId(lead.getOwnerId()));
         applyLeadDefaults(tenantId, lead, request);
         lead = leadRepository.save(lead);
+        lead = applyAutomationRuleEvent(tenantId, lead, AutomationEventType.LEAD_UPDATED);
+        if (lead.getCampaignId() != null) {
+            lead = applyAutomationRuleEvent(tenantId, lead, AutomationEventType.CAMPAIGN_ATTRIBUTED_LEAD);
+        }
         ensureLeadFollowUpTask(tenantId, lead);
+        syncCampaignAttributionMetrics(tenantId, previousCampaignId);
+        syncCampaignAttributionMetrics(tenantId, lead.getCampaignId());
         hydrateLeadOwner(tenantId, lead);
         
         log.info("Updated lead: {} for tenant: {}", id, tenantId);
         
         return leadMapper.toDto(lead);
+    }
+
+    private Lead applyAutomationRuleEvent(UUID tenantId, Lead lead, AutomationEventType eventType) {
+        var automationOutcome = automationExecutionService.executeRealTimeRules(
+                tenantId,
+                eventType,
+                AutomationExecutionTargets.builder().lead(lead).build()
+        );
+        if (automationOutcome.isMutatedTarget()) {
+            lead = leadRepository.save(lead);
+        }
+        return lead;
     }
 
     @Override
@@ -195,9 +244,11 @@ public class LeadServiceImpl implements LeadService {
         Lead lead = leadRepository.findById(id)
                 .filter(l -> l.getTenantId().equals(tenantId) && !l.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Lead", id));
+        recordAccessService.assertCanWriteLead(lead);
         
         lead.setArchived(true);
         leadRepository.save(lead);
+        syncCampaignAttributionMetrics(tenantId, lead.getCampaignId());
         
         log.info("Deleted (archived) lead: {} for tenant: {}", id, tenantId);
     }
@@ -210,6 +261,7 @@ public class LeadServiceImpl implements LeadService {
         
         List<Lead> leads = leadRepository.findAllById(ids).stream()
                 .filter(l -> l.getTenantId().equals(tenantId) && !l.getArchived())
+                .filter(recordAccessService::canWriteLead)
                 .collect(Collectors.toList());
         
         if (leads.isEmpty()) {
@@ -218,6 +270,10 @@ public class LeadServiceImpl implements LeadService {
         
         leads.forEach(lead -> lead.setArchived(true));
         leadRepository.saveAll(leads);
+        leads.stream()
+                .map(Lead::getCampaignId)
+                .distinct()
+                .forEach(campaignId -> syncCampaignAttributionMetrics(tenantId, campaignId));
         
         log.info("Bulk deleted {} leads for tenant: {}", leads.size(), tenantId);
     }
@@ -231,6 +287,7 @@ public class LeadServiceImpl implements LeadService {
         Lead lead = leadRepository.findById(leadId)
                 .filter(l -> l.getTenantId().equals(tenantId) && !l.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Lead", leadId));
+        recordAccessService.assertCanWriteLead(lead);
         
         if (lead.getStatus() == LeadStatus.CONVERTED) {
             throw new BadRequestException("Lead is already converted");
@@ -255,9 +312,17 @@ public class LeadServiceImpl implements LeadService {
         contact.setStatus(ContactStatus.ACTIVE);
         contact.setNotes(lead.getNotes());
         contact.setLastContactDate(lead.getLastContactDate());
+        contact.setMarketingConsent(lead.getMarketingConsent());
+        contact.setConsentCapturedAt(lead.getConsentCapturedAt());
+        contact.setConsentSource(lead.getConsentSource());
+        contact.setPrivacyStatus(lead.getPrivacyStatus());
+        contact.setDataQualityScore(lead.getDataQualityScore());
+        contact.setEnrichmentStatus(lead.getEnrichmentStatus());
+        contact.setEnrichmentLastCheckedAt(lead.getEnrichmentLastCheckedAt());
         
         if (company != null) {
             contact.setCompany(company);
+            contact.setCompanyId(company.getId());
         }
         
         contact = contactRepository.save(contact);
@@ -265,6 +330,7 @@ public class LeadServiceImpl implements LeadService {
         // Update lead status to converted
         lead.setStatus(LeadStatus.CONVERTED);
         leadRepository.save(lead);
+        syncCampaignAttributionMetrics(tenantId, lead.getCampaignId());
         
         log.info("Converted lead {} to contact {} for tenant: {}", leadId, contact.getId(), tenantId);
         
@@ -278,6 +344,7 @@ public class LeadServiceImpl implements LeadService {
         
         List<Lead> leads = leadRepository.findHighScoringLeads(tenantId, minScore);
         return leads.stream()
+                .filter(recordAccessService::canViewLead)
                 .map(leadMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -289,6 +356,9 @@ public class LeadServiceImpl implements LeadService {
         log.info("Getting lead statistics for tenant: {}", tenantId);
         
         List<Lead> allLeads = leadRepository.findByTenantIdAndArchivedFalse(tenantId, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        allLeads = allLeads.stream()
+                .filter(recordAccessService::canViewLead)
+                .toList();
         log.info("Found {} leads for tenant {}", allLeads.size(), tenantId);
         
         Long totalLeads = (long) allLeads.size();
@@ -322,10 +392,16 @@ public class LeadServiceImpl implements LeadService {
 
     private void applyLeadDefaults(UUID tenantId, Lead lead, LeadRequestDTO request) {
         WorkflowRule workflowRule = workflowRuleService.resolveLeadIntakeWorkflow(tenantId);
+        WorkflowRule campaignWorkflow = workflowRuleService.resolveCampaignNurtureWorkflow(tenantId);
+        Campaign campaign = resolveCampaign(tenantId, request.getCampaignId(), lead.getCampaignId());
+        lead.setCampaignId(campaign != null ? campaign.getId() : null);
+        lead.setCampaign(campaign);
 
         if (lead.getStatus() == null) {
             lead.setStatus(LeadStatus.NEW);
         }
+
+        customerDataGovernancePolicy.applyLeadGovernance(lead, request);
 
         if (!hasText(lead.getTerritory())) {
             lead.setTerritory(inferLeadTerritory(lead));
@@ -334,7 +410,7 @@ public class LeadServiceImpl implements LeadService {
         }
 
         if (request.getScore() == null || lead.getScore() == null) {
-            lead.setScore(calculateLeadScore(lead));
+            lead.setScore(calculateLeadScore(lead, campaignWorkflow, campaign));
         }
 
         if (lead.getOwnerId() == null && Boolean.TRUE.equals(workflowRule.getIsActive()) && Boolean.TRUE.equals(workflowRule.getAutoAssignmentEnabled())) {
@@ -363,7 +439,7 @@ public class LeadServiceImpl implements LeadService {
         lead.setOwner(owner);
     }
 
-    private int calculateLeadScore(Lead lead) {
+    private int calculateLeadScore(Lead lead, WorkflowRule campaignWorkflow, Campaign campaign) {
         int score = 20;
 
         if (hasText(lead.getEmail())) {
@@ -413,6 +489,10 @@ public class LeadServiceImpl implements LeadService {
 
         if (lead.getTags() != null && lead.getTags().length > 0) {
             score += Math.min(lead.getTags().length * 2, 10);
+        }
+
+        if (isCampaignNurtureEligible(campaignWorkflow, campaign)) {
+            score += Math.max(0, campaignWorkflow.getCampaignScoreBoost());
         }
 
         return Math.max(0, Math.min(score, 100));
@@ -470,6 +550,8 @@ public class LeadServiceImpl implements LeadService {
 
     private void ensureLeadFollowUpTask(UUID tenantId, Lead lead) {
         WorkflowRule workflowRule = workflowRuleService.resolveLeadIntakeWorkflow(tenantId);
+        WorkflowRule campaignWorkflow = workflowRuleService.resolveCampaignNurtureWorkflow(tenantId);
+        NurtureJourneyStep journeyStep = resolveFirstJourneyStep(tenantId, lead, campaignWorkflow);
         if (lead.getId() == null || CLOSED_LEAD_STATUSES.contains(lead.getStatus())) {
             return;
         }
@@ -489,27 +571,37 @@ public class LeadServiceImpl implements LeadService {
         }
 
         Task followUpTask = Task.builder()
-                .title(buildFollowUpTaskTitle(lead, workflowRule))
-                .description(buildFollowUpTaskDescription(lead))
-                .dueDate(resolveFollowUpDueDate(lead, workflowRule))
-                .priority(resolveTaskPriority(lead, workflowRule))
+                .title(buildFollowUpTaskTitle(lead, workflowRule, campaignWorkflow, journeyStep))
+                .description(buildFollowUpTaskDescription(lead, journeyStep))
+                .dueDate(resolveFollowUpDueDate(lead, workflowRule, campaignWorkflow, journeyStep))
+                .priority(resolveTaskPriority(lead, workflowRule, campaignWorkflow, journeyStep))
                 .status(TaskStatus.TODO)
                 .assignedTo(lead.getOwnerId())
                 .relatedEntityType("lead")
                 .relatedEntityId(lead.getId())
+                .tags(buildJourneyTaskTags(lead, journeyStep))
                 .build();
         followUpTask.setTenantId(tenantId);
         taskRepository.save(followUpTask);
     }
 
-    private String buildFollowUpTaskTitle(Lead lead, WorkflowRule workflowRule) {
+    private String buildFollowUpTaskTitle(Lead lead, WorkflowRule workflowRule, WorkflowRule campaignWorkflow, NurtureJourneyStep journeyStep) {
+        if (journeyStep != null) {
+            if (hasText(journeyStep.getTaskTitleTemplate())) {
+                return applyJourneyTemplate(journeyStep.getTaskTitleTemplate(), lead, journeyStep);
+            }
+            return journeyStep.getName() + " for " + lead.getFullName();
+        }
+        if (isCampaignNurtureEligible(campaignWorkflow, lead.getCampaign())) {
+            return "Campaign nurture follow-up for " + lead.getFullName();
+        }
         if (isFastTrackLead(lead, workflowRule)) {
             return "Fast-track follow-up for " + lead.getFullName();
         }
         return "Follow up with " + lead.getFullName();
     }
 
-    private String buildFollowUpTaskDescription(Lead lead) {
+    private String buildFollowUpTaskDescription(Lead lead, NurtureJourneyStep journeyStep) {
         StringBuilder description = new StringBuilder("Review and contact this lead.");
         if (hasText(lead.getCompany())) {
             description.append(" Company: ").append(lead.getCompany()).append(".");
@@ -523,20 +615,62 @@ public class LeadServiceImpl implements LeadService {
         if (hasText(lead.getTerritory())) {
             description.append(" Territory: ").append(lead.getTerritory()).append(".");
         }
+        if (lead.getCampaign() != null) {
+            description.append(" Campaign: ").append(lead.getCampaign().getName()).append(".");
+            if (journeyStep != null) {
+                description.append(" Journey step: ").append(journeyStep.getName()).append(".");
+                if (journeyStep.getChannel() != null) {
+                    description.append(" Channel: ").append(journeyStep.getChannel().name()).append(".");
+                }
+                if (hasText(journeyStep.getObjective())) {
+                    description.append(" Objective: ").append(journeyStep.getObjective()).append(".");
+                }
+                if (hasText(journeyStep.getCallToAction())) {
+                    description.append(" CTA: ").append(journeyStep.getCallToAction()).append(".");
+                }
+                if (hasText(journeyStep.getTaskDescriptionTemplate())) {
+                    description.append(" ").append(applyJourneyTemplate(journeyStep.getTaskDescriptionTemplate(), lead, journeyStep));
+                }
+            }
+            if (Boolean.TRUE.equals(lead.getCampaign().getAutoEnrollNewLeads())) {
+                if (lead.getCampaign().getNurtureTouchCount() != null && lead.getCampaign().getNurtureCadenceDays() != null) {
+                    description.append(" Journey: ")
+                            .append(lead.getCampaign().getNurtureTouchCount())
+                            .append(" touches every ")
+                            .append(lead.getCampaign().getNurtureCadenceDays())
+                            .append(" day(s).");
+                }
+                if (hasText(lead.getCampaign().getPrimaryCallToAction())) {
+                    description.append(" CTA: ").append(lead.getCampaign().getPrimaryCallToAction()).append(".");
+                }
+            }
+        }
         if (lead.getScore() != null) {
             description.append(" Score: ").append(lead.getScore()).append("/100.");
         }
         return description.toString();
     }
 
-    private TaskPriority resolveTaskPriority(Lead lead, WorkflowRule workflowRule) {
+    private TaskPriority resolveTaskPriority(Lead lead, WorkflowRule workflowRule, WorkflowRule campaignWorkflow, NurtureJourneyStep journeyStep) {
+        if (journeyStep != null && journeyStep.getTaskPriority() != null) {
+            return journeyStep.getTaskPriority();
+        }
+        if (isCampaignNurtureEligible(campaignWorkflow, lead.getCampaign())) {
+            return campaignWorkflow.getCampaignTaskPriority();
+        }
         if (isFastTrackLead(lead, workflowRule)) {
             return workflowRule.getFastTrackTaskPriority();
         }
         return workflowRule.getDefaultTaskPriority();
     }
 
-    private LocalDate resolveFollowUpDueDate(Lead lead, WorkflowRule workflowRule) {
+    private LocalDate resolveFollowUpDueDate(Lead lead, WorkflowRule workflowRule, WorkflowRule campaignWorkflow, NurtureJourneyStep journeyStep) {
+        if (journeyStep != null) {
+            return LocalDate.now().plusDays(Math.max(0, journeyStep.getWaitDays()));
+        }
+        if (isCampaignNurtureEligible(campaignWorkflow, lead.getCampaign())) {
+            return LocalDate.now().plusDays(Math.max(0, campaignWorkflow.getCampaignFollowUpDays()));
+        }
         if (isFastTrackLead(lead, workflowRule)) {
             return LocalDate.now().plusDays(Math.max(0, workflowRule.getFastTrackFollowUpDays()));
         }
@@ -546,11 +680,96 @@ public class LeadServiceImpl implements LeadService {
         return LocalDate.now().plusDays(Math.max(0, workflowRule.getDefaultFollowUpDays()));
     }
 
+    private NurtureJourneyStep resolveFirstJourneyStep(UUID tenantId, Lead lead, WorkflowRule campaignWorkflow) {
+        Campaign campaign = lead.getCampaign();
+        if (!isCampaignNurtureEligible(campaignWorkflow, campaign) || campaign == null || campaign.getJourneyId() == null) {
+            return null;
+        }
+        return nurtureJourneyStepRepository.findFirstByJourneyIdAndTenantIdAndIsActiveTrueAndArchivedFalseOrderBySequenceOrderAsc(
+                campaign.getJourneyId(),
+                tenantId
+        ).orElse(null);
+    }
+
+    private String[] buildJourneyTaskTags(Lead lead, NurtureJourneyStep journeyStep) {
+        if (journeyStep == null || lead.getCampaign() == null || lead.getCampaign().getJourneyId() == null) {
+            return null;
+        }
+        return new String[] {
+                CAMPAIGN_NURTURE_TAG,
+                JOURNEY_TAG_PREFIX + lead.getCampaign().getJourneyId(),
+                JOURNEY_STEP_TAG_PREFIX + journeyStep.getId()
+        };
+    }
+
+    private String applyJourneyTemplate(String template, Lead lead, NurtureJourneyStep journeyStep) {
+        if (!hasText(template)) {
+            return template;
+        }
+        Campaign campaign = lead.getCampaign();
+        return template
+                .replace("{leadName}", safeText(lead.getFullName(), "this lead"))
+                .replace("{firstName}", safeText(lead.getFirstName(), "Lead"))
+                .replace("{lastName}", safeText(lead.getLastName(), ""))
+                .replace("{company}", safeText(lead.getCompany(), "their company"))
+                .replace("{campaignName}", campaign != null ? safeText(campaign.getName(), "this campaign") : "this campaign")
+                .replace("{stepName}", safeText(journeyStep.getName(), "journey step"))
+                .replace("{objective}", safeText(journeyStep.getObjective(), "advance the opportunity"))
+                .replace("{callToAction}", safeText(journeyStep.getCallToAction(), campaign != null ? safeText(campaign.getPrimaryCallToAction(), "reach out") : "reach out"))
+                .replace("{channel}", journeyStep.getChannel() != null ? journeyStep.getChannel().name() : "OUTREACH")
+                .replace("{source}", lead.getSource() != null ? lead.getSource().name() : "UNKNOWN")
+                .trim();
+    }
+
+    private String safeText(String value, String fallback) {
+        return hasText(value) ? value.trim() : fallback;
+    }
+
+    private void syncCampaignAttributionMetrics(UUID tenantId, UUID campaignId) {
+        if (campaignId == null) {
+            return;
+        }
+        campaignRepository.findById(campaignId)
+                .filter(campaign -> tenantId.equals(campaign.getTenantId()) && !Boolean.TRUE.equals(campaign.getArchived()))
+                .ifPresent(campaign -> {
+                    List<Lead> attributedLeads = leadRepository.findByTenantIdAndCampaignIdAndArchivedFalse(tenantId, campaignId);
+                    campaign.setLeadsGenerated(attributedLeads.size());
+                    campaign.setOpportunitiesCreated((int) attributedLeads.stream()
+                            .filter(lead -> lead.getStatus() == LeadStatus.QUALIFIED || lead.getStatus() == LeadStatus.CONVERTED)
+                            .count());
+                    campaign.setConversions((int) attributedLeads.stream()
+                            .filter(lead -> lead.getStatus() == LeadStatus.CONVERTED)
+                            .count());
+                    campaignRepository.save(campaign);
+                });
+    }
+
     private boolean isFastTrackLead(Lead lead, WorkflowRule workflowRule) {
         Integer scoreThreshold = workflowRule.getFastTrackScoreThreshold();
         BigDecimal valueThreshold = workflowRule.getFastTrackValueThreshold();
         return (lead.getScore() != null && scoreThreshold != null && lead.getScore() >= scoreThreshold)
                 || (lead.getEstimatedValue() != null && valueThreshold != null && lead.getEstimatedValue().compareTo(valueThreshold) >= 0);
+    }
+
+    private Campaign resolveCampaign(UUID tenantId, UUID requestCampaignId, UUID entityCampaignId) {
+        UUID campaignId = requestCampaignId != null ? requestCampaignId : entityCampaignId;
+        if (campaignId == null) {
+            return null;
+        }
+
+        return campaignRepository.findById(campaignId)
+                .filter(campaign -> tenantId.equals(campaign.getTenantId()) && !Boolean.TRUE.equals(campaign.getArchived()))
+                .orElseThrow(() -> new ResourceNotFoundException("Campaign", campaignId));
+    }
+
+    private boolean isCampaignNurtureEligible(WorkflowRule campaignWorkflow, Campaign campaign) {
+        if (campaign == null || campaignWorkflow == null || !Boolean.TRUE.equals(campaignWorkflow.getIsActive())) {
+            return false;
+        }
+        if (!Boolean.TRUE.equals(campaignWorkflow.getRequireActiveCampaign())) {
+            return true;
+        }
+        return campaign.getStatus() == CampaignStatus.ACTIVE;
     }
 
     private boolean hasText(String value) {

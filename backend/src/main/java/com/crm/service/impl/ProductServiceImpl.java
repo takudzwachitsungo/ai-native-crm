@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -113,6 +114,7 @@ public class ProductServiceImpl implements ProductService {
         
         Product product = productMapper.toEntity(request);
         product.setTenantId(tenantId);
+        applyPricingDefaults(product);
         
         product = productRepository.save(product);
         log.info("Created product: {} for tenant: {}", product.getId(), tenantId);
@@ -140,6 +142,7 @@ public class ProductServiceImpl implements ProductService {
         }
         
         productMapper.updateEntity(request, product);
+        applyPricingDefaults(product);
         product = productRepository.save(product);
         
         log.info("Updated product: {} for tenant: {}", id, tenantId);
@@ -218,5 +221,39 @@ public class ProductServiceImpl implements ProductService {
                 id, quantityChange, newQuantity, tenantId);
         
         return productMapper.toDto(product);
+    }
+
+    private void applyPricingDefaults(Product product) {
+        if (product.getAllowDiscounting() == null) {
+            product.setAllowDiscounting(Boolean.TRUE);
+        }
+        if (product.getConfigurable() == null) {
+            product.setConfigurable(Boolean.FALSE);
+        }
+        if (product.getBundleOnly() == null) {
+            product.setBundleOnly(Boolean.FALSE);
+        }
+        if (product.getMaxDiscountPercent() == null) {
+            product.setMaxDiscountPercent(java.math.BigDecimal.valueOf(100));
+        }
+        if (product.getBundleSize() == null || product.getBundleSize() < 1) {
+            product.setBundleSize(1);
+        }
+        if (product.getMinimumQuantity() != null && product.getMinimumQuantity() < 1) {
+            product.setMinimumQuantity(1);
+        }
+        if (product.getMaximumQuantity() != null && product.getMaximumQuantity() < 1) {
+            product.setMaximumQuantity(1);
+        }
+        if (product.getMinimumQuantity() != null && product.getMaximumQuantity() != null
+                && product.getMaximumQuantity() < product.getMinimumQuantity()) {
+            product.setMaximumQuantity(product.getMinimumQuantity());
+        }
+        if (Boolean.TRUE.equals(product.getBundleOnly())) {
+            int bundleSize = Objects.requireNonNullElse(product.getBundleSize(), 1);
+            if (product.getMinimumQuantity() == null || product.getMinimumQuantity() < bundleSize) {
+                product.setMinimumQuantity(bundleSize);
+            }
+        }
     }
 }

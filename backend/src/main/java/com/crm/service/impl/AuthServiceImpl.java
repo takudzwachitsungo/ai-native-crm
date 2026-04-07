@@ -14,6 +14,7 @@ import com.crm.config.TenantContext;
 import com.crm.repository.TenantRepository;
 import com.crm.repository.UserRepository;
 import com.crm.security.JwtTokenProvider;
+import com.crm.security.RolePermissionRegistry;
 import com.crm.service.AuthService;
 import com.crm.service.TenantProvisioningService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final TenantProvisioningService tenantProvisioningService;
+    private final TransactionTemplate transactionTemplate;
     
     @Value("${security.jwt.access-token-expiration}")
     private long accessTokenExpiration;
@@ -79,40 +82,38 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
     public AuthResponse login(LoginRequest request) {
         Tenant tenant = resolveTenantForLogin(request);
         TenantContext.setTenantId(tenant.getId());
         try {
-            User user = userRepository.findByTenantIdAndEmailAndArchivedFalse(tenant.getId(), request.getEmail())
-                    .orElseThrow(() -> new UnauthorizedException("Invalid workspace, email, or password"));
+            return transactionTemplate.execute(status -> {
+                User user = userRepository.findByTenantIdAndEmailAndArchivedFalse(tenant.getId(), request.getEmail())
+                        .orElseThrow(() -> new UnauthorizedException("Invalid workspace, email, or password"));
 
-            if (!user.getIsActive() || user.getArchived()) {
-                throw new UnauthorizedException("User account is inactive");
-            }
+                if (!user.getIsActive() || user.getArchived()) {
+                    throw new UnauthorizedException("User account is inactive");
+                }
 
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                throw new UnauthorizedException("Invalid workspace, email, or password");
-            }
-            
-            // Update last login time
-            user.setLastLoginAt(LocalDateTime.now());
-            userRepository.save(user);
-            
-            log.info("User logged in: {} from tenant: {}", user.getEmail(), user.getTenantId());
+                if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                    throw new UnauthorizedException("Invalid workspace, email, or password");
+                }
 
-            // Generate tokens
-            String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId());
+                user.setLastLoginAt(LocalDateTime.now());
+                userRepository.save(user);
 
-            return buildAuthResponse(user, tenant, accessToken, refreshToken);
+                log.info("User logged in: {} from tenant: {}", user.getEmail(), user.getTenantId());
+
+                String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
+                String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId());
+
+                return buildAuthResponse(user, tenant, accessToken, refreshToken);
+            });
         } finally {
             TenantContext.clear();
         }
     }
 
     @Override
-    @Transactional(readOnly = true)
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         try {
             String refreshToken = request.getRefreshToken();
@@ -124,25 +125,26 @@ public class AuthServiceImpl implements AuthService {
             }
 
             TenantContext.setTenantId(tenantId);
-            User user = userRepository.findByIdAndTenantIdAndArchivedFalse(userId, tenantId)
-                    .orElseThrow(() -> new UnauthorizedException("User not found"));
-            Tenant tenant = tenantRepository.findByIdAndArchivedFalse(tenantId)
-                    .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
+            return transactionTemplate.execute(status -> {
+                User user = userRepository.findByIdAndTenantIdAndArchivedFalse(userId, tenantId)
+                        .orElseThrow(() -> new UnauthorizedException("User not found"));
+                Tenant tenant = tenantRepository.findByIdAndArchivedFalse(tenantId)
+                        .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
 
-            if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
-                throw new UnauthorizedException("Invalid refresh token");
-            }
+                if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
+                    throw new UnauthorizedException("Invalid refresh token");
+                }
 
-            if (!jwtTokenProvider.isTokenValid(refreshToken, user)) {
-                throw new UnauthorizedException("Invalid refresh token");
-            }
+                if (!jwtTokenProvider.isTokenValid(refreshToken, user)) {
+                    throw new UnauthorizedException("Invalid refresh token");
+                }
 
-            // Generate new access token
-            String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
-            
-            log.info("Token refreshed for user: {}", user.getEmail());
+                String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
 
-            return buildAuthResponse(user, tenant, accessToken, refreshToken);
+                log.info("Token refreshed for user: {}", user.getEmail());
+
+                return buildAuthResponse(user, tenant, accessToken, refreshToken);
+            });
         } catch (Exception e) {
             log.error("Error refreshing token: {}", e.getMessage());
             throw new UnauthorizedException("Invalid refresh token");
@@ -174,6 +176,8 @@ public class AuthServiceImpl implements AuthService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .role(user.getRole().name())
+                .permissions(RolePermissionRegistry.permissionsFor(user.getRole()).stream().map(Enum::name).toList())
+                .dataScopes(RolePermissionRegistry.dataScopesFor(user.getRole()).stream().map(Enum::name).toList())
                 .build();
     }
 

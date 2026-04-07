@@ -5,6 +5,9 @@ import { PageLayout } from "../components/PageLayout";
 import { dashboardApi, tenantAdminApi, territoriesApi, usersApi, workflowRulesApi } from "../lib/api";
 import type {
   AutomationRun,
+  CampaignNurtureWorkflowSettings,
+  CaseAssignmentWorkflowSettings,
+  CaseSlaWorkflowSettings,
   DealApprovalWorkflowSettings,
   DealRescueWorkflowSettings,
   GovernanceOpsWorkflowSettings,
@@ -58,6 +61,18 @@ export default function SettingsPage() {
   const [leadWorkflowDraft, setLeadWorkflowDraft] = useState<LeadIntakeWorkflowSettings | null>(null);
   const [leadWorkflowLoading, setLeadWorkflowLoading] = useState(false);
   const [leadWorkflowSaving, setLeadWorkflowSaving] = useState(false);
+  const [campaignNurtureWorkflow, setCampaignNurtureWorkflow] = useState<CampaignNurtureWorkflowSettings | null>(null);
+  const [campaignNurtureWorkflowDraft, setCampaignNurtureWorkflowDraft] = useState<CampaignNurtureWorkflowSettings | null>(null);
+  const [campaignNurtureWorkflowLoading, setCampaignNurtureWorkflowLoading] = useState(false);
+  const [campaignNurtureWorkflowSaving, setCampaignNurtureWorkflowSaving] = useState(false);
+  const [caseAssignmentWorkflow, setCaseAssignmentWorkflow] = useState<CaseAssignmentWorkflowSettings | null>(null);
+  const [caseAssignmentWorkflowDraft, setCaseAssignmentWorkflowDraft] = useState<CaseAssignmentWorkflowSettings | null>(null);
+  const [caseAssignmentWorkflowLoading, setCaseAssignmentWorkflowLoading] = useState(false);
+  const [caseAssignmentWorkflowSaving, setCaseAssignmentWorkflowSaving] = useState(false);
+  const [caseSlaWorkflow, setCaseSlaWorkflow] = useState<CaseSlaWorkflowSettings | null>(null);
+  const [caseSlaWorkflowDraft, setCaseSlaWorkflowDraft] = useState<CaseSlaWorkflowSettings | null>(null);
+  const [caseSlaWorkflowLoading, setCaseSlaWorkflowLoading] = useState(false);
+  const [caseSlaWorkflowSaving, setCaseSlaWorkflowSaving] = useState(false);
   const [dealRescueWorkflow, setDealRescueWorkflow] = useState<DealRescueWorkflowSettings | null>(null);
   const [dealRescueWorkflowDraft, setDealRescueWorkflowDraft] = useState<DealRescueWorkflowSettings | null>(null);
   const [dealRescueWorkflowLoading, setDealRescueWorkflowLoading] = useState(false);
@@ -223,6 +238,36 @@ export default function SettingsPage() {
     }
   };
 
+  const loadCampaignNurtureWorkflow = async () => {
+    if (!isAdmin) return;
+    setCampaignNurtureWorkflowLoading(true);
+    try {
+      const response = await workflowRulesApi.getCampaignNurture();
+      setCampaignNurtureWorkflow(response);
+      setCampaignNurtureWorkflowDraft(response);
+    } catch (error) {
+      console.error("Failed to load campaign nurture workflow:", error);
+      showToast("Failed to load workflow settings", "error");
+    } finally {
+      setCampaignNurtureWorkflowLoading(false);
+    }
+  };
+
+  const loadCaseAssignmentWorkflow = async () => {
+    if (!isAdmin) return;
+    setCaseAssignmentWorkflowLoading(true);
+    try {
+      const response = await workflowRulesApi.getCaseAssignment();
+      setCaseAssignmentWorkflow(response);
+      setCaseAssignmentWorkflowDraft(response);
+    } catch (error) {
+      console.error("Failed to load case assignment workflow:", error);
+      showToast("Failed to load workflow settings", "error");
+    } finally {
+      setCaseAssignmentWorkflowLoading(false);
+    }
+  };
+
   const loadDealRescueWorkflow = async () => {
     if (!isAdmin) return;
     setDealRescueWorkflowLoading(true);
@@ -235,6 +280,21 @@ export default function SettingsPage() {
       showToast("Failed to load workflow settings", "error");
     } finally {
       setDealRescueWorkflowLoading(false);
+    }
+  };
+
+  const loadCaseSlaWorkflow = async () => {
+    if (!isAdmin) return;
+    setCaseSlaWorkflowLoading(true);
+    try {
+      const response = await workflowRulesApi.getCaseSla();
+      setCaseSlaWorkflow(response);
+      setCaseSlaWorkflowDraft(response);
+    } catch (error) {
+      console.error("Failed to load case SLA workflow:", error);
+      showToast("Failed to load workflow settings", "error");
+    } finally {
+      setCaseSlaWorkflowLoading(false);
     }
   };
 
@@ -322,6 +382,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeSection === "automation" && isAdmin) {
       void loadLeadWorkflow();
+      void loadCampaignNurtureWorkflow();
+      void loadCaseAssignmentWorkflow();
+      void loadCaseSlaWorkflow();
       void loadDealRescueWorkflow();
       void loadQuotaRiskWorkflow();
       void loadDealApprovalWorkflow();
@@ -512,6 +575,40 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveCampaignNurtureWorkflow = async () => {
+    if (!isAdmin || !campaignNurtureWorkflowDraft) return;
+
+    setCampaignNurtureWorkflowSaving(true);
+    try {
+      const response = await workflowRulesApi.updateCampaignNurture(campaignNurtureWorkflowDraft);
+      setCampaignNurtureWorkflow(response);
+      setCampaignNurtureWorkflowDraft(response);
+      showToast("Campaign nurture workflow updated", "success");
+    } catch (error) {
+      console.error("Failed to update campaign nurture workflow:", error);
+      showToast("Failed to update workflow settings", "error");
+    } finally {
+      setCampaignNurtureWorkflowSaving(false);
+    }
+  };
+
+  const handleSaveCaseAssignmentWorkflow = async () => {
+    if (!isAdmin || !caseAssignmentWorkflowDraft) return;
+
+    setCaseAssignmentWorkflowSaving(true);
+    try {
+      const response = await workflowRulesApi.updateCaseAssignment(caseAssignmentWorkflowDraft);
+      setCaseAssignmentWorkflow(response);
+      setCaseAssignmentWorkflowDraft(response);
+      showToast("Case assignment workflow updated", "success");
+    } catch (error) {
+      console.error("Failed to update case assignment workflow:", error);
+      showToast("Failed to update workflow settings", "error");
+    } finally {
+      setCaseAssignmentWorkflowSaving(false);
+    }
+  };
+
   const handleSaveDealRescueWorkflow = async () => {
     if (!isAdmin || !dealRescueWorkflowDraft) return;
 
@@ -526,6 +623,23 @@ export default function SettingsPage() {
       showToast("Failed to update workflow settings", "error");
     } finally {
       setDealRescueWorkflowSaving(false);
+    }
+  };
+
+  const handleSaveCaseSlaWorkflow = async () => {
+    if (!isAdmin || !caseSlaWorkflowDraft) return;
+
+    setCaseSlaWorkflowSaving(true);
+    try {
+      const response = await workflowRulesApi.updateCaseSla(caseSlaWorkflowDraft);
+      setCaseSlaWorkflow(response);
+      setCaseSlaWorkflowDraft(response);
+      showToast("Case SLA workflow updated", "success");
+    } catch (error) {
+      console.error("Failed to update case SLA workflow:", error);
+      showToast("Failed to update workflow settings", "error");
+    } finally {
+      setCaseSlaWorkflowSaving(false);
     }
   };
 
@@ -1322,16 +1436,22 @@ export default function SettingsPage() {
           );
         }
 
-        if (
-          leadWorkflowLoading
-          || dealRescueWorkflowLoading
-          || quotaRiskWorkflowLoading
-          || dealApprovalWorkflowLoading
-          || governanceOpsWorkflowLoading
-          || territoryEscalationWorkflowLoading
-          || !leadWorkflowDraft
-          || !dealRescueWorkflowDraft
-          || !quotaRiskWorkflowDraft
+          if (
+            leadWorkflowLoading
+            || campaignNurtureWorkflowLoading
+            || caseAssignmentWorkflowLoading
+            || caseSlaWorkflowLoading
+            || dealRescueWorkflowLoading
+            || quotaRiskWorkflowLoading
+            || dealApprovalWorkflowLoading
+            || governanceOpsWorkflowLoading
+            || territoryEscalationWorkflowLoading
+            || !leadWorkflowDraft
+            || !campaignNurtureWorkflowDraft
+            || !caseAssignmentWorkflowDraft
+            || !caseSlaWorkflowDraft
+            || !dealRescueWorkflowDraft
+            || !quotaRiskWorkflowDraft
           || !dealApprovalWorkflowDraft
           || !governanceOpsWorkflowDraft
           || !territoryEscalationWorkflowDraft
@@ -1611,10 +1731,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                Lead intake is now joined by deal rescue on the same tenant-managed workflow foundation, so future automations can reuse this pattern instead of becoming more hardcoded service logic.
-              </div>
-
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setLeadWorkflowDraft(leadWorkflow)}
@@ -1631,6 +1747,508 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-semibold">Campaign Nurture Workflow</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Accelerate campaign-attributed leads with a score boost, tighter follow-up SLA, and campaign-specific priority routing.
+                  </p>
+                </div>
+                <span className={cn(
+                  "px-3 py-1 text-xs rounded-full border",
+                  campaignNurtureWorkflowDraft.isActive
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                )}>
+                  {campaignNurtureWorkflowDraft.isActive ? "Active" : "Paused"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Name</label>
+                  <input
+                    type="text"
+                    value={campaignNurtureWorkflowDraft.name}
+                    onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Status</label>
+                  <button
+                    onClick={() => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative mt-2",
+                      campaignNurtureWorkflowDraft.isActive ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
+                        campaignNurtureWorkflowDraft.isActive ? "translate-x-6" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={campaignNurtureWorkflowDraft.description || ""}
+                    onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, description: e.target.value } : prev)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                  <div>
+                    <p className="font-medium">Attribution Guardrails</p>
+                    <p className="text-sm text-muted-foreground">Choose whether only live campaigns should trigger nurture acceleration.</p>
+                  </div>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={campaignNurtureWorkflowDraft.requireActiveCampaign}
+                      onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, requireActiveCampaign: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Only accelerate leads tied to active campaigns
+                  </label>
+                </div>
+
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Nurture Acceleration</p>
+                    <p className="text-sm text-muted-foreground">Boost score and speed for attributed leads when campaigns are performing.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Score Boost</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={campaignNurtureWorkflowDraft.campaignScoreBoost}
+                        onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, campaignScoreBoost: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Follow-up Days</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={campaignNurtureWorkflowDraft.campaignFollowUpDays}
+                        onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, campaignFollowUpDays: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Task Priority</label>
+                      <select
+                        value={campaignNurtureWorkflowDraft.campaignTaskPriority}
+                        onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, campaignTaskPriority: e.target.value as CampaignNurtureWorkflowSettings["campaignTaskPriority"] } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                Campaign nurture now sits beside lead intake on the same tenant-managed workflow foundation, so marketing-attributed follow-up can be tuned without editing backend service logic.
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCampaignNurtureWorkflowDraft(campaignNurtureWorkflow)}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={handleSaveCampaignNurtureWorkflow}
+                  disabled={campaignNurtureWorkflowSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {campaignNurtureWorkflowSaving ? "Saving..." : "Save Campaign Nurture Workflow"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-semibold">Case SLA Workflow</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Control default support-case targets, breach follow-up tasks, and when breached cases escalate automatically.
+                  </p>
+                </div>
+                <span className={cn(
+                  "px-3 py-1 text-xs rounded-full border",
+                  caseSlaWorkflowDraft.isActive
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                )}>
+                  {caseSlaWorkflowDraft.isActive ? "Active" : "Paused"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Name</label>
+                  <input
+                    type="text"
+                    value={caseSlaWorkflowDraft.name}
+                    onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Status</label>
+                  <button
+                    onClick={() => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative mt-2",
+                      caseSlaWorkflowDraft.isActive ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
+                        caseSlaWorkflowDraft.isActive ? "translate-x-6" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={caseSlaWorkflowDraft.description || ""}
+                    onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, description: e.target.value } : prev)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Default SLA Targets</p>
+                    <p className="text-sm text-muted-foreground">Define workspace-level response and resolution targets by case priority.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Response</label>
+                      <input type="number" min={1} max={72} value={caseSlaWorkflowDraft.urgentResponseHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, urgentResponseHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Resolution</label>
+                      <input type="number" min={1} max={168} value={caseSlaWorkflowDraft.urgentResolutionHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, urgentResolutionHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Medium Response</label>
+                      <input type="number" min={1} max={168} value={caseSlaWorkflowDraft.mediumResponseHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, mediumResponseHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Medium Resolution</label>
+                      <input type="number" min={1} max={336} value={caseSlaWorkflowDraft.mediumResolutionHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, mediumResolutionHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.autoResponseTargetsEnabled} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, autoResponseTargetsEnabled: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Auto-apply response targets when a case is created
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.autoResolutionTargetsEnabled} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, autoResolutionTargetsEnabled: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Auto-apply resolution targets when a case is created
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Breach Automation</p>
+                    <p className="text-sm text-muted-foreground">Route follow-up work and escalations automatically once a case breaches its SLA.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.createBreachTasks} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, createBreachTasks: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Create breach follow-up tasks
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.autoEscalateBreachedCases} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, autoEscalateBreachedCases: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Automatically move breached cases to escalated status
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.escalateOnResponseBreach} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalateOnResponseBreach: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Escalate when response SLA is breached
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.escalateOnResolutionBreach} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalateOnResolutionBreach: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Escalate when resolution SLA is breached
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Response Task Due</label>
+                      <input type="number" min={0} max={30} value={caseSlaWorkflowDraft.responseBreachTaskDueDays} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, responseBreachTaskDueDays: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Resolution Task Due</label>
+                      <input type="number" min={0} max={30} value={caseSlaWorkflowDraft.resolutionBreachTaskDueDays} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, resolutionBreachTaskDueDays: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Escalation Task Due</label>
+                      <input type="number" min={0} max={30} value={caseSlaWorkflowDraft.escalationTaskDueDays} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalationTaskDueDays: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Escalation Priority</label>
+                      <select value={caseSlaWorkflowDraft.escalationTaskPriority} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalationTaskPriority: e.target.value as CaseSlaWorkflowSettings["escalationTaskPriority"] } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div>
+                  <p className="font-medium">Customer Tier Accelerators</p>
+                  <p className="text-sm text-muted-foreground">
+                    Shorten default SLA targets for premium and strategic customers without changing the base priority ladder.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Premium Response %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.premiumResponseMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, premiumResponseMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Strategic Response %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.strategicResponseMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, strategicResponseMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Premium Resolution %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.premiumResolutionMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, premiumResolutionMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Strategic Resolution %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.strategicResolutionMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, strategicResolutionMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+                  `100%` keeps the standard SLA. Lower percentages make the target faster. Strategic targets should stay equal to or faster than premium targets.
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCaseSlaWorkflowDraft(caseSlaWorkflow)}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={handleSaveCaseSlaWorkflow}
+                  disabled={caseSlaWorkflowSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {caseSlaWorkflowSaving ? "Saving..." : "Save Case SLA Workflow"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-semibold">Case Assignment Workflow</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Control how unassigned and escalated support cases get routed, whether account owners are preferred, and how quickly assignment tasks are due.
+                  </p>
+                </div>
+                <span className={cn(
+                  "px-3 py-1 text-xs rounded-full border",
+                  caseAssignmentWorkflowDraft.isActive
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                )}>
+                  {caseAssignmentWorkflowDraft.isActive ? "Active" : "Paused"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Name</label>
+                  <input
+                    type="text"
+                    value={caseAssignmentWorkflowDraft.name}
+                    onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Status</label>
+                  <button
+                    onClick={() => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative mt-2",
+                      caseAssignmentWorkflowDraft.isActive ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
+                        caseAssignmentWorkflowDraft.isActive ? "translate-x-6" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={caseAssignmentWorkflowDraft.description || ""}
+                    onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, description: e.target.value } : prev)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                  <div>
+                    <p className="font-medium">Queue Triggers</p>
+                    <p className="text-sm text-muted-foreground">Choose which support cases should be included when assignment automation runs.</p>
+                  </div>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.autoAssignUnassignedCases}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, autoAssignUnassignedCases: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Assign new cases that do not have an owner
+                  </label>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.autoReassignEscalatedCases}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, autoReassignEscalatedCases: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Re-route escalated cases for fresh ownership review
+                  </label>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.preferAccountOwner}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, preferAccountOwner: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Prefer the linked account owner before falling back to load balancing
+                  </label>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.createAssignmentTasks}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, createAssignmentTasks: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Create assignment tasks for routed cases
+                  </label>
+                </div>
+
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Assignment Task SLA</p>
+                    <p className="text-sm text-muted-foreground">Set separate due dates and priorities for urgent support work versus the standard queue.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Default Due Days</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={caseAssignmentWorkflowDraft.defaultAssignmentTaskDueDays}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, defaultAssignmentTaskDueDays: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Due Days</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={caseAssignmentWorkflowDraft.urgentAssignmentTaskDueDays}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, urgentAssignmentTaskDueDays: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Default Priority</label>
+                      <select
+                        value={caseAssignmentWorkflowDraft.defaultAssignmentTaskPriority}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, defaultAssignmentTaskPriority: e.target.value as CaseAssignmentWorkflowSettings["defaultAssignmentTaskPriority"] } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Priority</label>
+                      <select
+                        value={caseAssignmentWorkflowDraft.urgentAssignmentTaskPriority}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, urgentAssignmentTaskPriority: e.target.value as CaseAssignmentWorkflowSettings["urgentAssignmentTaskPriority"] } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCaseAssignmentWorkflowDraft(caseAssignmentWorkflow)}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={handleSaveCaseAssignmentWorkflow}
+                  disabled={caseAssignmentWorkflowSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {caseAssignmentWorkflowSaving ? "Saving..." : "Save Case Assignment Workflow"}
+                </button>
+              </div>
+            </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+               Lead intake, campaign nurture, case assignment, case SLA, and deal rescue now share the same tenant-managed workflow foundation, so new automation lanes can keep reusing the same policy surface instead of becoming hardcoded service logic.
+              </div>
 
             <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
               <div className="flex items-center justify-between gap-4">

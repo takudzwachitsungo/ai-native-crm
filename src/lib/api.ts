@@ -18,6 +18,14 @@ import type {
   Task,
   Event,
   Product,
+  Campaign,
+  CampaignInsights,
+  CampaignStats,
+  SupportCaseAssignmentAutomationResult,
+  SupportCaseAssignmentQueueSummary,
+  SupportCase,
+  SupportCaseSlaAutomationResult,
+  SupportCaseStats,
   Quote,
   Invoice,
   Document,
@@ -43,6 +51,9 @@ import type {
   WorkspaceTerritory,
   AutomationRun,
   LeadIntakeWorkflowSettings,
+  CampaignNurtureWorkflowSettings,
+  CaseAssignmentWorkflowSettings,
+  CaseSlaWorkflowSettings,
   DealRescueWorkflowSettings,
   QuotaRiskWorkflowSettings,
   DealApprovalWorkflowSettings,
@@ -244,6 +255,68 @@ export const contactsApi = createCrudApi<Contact>('/api/v1/contacts');
 export const tasksApi = createCrudApi<Task>('/api/v1/tasks');
 export const eventsApi = createCrudApi<Event>('/api/v1/events');
 export const productsApi = createCrudApi<Product>('/api/v1/products');
+export const campaignsApi = {
+  ...createCrudApi<Campaign>('/api/v1/campaigns'),
+
+  getAll: async (params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    sort?: string;
+    status?: Campaign['status'];
+    type?: Campaign['type'];
+    channel?: Campaign['channel'];
+  }): Promise<PageResponse<Campaign>> => {
+    const response = await apiClient.get('/api/v1/campaigns', { params });
+    return response.data;
+  },
+
+  getStatistics: async (): Promise<CampaignStats> => {
+    const response = await apiClient.get('/api/v1/campaigns/statistics');
+    return response.data;
+  },
+
+  getInsights: async (id: string): Promise<CampaignInsights> => {
+    const response = await apiClient.get(`/api/v1/campaigns/${id}/insights`);
+    return response.data;
+  },
+};
+export const supportCasesApi = {
+  ...createCrudApi<SupportCase>('/api/v1/cases'),
+
+  getAll: async (params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    sort?: string;
+    status?: SupportCase['status'];
+    priority?: SupportCase['priority'];
+    source?: SupportCase['source'];
+  }): Promise<PageResponse<SupportCase>> => {
+    const response = await apiClient.get('/api/v1/cases', { params });
+    return response.data;
+  },
+
+  getStatistics: async (): Promise<SupportCaseStats> => {
+    const response = await apiClient.get('/api/v1/cases/statistics');
+    return response.data;
+  },
+
+  getAssignmentQueue: async (): Promise<SupportCaseAssignmentQueueSummary> => {
+    const response = await apiClient.get('/api/v1/cases/assignment-queue');
+    return response.data;
+  },
+
+  runAssignmentAutomation: async (): Promise<SupportCaseAssignmentAutomationResult> => {
+    const response = await apiClient.post('/api/v1/cases/automation/assign');
+    return response.data;
+  },
+
+  runSlaAutomation: async (): Promise<SupportCaseSlaAutomationResult> => {
+    const response = await apiClient.post('/api/v1/cases/automation/sla-breach');
+    return response.data;
+  },
+};
 export const quotesApi = createCrudApi<Quote>('/api/v1/quotes');
 export const invoicesApi = createCrudApi<Invoice>('/api/v1/invoices');
 
@@ -399,6 +472,36 @@ export const workflowRulesApi = {
 
   updateLeadIntake: async (data: LeadIntakeWorkflowSettings): Promise<LeadIntakeWorkflowSettings> => {
     const response = await apiClient.put('/api/v1/workflows/lead-intake', data);
+    return response.data;
+  },
+
+  getCampaignNurture: async (): Promise<CampaignNurtureWorkflowSettings> => {
+    const response = await apiClient.get('/api/v1/workflows/campaign-nurture');
+    return response.data;
+  },
+
+  updateCampaignNurture: async (data: CampaignNurtureWorkflowSettings): Promise<CampaignNurtureWorkflowSettings> => {
+    const response = await apiClient.put('/api/v1/workflows/campaign-nurture', data);
+    return response.data;
+  },
+
+  getCaseAssignment: async (): Promise<CaseAssignmentWorkflowSettings> => {
+    const response = await apiClient.get('/api/v1/workflows/case-assignment');
+    return response.data;
+  },
+
+  updateCaseAssignment: async (data: CaseAssignmentWorkflowSettings): Promise<CaseAssignmentWorkflowSettings> => {
+    const response = await apiClient.put('/api/v1/workflows/case-assignment', data);
+    return response.data;
+  },
+
+  getCaseSla: async (): Promise<CaseSlaWorkflowSettings> => {
+    const response = await apiClient.get('/api/v1/workflows/case-sla');
+    return response.data;
+  },
+
+  updateCaseSla: async (data: CaseSlaWorkflowSettings): Promise<CaseSlaWorkflowSettings> => {
+    const response = await apiClient.put('/api/v1/workflows/case-sla', data);
     return response.data;
   },
 

@@ -34,6 +34,27 @@ public class ProductRequestDTO {
     
     @DecimalMin(value = "0.0", message = "Cost must be non-negative")
     private BigDecimal cost;
+
+    @DecimalMin(value = "0.0", message = "Minimum price must be non-negative")
+    private BigDecimal minimumPrice;
+
+    private Boolean allowDiscounting;
+
+    @DecimalMin(value = "0.0", message = "Max discount percent must be non-negative")
+    private BigDecimal maxDiscountPercent;
+
+    private Boolean configurable;
+
+    private Boolean bundleOnly;
+
+    @Min(value = 1, message = "Minimum quantity must be at least 1")
+    private Integer minimumQuantity;
+
+    @Min(value = 1, message = "Maximum quantity must be at least 1")
+    private Integer maximumQuantity;
+
+    @Min(value = 1, message = "Bundle size must be at least 1")
+    private Integer bundleSize;
     
     @Min(value = 0, message = "Stock quantity must be non-negative")
     private Integer stockQuantity;

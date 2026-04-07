@@ -1,11 +1,17 @@
 package com.crm.controller;
 
+import com.crm.dto.request.CampaignNurtureWorkflowRequestDTO;
+import com.crm.dto.request.CaseAssignmentWorkflowRequestDTO;
+import com.crm.dto.request.CaseSlaWorkflowRequestDTO;
 import com.crm.dto.request.DealRescueWorkflowRequestDTO;
 import com.crm.dto.request.DealApprovalWorkflowRequestDTO;
 import com.crm.dto.request.GovernanceOpsWorkflowRequestDTO;
 import com.crm.dto.request.LeadIntakeWorkflowRequestDTO;
 import com.crm.dto.request.QuotaRiskWorkflowRequestDTO;
 import com.crm.dto.request.TerritoryEscalationWorkflowRequestDTO;
+import com.crm.dto.response.CampaignNurtureWorkflowResponseDTO;
+import com.crm.dto.response.CaseAssignmentWorkflowResponseDTO;
+import com.crm.dto.response.CaseSlaWorkflowResponseDTO;
 import com.crm.dto.response.DealApprovalWorkflowResponseDTO;
 import com.crm.dto.response.DealRescueWorkflowResponseDTO;
 import com.crm.dto.response.GovernanceOpsWorkflowResponseDTO;
@@ -36,14 +42,14 @@ public class WorkflowRuleController {
     private final WorkflowRuleService workflowRuleService;
 
     @GetMapping("/lead-intake")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
     @Operation(summary = "Get lead intake workflow", description = "Get the tenant lead intake workflow configuration")
     public ResponseEntity<LeadIntakeWorkflowResponseDTO> getLeadIntakeWorkflow() {
         return ResponseEntity.ok(workflowRuleService.getLeadIntakeWorkflow());
     }
 
     @PutMapping("/lead-intake")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
     @Operation(summary = "Update lead intake workflow", description = "Update the tenant lead intake workflow configuration")
     public ResponseEntity<LeadIntakeWorkflowResponseDTO> updateLeadIntakeWorkflow(
             @Valid @RequestBody LeadIntakeWorkflowRequestDTO request
@@ -51,15 +57,63 @@ public class WorkflowRuleController {
         return ResponseEntity.ok(workflowRuleService.updateLeadIntakeWorkflow(request));
     }
 
+    @GetMapping("/campaign-nurture")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
+    @Operation(summary = "Get campaign nurture workflow", description = "Get the tenant campaign nurture workflow configuration")
+    public ResponseEntity<CampaignNurtureWorkflowResponseDTO> getCampaignNurtureWorkflow() {
+        return ResponseEntity.ok(workflowRuleService.getCampaignNurtureWorkflow());
+    }
+
+    @PutMapping("/campaign-nurture")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
+    @Operation(summary = "Update campaign nurture workflow", description = "Update the tenant campaign nurture workflow configuration")
+    public ResponseEntity<CampaignNurtureWorkflowResponseDTO> updateCampaignNurtureWorkflow(
+            @Valid @RequestBody CampaignNurtureWorkflowRequestDTO request
+    ) {
+        return ResponseEntity.ok(workflowRuleService.updateCampaignNurtureWorkflow(request));
+    }
+
+    @GetMapping("/case-assignment")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
+    @Operation(summary = "Get case assignment workflow", description = "Get the tenant support-case assignment workflow configuration")
+    public ResponseEntity<CaseAssignmentWorkflowResponseDTO> getCaseAssignmentWorkflow() {
+        return ResponseEntity.ok(workflowRuleService.getCaseAssignmentWorkflow());
+    }
+
+    @PutMapping("/case-assignment")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
+    @Operation(summary = "Update case assignment workflow", description = "Update the tenant support-case assignment workflow configuration")
+    public ResponseEntity<CaseAssignmentWorkflowResponseDTO> updateCaseAssignmentWorkflow(
+            @Valid @RequestBody CaseAssignmentWorkflowRequestDTO request
+    ) {
+        return ResponseEntity.ok(workflowRuleService.updateCaseAssignmentWorkflow(request));
+    }
+
+    @GetMapping("/case-sla")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
+    @Operation(summary = "Get case SLA workflow", description = "Get the tenant support-case SLA workflow configuration")
+    public ResponseEntity<CaseSlaWorkflowResponseDTO> getCaseSlaWorkflow() {
+        return ResponseEntity.ok(workflowRuleService.getCaseSlaWorkflow());
+    }
+
+    @PutMapping("/case-sla")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
+    @Operation(summary = "Update case SLA workflow", description = "Update the tenant support-case SLA workflow configuration")
+    public ResponseEntity<CaseSlaWorkflowResponseDTO> updateCaseSlaWorkflow(
+            @Valid @RequestBody CaseSlaWorkflowRequestDTO request
+    ) {
+        return ResponseEntity.ok(workflowRuleService.updateCaseSlaWorkflow(request));
+    }
+
     @GetMapping("/deal-rescue")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
     @Operation(summary = "Get deal rescue workflow", description = "Get the tenant deal rescue workflow configuration")
     public ResponseEntity<DealRescueWorkflowResponseDTO> getDealRescueWorkflow() {
         return ResponseEntity.ok(workflowRuleService.getDealRescueWorkflow());
     }
 
     @PutMapping("/deal-rescue")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
     @Operation(summary = "Update deal rescue workflow", description = "Update the tenant deal rescue workflow configuration")
     public ResponseEntity<DealRescueWorkflowResponseDTO> updateDealRescueWorkflow(
             @Valid @RequestBody DealRescueWorkflowRequestDTO request
@@ -68,14 +122,14 @@ public class WorkflowRuleController {
     }
 
     @GetMapping("/quota-risk")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
     @Operation(summary = "Get quota risk workflow", description = "Get the tenant quota risk workflow configuration")
     public ResponseEntity<QuotaRiskWorkflowResponseDTO> getQuotaRiskWorkflow() {
         return ResponseEntity.ok(workflowRuleService.getQuotaRiskWorkflow());
     }
 
     @PutMapping("/quota-risk")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
     @Operation(summary = "Update quota risk workflow", description = "Update the tenant quota risk workflow configuration")
     public ResponseEntity<QuotaRiskWorkflowResponseDTO> updateQuotaRiskWorkflow(
             @Valid @RequestBody QuotaRiskWorkflowRequestDTO request
@@ -84,14 +138,14 @@ public class WorkflowRuleController {
     }
 
     @GetMapping("/deal-approval")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
     @Operation(summary = "Get deal approval workflow", description = "Get the tenant deal approval workflow configuration")
     public ResponseEntity<DealApprovalWorkflowResponseDTO> getDealApprovalWorkflow() {
         return ResponseEntity.ok(workflowRuleService.getDealApprovalWorkflow());
     }
 
     @PutMapping("/deal-approval")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
     @Operation(summary = "Update deal approval workflow", description = "Update the tenant deal approval workflow configuration")
     public ResponseEntity<DealApprovalWorkflowResponseDTO> updateDealApprovalWorkflow(
             @Valid @RequestBody DealApprovalWorkflowRequestDTO request
@@ -100,14 +154,14 @@ public class WorkflowRuleController {
     }
 
     @GetMapping("/governance-ops")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
     @Operation(summary = "Get governance ops workflow", description = "Get the tenant governance digest and overdue review workflow configuration")
     public ResponseEntity<GovernanceOpsWorkflowResponseDTO> getGovernanceOpsWorkflow() {
         return ResponseEntity.ok(workflowRuleService.getGovernanceOpsWorkflow());
     }
 
     @PutMapping("/governance-ops")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
     @Operation(summary = "Update governance ops workflow", description = "Update the tenant governance digest and overdue review workflow configuration")
     public ResponseEntity<GovernanceOpsWorkflowResponseDTO> updateGovernanceOpsWorkflow(
             @Valid @RequestBody GovernanceOpsWorkflowRequestDTO request
@@ -116,14 +170,14 @@ public class WorkflowRuleController {
     }
 
     @GetMapping("/territory-escalation")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
     @Operation(summary = "Get territory escalation workflow", description = "Get the tenant territory escalation workflow configuration")
     public ResponseEntity<TerritoryEscalationWorkflowResponseDTO> getTerritoryEscalationWorkflow() {
         return ResponseEntity.ok(workflowRuleService.getTerritoryEscalationWorkflow());
     }
 
     @PutMapping("/territory-escalation")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('AUTOMATION_MANAGE')")
     @Operation(summary = "Update territory escalation workflow", description = "Update the tenant territory escalation workflow configuration")
     public ResponseEntity<TerritoryEscalationWorkflowResponseDTO> updateTerritoryEscalationWorkflow(
             @Valid @RequestBody TerritoryEscalationWorkflowRequestDTO request

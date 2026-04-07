@@ -37,6 +37,10 @@ public class QuoteResponseDTO {
     private BigDecimal total;
     private UUID ownerId;
     private String ownerName;
+    private Boolean pricingApprovalRequired;
+    private String pricingApprovalReason;
+    private LocalDateTime pricingApprovedAt;
+    private UUID pricingApprovedBy;
     private List<QuoteLineItemResponseDTO> lineItems;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

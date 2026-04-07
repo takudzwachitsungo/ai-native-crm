@@ -36,6 +36,7 @@ public class CompanyController {
 
     @GetMapping
     @Operation(summary = "Get all companies", description = "Get paginated list of companies with optional filtering")
+    @PreAuthorize("hasAuthority('ACCOUNTS_VIEW')")
     public ResponseEntity<Page<CompanyResponseDTO>> getAllCompanies(
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable,
             @ModelAttribute CompanyFilterDTO filter
@@ -45,26 +46,28 @@ public class CompanyController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get company by ID", description = "Get detailed information about a specific company")
+    @PreAuthorize("hasAuthority('ACCOUNTS_VIEW')")
     public ResponseEntity<CompanyResponseDTO> getCompanyById(@PathVariable UUID id) {
         return ResponseEntity.ok(companyService.findById(id));
     }
 
     @GetMapping("/{id}/insights")
     @Operation(summary = "Get company insights", description = "Get account health, stakeholder coverage, pipeline exposure, and next actions for a company")
+    @PreAuthorize("hasAuthority('ACCOUNTS_VIEW')")
     public ResponseEntity<CompanyInsightsResponseDTO> getCompanyInsights(@PathVariable UUID id) {
         return ResponseEntity.ok(companyService.getInsights(id));
     }
 
     @GetMapping("/governance/territory-queue")
     @Operation(summary = "Get company territory governance queue", description = "Get accounts whose owner coverage does not match their territory")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('ACCOUNTS_MANAGE')")
     public ResponseEntity<CompanyTerritoryQueueSummaryDTO> getTerritoryGovernanceQueue() {
         return ResponseEntity.ok(companyService.getTerritoryGovernanceQueue());
     }
 
     @PostMapping("/governance/reassign")
     @Operation(summary = "Reassign company territory mismatches", description = "Bulk reassign account owners to territory-matched workspace users")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('ACCOUNTS_MANAGE')")
     public ResponseEntity<CompanyTerritoryReassignmentResultDTO> reassignTerritoryMismatches(
             @RequestBody(required = false) CompanyTerritoryReassignmentRequestDTO request
     ) {
@@ -73,14 +76,14 @@ public class CompanyController {
 
     @PostMapping
     @Operation(summary = "Create new company", description = "Create a new company")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('ACCOUNTS_WRITE')")
     public ResponseEntity<CompanyResponseDTO> createCompany(@Valid @RequestBody CompanyRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(companyService.create(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update company", description = "Update an existing company")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('ACCOUNTS_WRITE')")
     public ResponseEntity<CompanyResponseDTO> updateCompany(
             @PathVariable UUID id,
             @Valid @RequestBody CompanyRequestDTO request
@@ -90,7 +93,7 @@ public class CompanyController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete company", description = "Delete a company (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('ACCOUNTS_MANAGE')")
     public ResponseEntity<Void> deleteCompany(@PathVariable UUID id) {
         companyService.delete(id);
         return ResponseEntity.noContent().build();
@@ -98,7 +101,7 @@ public class CompanyController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete companies", description = "Delete multiple companies at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('ACCOUNTS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteCompanies(@RequestBody List<UUID> ids) {
         companyService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -106,6 +109,7 @@ public class CompanyController {
 
     @GetMapping("/search")
     @Operation(summary = "Search companies by name", description = "Search companies by name with autocomplete")
+    @PreAuthorize("hasAuthority('ACCOUNTS_VIEW')")
     public ResponseEntity<List<CompanyResponseDTO>> searchCompanies(@RequestParam String name) {
         return ResponseEntity.ok(companyService.searchByName(name));
     }

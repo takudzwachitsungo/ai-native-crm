@@ -1,6 +1,8 @@
 package com.crm.dto.response;
 
 import com.crm.entity.enums.ContactStatus;
+import com.crm.entity.enums.CustomerPrivacyStatus;
+import com.crm.entity.enums.DataEnrichmentStatus;
 import com.crm.entity.enums.InfluenceLevel;
 import com.crm.entity.enums.PreferredContactMethod;
 import com.crm.entity.enums.StakeholderRole;
@@ -46,6 +48,13 @@ public class ContactResponseDTO {
     private String companyName;
     private UUID reportsToId;
     private String reportsToName;
+    private Boolean marketingConsent;
+    private LocalDateTime consentCapturedAt;
+    private String consentSource;
+    private CustomerPrivacyStatus privacyStatus;
+    private Integer dataQualityScore;
+    private DataEnrichmentStatus enrichmentStatus;
+    private LocalDateTime enrichmentLastCheckedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UUID createdBy;

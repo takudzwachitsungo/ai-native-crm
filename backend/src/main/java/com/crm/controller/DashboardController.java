@@ -39,7 +39,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
     
     @GetMapping("/stats")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ADMIN')")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     @Operation(summary = "Get dashboard statistics", description = "Retrieve overall statistics for the dashboard")
     public ResponseEntity<DashboardStatsDTO> getStats() {
         log.info("Fetching dashboard statistics");
@@ -48,7 +48,7 @@ public class DashboardController {
     }
 
     @GetMapping("/revenue-ops")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ADMIN')")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     @Operation(summary = "Get revenue operations summary", description = "Retrieve quota, territory, and team pipeline coverage")
     public ResponseEntity<RevenueOpsSummaryDTO> getRevenueOpsSummary() {
         log.info("Fetching revenue operations summary");
@@ -57,7 +57,7 @@ public class DashboardController {
     }
 
     @GetMapping("/quota-risk-alerts")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Get quota risk alerts", description = "Retrieve the current manager alert queue for reps who are watch or at risk against quota")
     public ResponseEntity<QuotaRiskAlertSummaryDTO> getQuotaRiskAlerts() {
         log.info("Fetching quota risk alerts");
@@ -65,7 +65,7 @@ public class DashboardController {
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/quota-risk-alerts/automation")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Create quota risk follow-up tasks", description = "Create manager follow-up tasks for reps who are off pace against quota")
     public ResponseEntity<QuotaRiskAutomationResultDTO> runQuotaRiskAlertAutomation() {
         log.info("Running quota risk alert automation");
@@ -73,7 +73,7 @@ public class DashboardController {
     }
 
     @GetMapping("/territory-exceptions")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Get territory exceptions", description = "Retrieve lead, account, and deal territory mismatches that need manager review")
     public ResponseEntity<TerritoryExceptionSummaryDTO> getTerritoryExceptions() {
         log.info("Fetching territory exception summary");
@@ -81,7 +81,7 @@ public class DashboardController {
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/territory-exceptions/automation")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Create territory exception review tasks", description = "Create manager review tasks for unresolved territory mismatches")
     public ResponseEntity<TerritoryExceptionAutomationResultDTO> runTerritoryExceptionAutomation() {
         log.info("Running territory exception automation");
@@ -89,7 +89,7 @@ public class DashboardController {
     }
 
     @GetMapping("/territory-escalations")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Get territory escalation alerts", description = "Retrieve grouped territory drift alerts before they impact coverage and forecast accuracy")
     public ResponseEntity<TerritoryEscalationSummaryDTO> getTerritoryEscalations() {
         log.info("Fetching territory escalation summary");
@@ -97,7 +97,7 @@ public class DashboardController {
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/territory-escalations/automation")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Create territory escalation alerts", description = "Create manager alert tasks for grouped territory drift that needs escalation")
     public ResponseEntity<TerritoryEscalationAutomationResultDTO> runTerritoryEscalationAutomation() {
         log.info("Running territory escalation automation");
@@ -105,7 +105,7 @@ public class DashboardController {
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/territory-exceptions/auto-remediate")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Auto-remediate territory exceptions", description = "Bulk reassign leads, accounts, and deals where the governed territory owner is already known")
     public ResponseEntity<TerritoryAutoRemediationResultDTO> runTerritoryAutoRemediation() {
         log.info("Running territory auto-remediation");
@@ -113,7 +113,7 @@ public class DashboardController {
     }
 
     @GetMapping("/governance-inbox")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Get governance inbox", description = "Retrieve the manager inbox for escalations, quota risk, and SLA-breached territory drift")
     public ResponseEntity<GovernanceInboxSummaryDTO> getGovernanceInbox() {
         log.info("Fetching governance inbox");
@@ -121,7 +121,7 @@ public class DashboardController {
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/governance-digest/automation")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Create governance digest", description = "Create a manager digest task summarizing current governance risks and SLA breaches")
     public ResponseEntity<GovernanceDigestAutomationResultDTO> runGovernanceDigestAutomation() {
         log.info("Running governance digest automation");
@@ -129,7 +129,7 @@ public class DashboardController {
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/governance-ops/automation")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Run governance automation", description = "Run digest generation and overdue review escalation for the current tenant")
     public ResponseEntity<GovernanceAutomationResultDTO> runGovernanceAutomation() {
         log.info("Running governance automation sweep");
@@ -137,7 +137,7 @@ public class DashboardController {
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/governance-tasks/{taskId}/acknowledge")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('GOVERNANCE_MANAGE')")
     @Operation(summary = "Acknowledge governance task", description = "Mark a governance digest, territory escalation alert, or quota risk task as reviewed")
     public ResponseEntity<GovernanceTaskAcknowledgementResultDTO> acknowledgeGovernanceTask(@PathVariable java.util.UUID taskId) {
         log.info("Acknowledging governance task {}", taskId);
@@ -145,7 +145,7 @@ public class DashboardController {
     }
 
     @GetMapping("/automation-runs")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('AUTOMATION_VIEW')")
     @Operation(summary = "Get recent automation runs", description = "Retrieve recent tenant automation executions across rescue, governance, quota, and territory workflows")
     public ResponseEntity<List<AutomationRunResponseDTO>> getAutomationRuns(
             @RequestParam(defaultValue = "10") int size

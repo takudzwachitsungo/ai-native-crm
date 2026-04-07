@@ -10,11 +10,14 @@ import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Contacts from './pages/Contacts';
 import Companies from './pages/Companies';
+import Campaigns from './pages/Campaigns';
+import Cases from './pages/Cases';
 import Deals from './pages/Deals';
 import Pipeline from './pages/Pipeline';
 import Products from './pages/Products';
 import Quotes from './pages/Quotes';
 import Invoices from './pages/Invoices';
+import Documents from './pages/Documents';
 import Tasks from './pages/Tasks';
 import Calendar from './pages/Calendar';
 import Email from './pages/Email';
@@ -79,11 +82,14 @@ function App() {
                         <Route path="/leads" element={<Leads />} />
                         <Route path="/contacts" element={<Contacts />} />
                         <Route path="/companies" element={<Companies />} />
+                        <Route path="/campaigns" element={<Campaigns />} />
+                        <Route path="/cases" element={<Cases />} />
                         <Route path="/deals" element={<Deals />} />
                         <Route path="/pipeline" element={<Pipeline />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/quotes" element={<Quotes />} />
                         <Route path="/invoices" element={<Invoices />} />
+                        <Route path="/documents" element={<Documents />} />
                         <Route path="/tasks" element={<Tasks />} />
                         <Route path="/calendar" element={<Calendar />} />
                         <Route path="/email" element={<Email />} />

@@ -24,4 +24,6 @@ public interface QuoteService {
     void bulkDelete(List<UUID> ids);
     
     QuoteResponseDTO updateStatus(UUID id, String status);
+
+    QuoteResponseDTO approvePricing(UUID id);
 }

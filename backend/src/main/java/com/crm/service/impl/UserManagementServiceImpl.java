@@ -2,6 +2,7 @@ package com.crm.service.impl;
 
 import com.crm.config.TenantContext;
 import com.crm.dto.request.UserCreateRequestDTO;
+import com.crm.dto.request.UserHierarchyUpdateRequestDTO;
 import com.crm.dto.request.UserRevenueOpsUpdateRequestDTO;
 import com.crm.dto.request.UserRoleUpdateRequestDTO;
 import com.crm.dto.request.UserStatusUpdateRequestDTO;
@@ -45,6 +46,13 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public UserResponseDTO findById(UUID id) {
+        UUID tenantId = requireTenant();
+        return userMapper.toDto(findTenantUser(id, tenantId));
+    }
+
+    @Override
     @Transactional
     public UserResponseDTO create(UserCreateRequestDTO request) {
         UUID tenantId = requireTenant();
@@ -59,6 +67,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         user.setTerritory(resolveTerritoryForCreate(tenantId, request.getTerritory()));
+        user.setManagerId(resolveManagerId(tenantId, request.getManagerId(), null));
 
         User saved = userRepository.save(user);
         log.info("Created tenant user {} for tenant {}", saved.getEmail(), tenantId);
@@ -110,6 +119,18 @@ public class UserManagementServiceImpl implements UserManagementService {
         User saved = userRepository.save(user);
         log.info("Updated revenue ops settings for user {} in tenant {}", id, tenantId);
 
+        return userMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public UserResponseDTO updateHierarchy(UUID id, UserHierarchyUpdateRequestDTO request) {
+        UUID tenantId = requireTenant();
+        User user = findTenantUser(id, tenantId);
+        user.setManagerId(resolveManagerId(tenantId, request.getManagerId(), user.getId()));
+
+        User saved = userRepository.save(user);
+        log.info("Updated hierarchy settings for user {} in tenant {}", id, tenantId);
         return userMapper.toDto(saved);
     }
 
@@ -176,5 +197,20 @@ public class UserManagementServiceImpl implements UserManagementService {
                 )
                 .map(found -> normalizeTerritory(found.getName()))
                 .orElseThrow(() -> new BadRequestException("Territory must match an active workspace territory"));
+    }
+
+    private UUID resolveManagerId(UUID tenantId, UUID requestedManagerId, UUID userId) {
+        if (requestedManagerId == null) {
+            return null;
+        }
+        if (userId != null && userId.equals(requestedManagerId)) {
+            throw new BadRequestException("A user cannot manage themselves");
+        }
+        User manager = userRepository.findByIdAndTenantIdAndArchivedFalse(requestedManagerId, tenantId)
+                .orElseThrow(() -> new BadRequestException("Selected manager does not belong to this workspace"));
+        if (!Boolean.TRUE.equals(manager.getIsActive())) {
+            throw new BadRequestException("Selected manager is inactive");
+        }
+        return manager.getId();
     }
 }

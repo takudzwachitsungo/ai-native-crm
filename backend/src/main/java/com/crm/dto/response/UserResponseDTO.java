@@ -24,6 +24,7 @@ public class UserResponseDTO {
     private UserRole role;
     private Boolean isActive;
     private String avatar;
+    private UUID managerId;
     private String territory;
     private BigDecimal quarterlyQuota;
     private BigDecimal annualQuota;

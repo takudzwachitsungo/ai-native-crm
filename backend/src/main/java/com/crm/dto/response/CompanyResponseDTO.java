@@ -1,6 +1,8 @@
 package com.crm.dto.response;
 
 import com.crm.entity.enums.CompanyStatus;
+import com.crm.entity.enums.CustomerPrivacyStatus;
+import com.crm.entity.enums.DataEnrichmentStatus;
 import com.crm.entity.enums.Industry;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,6 +45,10 @@ public class CompanyResponseDTO {
     private Long contactCount;
     private Long dealCount;
     private Long childCompanyCount;
+    private CustomerPrivacyStatus privacyStatus;
+    private Integer dataQualityScore;
+    private DataEnrichmentStatus enrichmentStatus;
+    private LocalDateTime enrichmentLastCheckedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UUID createdBy;

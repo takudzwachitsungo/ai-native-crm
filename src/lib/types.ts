@@ -145,6 +145,72 @@ export interface LeadIntakeWorkflowSettings {
   updatedAt?: string;
 }
 
+export interface CampaignNurtureWorkflowSettings {
+  id?: string;
+  ruleType: 'CAMPAIGN_NURTURE';
+  name: string;
+  description?: string;
+  isActive: boolean;
+  requireActiveCampaign: boolean;
+  campaignScoreBoost: number;
+  campaignFollowUpDays: number;
+  campaignTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CaseAssignmentWorkflowSettings {
+  id?: string;
+  ruleType: 'CASE_ASSIGNMENT';
+  name: string;
+  description?: string;
+  isActive: boolean;
+  autoAssignUnassignedCases: boolean;
+  autoReassignEscalatedCases: boolean;
+  preferAccountOwner: boolean;
+  createAssignmentTasks: boolean;
+  defaultAssignmentTaskDueDays: number;
+  urgentAssignmentTaskDueDays: number;
+  defaultAssignmentTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  urgentAssignmentTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CaseSlaWorkflowSettings {
+  id?: string;
+  ruleType: 'CASE_SLA';
+  name: string;
+  description?: string;
+  isActive: boolean;
+  autoResponseTargetsEnabled: boolean;
+  autoResolutionTargetsEnabled: boolean;
+  urgentResponseHours: number;
+  highResponseHours: number;
+  mediumResponseHours: number;
+  lowResponseHours: number;
+  urgentResolutionHours: number;
+  highResolutionHours: number;
+  mediumResolutionHours: number;
+  lowResolutionHours: number;
+  premiumResponseMultiplierPercent: number;
+  strategicResponseMultiplierPercent: number;
+  premiumResolutionMultiplierPercent: number;
+  strategicResolutionMultiplierPercent: number;
+  createBreachTasks: boolean;
+  responseBreachTaskDueDays: number;
+  resolutionBreachTaskDueDays: number;
+  responseBreachTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  resolutionBreachTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  autoEscalateBreachedCases: boolean;
+  escalateOnResponseBreach: boolean;
+  escalateOnResolutionBreach: boolean;
+  escalationTaskDueDays: number;
+  escalationTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface DealRescueWorkflowSettings {
   id?: string;
   ruleType: 'DEAL_RESCUE';
@@ -528,6 +594,8 @@ export interface Lead {
   ownerId?: string;
   ownerName?: string;
   ownerTerritory?: string;
+  campaignId?: string;
+  campaignName?: string;
   territoryMismatch?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -877,6 +945,164 @@ export interface Quote {
   lineItems?: QuoteLineItem[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface Campaign {
+  id?: string;
+  name: string;
+  type: 'EMAIL' | 'EVENT' | 'SOCIAL' | 'CONTENT' | 'WEBINAR' | 'PARTNERSHIP' | 'OUTBOUND' | 'OTHER';
+  status: 'DRAFT' | 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
+  channel: 'EMAIL' | 'SOCIAL' | 'PAID_ADS' | 'WEBSITE' | 'EVENT' | 'PHONE' | 'SMS' | 'PARTNER' | 'MULTI_CHANNEL';
+  targetAudience?: string;
+  segmentType?: 'INDUSTRY' | 'TERRITORY' | 'PERSONA' | 'ACCOUNT_BASED' | 'LIFECYCLE' | 'CUSTOM';
+  segmentName?: string;
+  primaryPersona?: string;
+  territoryFocus?: string;
+  journeyStage?: 'AWARENESS' | 'CONSIDERATION' | 'DECISION' | 'EXPANSION' | 'RETENTION';
+  autoEnrollNewLeads?: boolean;
+  nurtureCadenceDays?: number;
+  nurtureTouchCount?: number;
+  primaryCallToAction?: string;
+  audienceSize?: number;
+  budget?: number;
+  expectedRevenue?: number;
+  actualRevenue?: number;
+  leadsGenerated?: number;
+  opportunitiesCreated?: number;
+  conversions?: number;
+  startDate?: string;
+  endDate?: string;
+  ownerId?: string;
+  ownerName?: string;
+  roiPercent?: number;
+  attributedLeadCount?: number;
+  attributedPipelineValue?: number;
+  description?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CampaignStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  campaignsByStatus: Partial<Record<Campaign['status'], number>>;
+  totalBudget: number;
+  totalExpectedRevenue: number;
+  totalActualRevenue: number;
+  totalLeadsGenerated: number;
+  totalOpportunitiesCreated: number;
+  totalConversions: number;
+  totalAttributedLeads: number;
+  totalAttributedPipelineValue: number;
+}
+
+export interface CampaignInsights {
+  campaignId: string;
+  campaignName: string;
+  segmentName?: string;
+  segmentType?: string;
+  journeyStage?: string;
+  autoEnrollNewLeads?: boolean;
+  nurtureCadenceDays?: number;
+  nurtureTouchCount?: number;
+  attributedLeadCount: number;
+  openAttributedLeadCount: number;
+  fastTrackedLeadCount: number;
+  attributedPipelineValue: number;
+  averageLeadScore: number;
+  leadsByStatus: Record<string, number>;
+  leadsBySource: Record<string, number>;
+  leadsByTerritory: Record<string, number>;
+  recommendedActions: string[];
+}
+
+export interface SupportCase {
+  id?: string;
+  tenantId?: string;
+  caseNumber: string;
+  title: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'WAITING_ON_CUSTOMER' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  customerTier: 'STANDARD' | 'PREMIUM' | 'STRATEGIC';
+  source: 'EMAIL' | 'PHONE' | 'PORTAL' | 'CHAT' | 'INTERNAL' | 'OTHER';
+  companyId?: string;
+  companyName?: string;
+  contactId?: string;
+  contactName?: string;
+  ownerId?: string;
+  ownerName?: string;
+  responseDueAt?: string;
+  firstRespondedAt?: string;
+  resolutionDueAt?: string;
+  resolvedAt?: string;
+  overdueResponse?: boolean;
+  overdueResolution?: boolean;
+  responseSlaStatus?: 'ON_TRACK' | 'WATCH' | 'BREACHED' | 'MET';
+  resolutionSlaStatus?: 'ON_TRACK' | 'WATCH' | 'BREACHED' | 'MET';
+  customerImpact?: string;
+  description?: string;
+  resolutionSummary?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SupportCaseStats {
+  totalCases: number;
+  openCases: number;
+  escalatedCases: number;
+  overdueResponseCases: number;
+  overdueResolutionCases: number;
+  responseWatchCases: number;
+  resolutionWatchCases: number;
+  casesByStatus: Partial<Record<SupportCase['status'], number>>;
+  casesByPriority: Partial<Record<SupportCase['priority'], number>>;
+}
+
+export interface SupportCaseSlaAutomationResult {
+  reviewedCases: number;
+  responseTasksCreated: number;
+  resolutionTasksCreated: number;
+  escalationTasksCreated: number;
+  escalatedCases: number;
+  alreadyCoveredCases: number;
+  createdTaskIds: string[];
+}
+
+export interface SupportCaseAssignmentQueueItem {
+  caseId: string;
+  caseNumber: string;
+  title: string;
+  status: SupportCase['status'];
+  priority: SupportCase['priority'];
+  companyName?: string;
+  ownerId?: string;
+  ownerName?: string;
+  suggestedOwnerId?: string;
+  suggestedOwnerName?: string;
+  suggestedReason?: string;
+  queueReason: 'UNASSIGNED' | 'ESCALATED';
+  responseSlaStatus?: SupportCase['responseSlaStatus'];
+  resolutionSlaStatus?: SupportCase['resolutionSlaStatus'];
+  createdAt?: string;
+}
+
+export interface SupportCaseAssignmentQueueSummary {
+  totalItems: number;
+  unassignedCases: number;
+  escalatedCases: number;
+  urgentCases: number;
+  breachedCases: number;
+  items: SupportCaseAssignmentQueueItem[];
+}
+
+export interface SupportCaseAssignmentAutomationResult {
+  reviewedCases: number;
+  assignedCases: number;
+  assignmentTasksCreated: number;
+  skippedCases: number;
+  updatedCaseIds: string[];
+  createdTaskIds: string[];
 }
 
 export interface QuoteLineItem {

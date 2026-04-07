@@ -1,5 +1,7 @@
 package com.crm.entity;
 
+import com.crm.entity.enums.CustomerPrivacyStatus;
+import com.crm.entity.enums.DataEnrichmentStatus;
 import com.crm.entity.enums.LeadSource;
 import com.crm.entity.enums.LeadStatus;
 import jakarta.persistence.*;
@@ -65,6 +67,36 @@ public class Lead extends AbstractEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", insertable = false, updatable = false)
     private User owner;
+
+    @Column(name = "campaign_id")
+    private UUID campaignId;
+
+    @Column(name = "marketing_consent", nullable = false)
+    private Boolean marketingConsent = Boolean.FALSE;
+
+    @Column(name = "consent_captured_at")
+    private LocalDateTime consentCapturedAt;
+
+    @Column(name = "consent_source", length = 120)
+    private String consentSource;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "privacy_status", nullable = false, length = 30)
+    private CustomerPrivacyStatus privacyStatus = CustomerPrivacyStatus.ACTIVE;
+
+    @Column(name = "data_quality_score", nullable = false)
+    private Integer dataQualityScore = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "enrichment_status", nullable = false, length = 30)
+    private DataEnrichmentStatus enrichmentStatus = DataEnrichmentStatus.NOT_ENRICHED;
+
+    @Column(name = "enrichment_last_checked_at")
+    private LocalDateTime enrichmentLastCheckedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campaign_id", insertable = false, updatable = false)
+    private Campaign campaign;
 
     public String getFullName() {
         return firstName + " " + lastName;
