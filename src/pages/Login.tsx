@@ -30,23 +30,28 @@ const signupSteps: SignupStepDefinition[] = [
   },
 ];
 
-const spotlightCards = [
+
+const testimonials = [
   {
-    label: 'Faster onboarding',
-    title: 'Guide people one decision at a time',
-    description: 'A calmer setup flow makes it easier for new teams to trust the product from the first screen.',
+    quote: 'This CRM completely transformed how our sales team operates. Lead scoring alone saved us hours every week — and forecasting finally feels accurate.',
+    name: 'Marcus Osei',
+    company: 'TechBridge Africa',
+    role: 'Revenue Operations Lead',
   },
   {
-    label: 'Built for sales teams',
-    title: 'From first sign-in to first pipeline',
-    description: 'The platform is designed to get leads, deals, contacts, and forecasting ready without overwhelming users.',
+    quote: 'The AI assistant surfaces insights I used to spend hours digging for. My pipeline has never been healthier and I close deals faster than ever before.',
+    name: 'Amara Nwosu',
+    company: 'Novo Ventures',
+    role: 'Senior Account Executive',
   },
   {
-    label: 'AI in the workflow',
-    title: 'Insights feel useful when the basics feel simple',
-    description: 'A cleaner auth journey sets up the rest of the product to feel focused and premium.',
+    quote: 'From onboarding to our first closed deal in the system, it took less than a day. The workspace setup is genuinely the smoothest I have ever experienced.',
+    name: 'David Chikwanda',
+    company: 'Meridian Growth Partners',
+    role: 'Sales Director',
   },
 ];
+
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -91,9 +96,15 @@ export default function Login() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
 
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  const prevTestimonial = () =>
+    setTestimonialIndex((i) => (i - 1 + testimonials.length) % testimonials.length);
+  const nextTestimonial = () =>
+    setTestimonialIndex((i) => (i + 1) % testimonials.length);
 
   const progress = ((signupStep + 1) / signupSteps.length) * 100;
   const activeStep = signupSteps[signupStep];
@@ -218,43 +229,69 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(14,116,144,0.18),_transparent_35%),linear-gradient(135deg,_#f6fbfc_0%,_#eef4f7_42%,_#f8fbfd_100%)] px-4 py-8 text-slate-900 sm:px-6 lg:px-10">
+    <div style={{ fontFamily: "'Inter', sans-serif" }} className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(14,116,144,0.18),_transparent_35%),linear-gradient(135deg,_#f6fbfc_0%,_#eef4f7_42%,_#f8fbfd_100%)] px-4 py-8 text-slate-900 sm:px-6 lg:px-10">
       <div className="mx-auto flex w-full max-w-[1040px] overflow-hidden rounded-[24px] border border-white/80 bg-white/82 shadow-[0_24px_70px_rgba(15,23,42,0.12)] backdrop-blur">
-        <section className="relative hidden w-[38%] overflow-hidden bg-[linear-gradient(160deg,_#0f2d40_0%,_#123f56_48%,_#1f6b73_100%)] p-5 text-white lg:flex lg:flex-col">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.25),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.12),_transparent_30%)]" />
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/12 ring-1 ring-white/20">
+        <section className="relative hidden w-[38%] overflow-hidden bg-[linear-gradient(160deg,_#0b2233_0%,_#0f3347_45%,_#1a5f6b_100%)] p-5 text-white lg:flex lg:flex-col">
+          {/* Subtle radial overlay */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(103,232,249,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom_left,_rgba(255,255,255,0.06),_transparent_45%)]" />
+
+          {/* Logo */}
+          <div className="relative z-10 flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
               <Icons.LogoSmall />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100/75">AI Native CRM</p>
-              <p className="text-base font-semibold">Sales workspace</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-cyan-200/70">AI Native CRM</p>
+              <p className="text-[13px] font-semibold leading-tight">Sales workspace</p>
             </div>
           </div>
 
-          <div className="relative z-10 mt-5 max-w-[16.5rem]">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-100/70">Calmer onboarding</p>
-            <h1 className="text-[2rem] leading-[1.04] font-serif-sans md:text-[2.25rem] lg:text-[2.55rem]">
-              Make the first five minutes feel confident.
+          {/* Main headline */}
+          <div className="relative z-10 mt-6 max-w-[17rem]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-300/70">Calmer onboarding</p>
+            <h1 className="mt-2 text-[2rem] font-light leading-[1.12] tracking-[-0.02em]">
+              Set up your sales workspace now
             </h1>
-            <p className="mt-2.5 text-[12px] leading-5 text-slate-200">
-              A guided sign-up experience helps teams move from curiosity to setup without dumping every field onto one screen.
+            <p className="mt-4 text-[12px]  leading[1.6] text-slate-300/80">
+              A guided experience that gets your team from sign-up to first pipeline in minutes — no overwhelming setup, just clarity.
             </p>
           </div>
 
-          <div className="relative z-10 mt-auto space-y-2.5">
-            {spotlightCards.slice(0, 2).map((card) => (
-              <div
-                key={card.title}
-                className="rounded-[20px] border border-white/12 bg-white/10 p-3 backdrop-blur-sm"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-100/70">{card.label}</p>
-                <h2 className="mt-1.5 text-[14px] font-semibold leading-snug">{card.title}</h2>
-                <p className="mt-1.5 text-[11px] leading-5 text-slate-200">{card.description}</p>
+          {/* Testimonial card */}
+          <div className="relative z-10 mt-auto">
+            <div className="rounded-[20px] border border-white/15 bg-white/10 p-4 backdrop-blur-md">
+              <p className="text-[12.5px] leading-[1.6] text-white/90">
+                &ldquo;{testimonials[testimonialIndex].quote}&rdquo;
+              </p>
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <div>
+                  <p className="text-[13px] font-bold leading-tight text-white">{testimonials[testimonialIndex].name}</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-cyan-200/80">{testimonials[testimonialIndex].company}</p>
+                  <p className="text-[10.5px] text-white/50">{testimonials[testimonialIndex].role}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={prevTestimonial}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                    aria-label="Previous testimonial"
+                  >
+                    <Icons.ArrowLeft size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextTestimonial}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                    aria-label="Next testimonial"
+                  >
+                    <Icons.ArrowRight size={13} />
+                  </button>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </section>
+
 
         <section className="flex flex-1 items-center justify-center px-5 py-5 sm:px-5 lg:px-6">
           <div className="w-full max-w-[500px]">
@@ -287,17 +324,17 @@ export default function Login() {
               </p>
             </div>
 
-            <div className="flex h-[470px] flex-col rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
+            <div className="flex h-[560px] flex-col rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
               {mode === 'login' ? (
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-cyan-700/80">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-cyan-700/80">
                       Welcome back
                     </p>
-                    <h2 className="mt-1.5 text-[1.45rem] font-semibold tracking-[-0.03em] text-slate-900 sm:text-[1.65rem]">
+                    <h2 className="mt-1 text-[1.15rem] font-semibold tracking-[-0.03em] text-slate-900 sm:text-[1.25rem]">
                       Sign in to your workspace
                     </h2>
-                    <p className="mt-1.5 max-w-md text-[12px] leading-5 text-slate-500">
+                    <p className="mt-1 max-w-md text-[11px] leading-[1.4] text-slate-500">
                       Use your company credentials to pick up where your team left off.
                     </p>
                   </div>
@@ -306,65 +343,32 @@ export default function Login() {
                 <div
                   key={`signup-shell-${signupStep}`}
                   className={cn(
-                    'auth-step-shell -m-0.5 flex h-[150px] flex-col rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(248,250,252,0.96)_100%)] p-3 shadow-[0_16px_40px_rgba(15,23,42,0.08)]',
+                    'auth-step-shell -m-0.5 flex h-[100px] flex-col rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(248,250,252,0.96)_100%)] p-3 shadow-[0_16px_40px_rgba(15,23,42,0.08)]',
                     stepDirection === 'forward' ? 'auth-step-shell-forward' : 'auth-step-shell-backward'
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-cyan-700/80">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-cyan-700/80">
                         Step {signupStep + 1} of {signupSteps.length}
                       </p>
-                      <h2 className="mt-1 text-[1.3rem] font-semibold tracking-[-0.03em] text-slate-900 sm:text-[1.45rem]">
+                      <h2 className="mt-0.5 text-[1.05rem] font-semibold tracking-[-0.03em] text-slate-900 sm:text-[1.15rem]">
                         {activeStep.title}
                       </h2>
-                      <p className="mt-1 max-w-md text-[10px] leading-[1.05rem] text-slate-500">{activeStep.hint}</p>
+                      <p className="mt-0.5 max-w-md text-[10px] leading-[1.3] text-slate-500">{activeStep.hint}</p>
                     </div>
 
-                    <div className="hidden min-w-[76px] rounded-xl bg-white/80 p-2 text-right shadow-sm sm:block">
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Progress</p>
-                      <p className="mt-1 text-lg font-semibold text-slate-900">{Math.round(progress)}%</p>
-                    </div>
+
                   </div>
 
-                    <div className="mt-1.5">
+                  <div className="mt-1.5">
                     <div className="h-1 overflow-hidden rounded-full bg-slate-100">
                       <div
                         className="h-full rounded-full bg-[linear-gradient(90deg,_#0f766e_0%,_#0891b2_100%)] transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="mt-1.5 grid gap-1 sm:grid-cols-3">
-                      {signupSteps.map((step, index) => (
-                        <div
-                          key={step.id}
-                          className={cn(
-                            'rounded-xl border p-1.5 transition-all',
-                            index === signupStep
-                              ? 'border-cyan-200 bg-cyan-50'
-                              : index < signupStep
-                                ? 'border-emerald-200 bg-emerald-50'
-                                : 'border-slate-200 bg-slate-50'
-                          )}
-                        >
-                            <div className="flex items-start gap-1.5">
-                              <div
-                                className={cn(
-                                  'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold',
-                                index < signupStep
-                                  ? 'bg-emerald-600 text-white'
-                                  : index === signupStep
-                                    ? 'bg-cyan-700 text-white'
-                                    : 'bg-white text-slate-500 ring-1 ring-slate-200'
-                              )}
-                              >
-                                {index < signupStep ? <Icons.CheckCircle size={12} /> : index + 1}
-                              </div>
-                              <p className="text-[10px] font-medium leading-4 text-slate-800">{step.title}</p>
-                            </div>
-                        </div>
-                      ))}
-                    </div>
+
                   </div>
                 </div>
               )}
@@ -374,7 +378,7 @@ export default function Login() {
                 className={cn(
                   'mt-2 flex flex-1 flex-col',
                   mode === 'signup' &&
-                    'auth-step-shell auth-step-shell-soft min-h-[248px] rounded-[18px] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(248,250,252,0.94)_100%)] p-3 shadow-[0_14px_34px_rgba(15,23,42,0.08)]',
+                  'auth-step-shell auth-step-shell-soft min-h-[248px] rounded-[18px] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(248,250,252,0.94)_100%)] p-3 shadow-[0_14px_34px_rgba(15,23,42,0.08)]',
                   mode === 'signup' && (stepDirection === 'forward' ? 'auth-step-shell-forward' : 'auth-step-shell-backward')
                 )}
                 onSubmit={handleSubmit}
@@ -412,12 +416,12 @@ export default function Login() {
                     <div className="auth-step-panel flex min-h-[170px] flex-col justify-start space-y-1.5">
                       {signupStep === 0 && (
                         <div className="space-y-2">
-                          <div className="rounded-[14px] border border-cyan-100 bg-[linear-gradient(180deg,_#f5fdff_0%,_#ffffff_100%)] p-2">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-cyan-700/80">
+                          <div className="rounded-[12px] border border-cyan-100 bg-[linear-gradient(180deg,_#f5fdff_0%,_#ffffff_100%)] px-2 py-1.5">
+                            <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-cyan-700/80">
                               Step 1
                             </p>
-                            <h3 className="mt-1 text-base font-semibold text-slate-900">Choose the admin email</h3>
-                            <p className="mt-1 text-[10px] leading-[1.05rem] text-slate-500">
+                            <h3 className="mt-0.5 text-[13px] font-semibold text-slate-900">Choose the admin email</h3>
+                            <p className="mt-0.5 text-[10px] leading-[1.3] text-slate-500">
                               This becomes the primary sign-in for the workspace you are setting up.
                             </p>
                           </div>
@@ -443,12 +447,12 @@ export default function Login() {
 
                       {signupStep === 1 && (
                         <div className="space-y-2">
-                          <div className="rounded-[14px] border border-cyan-100 bg-[linear-gradient(180deg,_#f5fdff_0%,_#ffffff_100%)] p-2">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-cyan-700/80">
+                          <div className="rounded-[12px] border border-cyan-100 bg-[linear-gradient(180deg,_#f5fdff_0%,_#ffffff_100%)] px-2 py-1.5">
+                            <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-cyan-700/80">
                               Step 2
                             </p>
-                            <h3 className="mt-1 text-base font-semibold text-slate-900">Set up the admin profile</h3>
-                            <p className="mt-1 text-[10px] leading-[1.05rem] text-slate-500">
+                            <h3 className="mt-0.5 text-[13px] font-semibold text-slate-900">Set up the admin profile</h3>
+                            <p className="mt-0.5 text-[10px] leading-[1.3] text-slate-500">
                               This screen is only about the person creating the account, so it stays focused and easy to complete.
                             </p>
                           </div>
@@ -487,12 +491,12 @@ export default function Login() {
 
                       {signupStep === 2 && (
                         <div className="space-y-2">
-                          <div className="rounded-[14px] border border-cyan-100 bg-[linear-gradient(180deg,_#f5fdff_0%,_#ffffff_100%)] p-2">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-cyan-700/80">
+                          <div className="rounded-[12px] border border-cyan-100 bg-[linear-gradient(180deg,_#f5fdff_0%,_#ffffff_100%)] px-2 py-1.5">
+                            <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-cyan-700/80">
                               Step 3
                             </p>
-                            <h3 className="mt-1 text-base font-semibold text-slate-900">Create the workspace</h3>
-                            <p className="mt-1 text-[10px] leading-[1.05rem] text-slate-500">
+                            <h3 className="mt-0.5 text-[13px] font-semibold text-slate-900">Create the workspace</h3>
+                            <p className="mt-0.5 text-[10px] leading-[1.3] text-slate-500">
                               Name the company account, then review the details that will be used for the first CRM workspace.
                             </p>
                           </div>
@@ -529,10 +533,10 @@ export default function Login() {
                 </div>
 
                 <div className="mt-2 space-y-2 border-t border-slate-100 pt-2.5">
-  <button
-    type="submit"
-    disabled={isLoading}
-    className="
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="
       flex items-center justify-center
       mx-auto
       w-auto
@@ -546,15 +550,15 @@ export default function Login() {
       hover:scale-[1.02]
       disabled:cursor-not-allowed disabled:opacity-60
     "
-  >
-    {isLoading
-      ? 'Please wait...'
-      : mode === 'login'
-        ? 'Sign in'
-        : signupStep === signupSteps.length - 1
-          ? 'Create workspace'
-          : 'Continue'}
-  </button>
+                  >
+                    {isLoading
+                      ? 'Please wait...'
+                      : mode === 'login'
+                        ? 'Sign in'
+                        : signupStep === signupSteps.length - 1
+                          ? 'Create workspace'
+                          : 'Continue'}
+                  </button>
                   {mode === 'signup' && (
                     <div className="flex items-center justify-between gap-2.5">
                       <button
