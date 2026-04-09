@@ -1,5 +1,7 @@
 package com.crm.dto.response;
 
+import com.crm.entity.enums.CustomerPrivacyStatus;
+import com.crm.entity.enums.DataEnrichmentStatus;
 import com.crm.entity.enums.LeadSource;
 import com.crm.entity.enums.LeadStatus;
 import lombok.AllArgsConstructor;
@@ -39,6 +41,15 @@ public class LeadResponseDTO {
     private String ownerName;
     private String ownerTerritory;
     private Boolean territoryMismatch;
+    private UUID campaignId;
+    private String campaignName;
+    private Boolean marketingConsent;
+    private LocalDateTime consentCapturedAt;
+    private String consentSource;
+    private CustomerPrivacyStatus privacyStatus;
+    private Integer dataQualityScore;
+    private DataEnrichmentStatus enrichmentStatus;
+    private LocalDateTime enrichmentLastCheckedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private UUID createdBy;

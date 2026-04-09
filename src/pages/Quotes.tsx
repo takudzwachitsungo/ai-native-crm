@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Icons } from "../components/icons";
 import { cn } from "../lib/utils";
 import { PageLayout } from "../components/PageLayout";
@@ -20,6 +21,7 @@ const statusColors = {
 };
 
 export default function QuotesPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -266,6 +268,15 @@ export default function QuotesPage() {
                       <button className="p-1.5 hover:bg-muted rounded transition-colors" title="Download PDF">
                         <Icons.Download size={16} className="text-muted-foreground" />
                       </button>
+                      {quote.status === "ACCEPTED" && (
+                        <button
+                          onClick={() => navigate(`/contracts?convertQuoteId=${quote.id}`)}
+                          className="p-1.5 hover:bg-muted rounded transition-colors"
+                          title="Convert to Contract"
+                        >
+                          <Icons.ArrowRight size={16} className="text-muted-foreground" />
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setSelectedItem(quote);

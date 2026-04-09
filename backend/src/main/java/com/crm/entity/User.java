@@ -1,6 +1,7 @@
 package com.crm.entity;
 
 import com.crm.entity.enums.UserRole;
+import com.crm.security.RolePermissionRegistry;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -9,8 +10,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.UUID;
 
 @Entity
@@ -45,8 +46,25 @@ public class User extends AbstractEntity implements UserDetails {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Column(name = "manager_id")
+    private UUID managerId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id", insertable = false, updatable = false)
+    private User manager;
+
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    @Column(name = "two_factor_enabled", nullable = false)
+    @Builder.Default
+    private Boolean twoFactorEnabled = false;
+
+    @Column(name = "two_factor_secret", length = 128)
+    private String twoFactorSecret;
+
+    @Column(name = "two_factor_enabled_at")
+    private LocalDateTime twoFactorEnabledAt;
 
     @Column(length = 120)
     private String territory;
@@ -57,12 +75,19 @@ public class User extends AbstractEntity implements UserDetails {
     @Column(name = "annual_quota", precision = 19, scale = 2)
     private BigDecimal annualQuota;
 
+    @OneToMany(mappedBy = "manager", fetch = FetchType.LAZY)
+    @Builder.Default
+    private java.util.List<User> managedUsers = new java.util.ArrayList<>();
+
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(
-            new SimpleGrantedAuthority("ROLE_" + role.name())
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        RolePermissionRegistry.permissionsFor(role).forEach(permission ->
+                authorities.add(new SimpleGrantedAuthority(permission.name()))
         );
+        return authorities;
     }
 
     @Override

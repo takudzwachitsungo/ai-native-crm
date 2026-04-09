@@ -2,10 +2,20 @@ package com.crm.service.impl;
 
 import com.crm.config.TenantContext;
 import com.crm.dto.request.TenantDatabaseSettingsUpdateRequestDTO;
+import com.crm.dto.response.AutomationRunResponseDTO;
 import com.crm.dto.response.TenantDatabaseSettingsResponseDTO;
+import com.crm.dto.response.WorkspaceOperationsSummaryDTO;
+import com.crm.entity.Tenant;
 import com.crm.entity.enums.TenantTier;
 import com.crm.exception.BadRequestException;
 import com.crm.exception.ResourceNotFoundException;
+import com.crm.repository.AutomationRuleRepository;
+import com.crm.repository.AutomationRunRepository;
+import com.crm.repository.SupportCaseRepository;
+import com.crm.repository.TenantRepository;
+import com.crm.repository.UserRepository;
+import com.crm.repository.WorkflowRuleRepository;
+import com.crm.repository.WorkspaceIntegrationRepository;
 import com.crm.service.TenantAdminService;
 import com.crm.service.TenantCredentialCipher;
 import com.crm.service.TenantProvisioningService;
@@ -15,12 +25,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
+import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -35,17 +47,38 @@ public class TenantAdminServiceImpl implements TenantAdminService {
     private final TenantRoutingDataSource tenantRoutingDataSource;
     private final TenantProvisioningService tenantProvisioningService;
     private final TenantCredentialCipher tenantCredentialCipher;
+    private final TenantRepository tenantRepository;
+    private final UserRepository userRepository;
+    private final WorkflowRuleRepository workflowRuleRepository;
+    private final AutomationRuleRepository automationRuleRepository;
+    private final AutomationRunRepository automationRunRepository;
+    private final SupportCaseRepository supportCaseRepository;
+    private final WorkspaceIntegrationRepository workspaceIntegrationRepository;
 
     public TenantAdminServiceImpl(
             @Qualifier("masterDataSource") DataSource masterDataSource,
             TenantRoutingDataSource tenantRoutingDataSource,
             TenantProvisioningService tenantProvisioningService,
-            TenantCredentialCipher tenantCredentialCipher
+            TenantCredentialCipher tenantCredentialCipher,
+            TenantRepository tenantRepository,
+            UserRepository userRepository,
+            WorkflowRuleRepository workflowRuleRepository,
+            AutomationRuleRepository automationRuleRepository,
+            AutomationRunRepository automationRunRepository,
+            SupportCaseRepository supportCaseRepository,
+            WorkspaceIntegrationRepository workspaceIntegrationRepository
     ) {
         this.masterDataSource = masterDataSource;
         this.tenantRoutingDataSource = tenantRoutingDataSource;
         this.tenantProvisioningService = tenantProvisioningService;
         this.tenantCredentialCipher = tenantCredentialCipher;
+        this.tenantRepository = tenantRepository;
+        this.userRepository = userRepository;
+        this.workflowRuleRepository = workflowRuleRepository;
+        this.automationRuleRepository = automationRuleRepository;
+        this.automationRunRepository = automationRunRepository;
+        this.supportCaseRepository = supportCaseRepository;
+        this.workspaceIntegrationRepository = workspaceIntegrationRepository;
     }
 
     @Override
@@ -185,6 +218,99 @@ public class TenantAdminServiceImpl implements TenantAdminService {
         tenantProvisioningService.migrateTenantToDedicatedDatabase(tenantId);
         tenantRoutingDataSource.evictTenantDataSource(tenantId);
         return loadTenantRecord(tenantId);
+    }
+
+    @Override
+    public WorkspaceOperationsSummaryDTO getWorkspaceOperationsSummary() {
+        UUID tenantId = requireTenantId();
+        Tenant tenant = tenantRepository.findByIdAndArchivedFalse(tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
+        TenantDatabaseSettingsResponseDTO databaseSettings = loadTenantRecord(tenantId);
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
+        List<AutomationRunResponseDTO> recentAutomationRuns = automationRunRepository
+                .findByTenantIdAndArchivedFalseOrderByCreatedAtDesc(tenantId, org.springframework.data.domain.PageRequest.of(0, 5))
+                .stream()
+                .map(run -> AutomationRunResponseDTO.builder()
+                        .id(run.getId())
+                        .automationKey(run.getAutomationKey())
+                        .automationName(run.getAutomationName())
+                        .triggerSource(run.getTriggerSource())
+                        .runStatus(run.getRunStatus())
+                        .reviewedCount(run.getReviewedCount())
+                        .actionCount(run.getActionCount())
+                        .alreadyCoveredCount(run.getAlreadyCoveredCount())
+                        .summary(run.getSummary())
+                        .createdAt(run.getCreatedAt())
+                        .build())
+                .toList();
+        List<com.crm.entity.WorkspaceIntegration> integrations = workspaceIntegrationRepository.findByTenantIdAndArchivedFalse(tenantId);
+        long configuredIntegrations = integrations.stream()
+                .filter(this::isConfiguredIntegration)
+                .count();
+        long connectedIntegrations = integrations.stream()
+                .filter(integration -> integration.getConnectedAt() != null && hasText(integration.getAccessToken()))
+                .count();
+        long syncEnabledIntegrations = integrations.stream()
+                .filter(integration -> Boolean.TRUE.equals(integration.getSyncEnabled()))
+                .count();
+        long integrationsWithRecentFailures = integrations.stream()
+                .filter(integration -> Boolean.FALSE.equals(integration.getLastSyncSucceeded()))
+                .filter(integration -> integration.getLastSyncStartedAt() != null && integration.getLastSyncStartedAt().isAfter(cutoff))
+                .count();
+        long integrationsNeedingReconnect = integrations.stream()
+                .filter(this::isConfiguredIntegration)
+                .filter(integration -> !hasText(integration.getAccessToken())
+                        || integration.getConnectedAt() == null
+                        || (integration.getTokenExpiresAt() != null
+                        && integration.getTokenExpiresAt().isBefore(LocalDateTime.now())
+                        && !hasText(integration.getRefreshToken())))
+                .count();
+
+        return WorkspaceOperationsSummaryDTO.builder()
+                .tenantId(tenant.getId())
+                .tenantName(tenant.getName())
+                .tenantSlug(tenant.getSlug())
+                .tenantTier(tenant.getTier())
+                .routingMode(databaseSettings.getRoutingMode())
+                .dedicatedDatabaseReady(databaseSettings.getDatabaseReady())
+                .lastValidationSucceeded(databaseSettings.getLastValidationSucceeded())
+                .lastValidatedAt(databaseSettings.getLastValidatedAt())
+                .uptimeSeconds(ManagementFactory.getRuntimeMXBean().getUptime() / 1000L)
+                .observedAt(LocalDateTime.now())
+                .activeUsers(userRepository.countByTenantIdAndIsActiveTrueAndArchivedFalse(tenantId))
+                .activeWorkflowRules(workflowRuleRepository.countByTenantIdAndIsActiveTrueAndArchivedFalse(tenantId))
+                .activeAutomationRules(automationRuleRepository.countByTenantIdAndIsActiveTrueAndArchivedFalse(tenantId))
+                .activeSupportCases(supportCaseRepository.countByTenantIdAndStatusInAndArchivedFalse(
+                        tenantId,
+                        List.of(
+                                com.crm.entity.enums.SupportCaseStatus.OPEN,
+                                com.crm.entity.enums.SupportCaseStatus.IN_PROGRESS,
+                                com.crm.entity.enums.SupportCaseStatus.WAITING_ON_CUSTOMER,
+                                com.crm.entity.enums.SupportCaseStatus.ESCALATED
+                        )
+                ))
+                .automationRunsLast24Hours(automationRunRepository.countByTenantIdAndArchivedFalseAndCreatedAtAfter(tenantId, cutoff))
+                .failedAutomationRunsLast24Hours(
+                        automationRunRepository.countByTenantIdAndArchivedFalseAndRunStatusIgnoreCaseAndCreatedAtAfter(
+                                tenantId,
+                                "FAILED",
+                                cutoff
+                        )
+                )
+                .configuredIntegrations(configuredIntegrations)
+                .connectedIntegrations(connectedIntegrations)
+                .syncEnabledIntegrations(syncEnabledIntegrations)
+                .integrationsWithRecentFailures(integrationsWithRecentFailures)
+                .integrationsNeedingReconnect(integrationsNeedingReconnect)
+                .recentAutomationRuns(recentAutomationRuns)
+                .build();
+    }
+
+    private boolean isConfiguredIntegration(com.crm.entity.WorkspaceIntegration integration) {
+        if ("API_KEY".equalsIgnoreCase(integration.getAuthType())) {
+            return hasText(integration.getClientSecret());
+        }
+        return hasText(integration.getClientId()) && hasText(integration.getClientSecret());
     }
 
     private UUID requireTenantId() {

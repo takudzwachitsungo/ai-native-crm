@@ -72,6 +72,18 @@ export default function Invoices() {
     },
   });
 
+  const erpSyncMutation = useMutation({
+    mutationFn: ({ id, providerKey }: { id: string; providerKey: 'quickbooks' | 'xero' }) =>
+      invoicesApi.syncToErp(id, providerKey),
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      showToast(result.summary || `Synced invoice to ${variables.providerKey}`, 'success');
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || 'Failed to sync invoice to ERP', 'error');
+    },
+  });
+
   const filteredInvoices = activeTab === 'all' 
     ? invoices 
     : invoices.filter((inv: any) => inv.status?.toLowerCase() === activeTab);
@@ -278,6 +290,22 @@ export default function Invoices() {
                         className="p-1.5 hover:bg-secondary rounded transition-colors"
                       >
                         <Icons.Trash size={16} className="text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={() => erpSyncMutation.mutate({ id: invoice.id, providerKey: 'quickbooks' })}
+                        disabled={!invoice.id || erpSyncMutation.isPending}
+                        className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                        title="Sync to QuickBooks"
+                      >
+                        QB
+                      </button>
+                      <button
+                        onClick={() => erpSyncMutation.mutate({ id: invoice.id, providerKey: 'xero' })}
+                        disabled={!invoice.id || erpSyncMutation.isPending}
+                        className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                        title="Sync to Xero"
+                      >
+                        Xero
                       </button>
                     </div>
                   </td>

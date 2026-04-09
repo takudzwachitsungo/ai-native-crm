@@ -6,14 +6,18 @@ import com.crm.dto.request.RegisterRequest;
 import com.crm.dto.response.AuthResponse;
 import com.crm.entity.Tenant;
 import com.crm.entity.User;
+import com.crm.entity.UserSession;
 import com.crm.entity.enums.TenantTier;
 import com.crm.entity.enums.UserRole;
 import com.crm.exception.DuplicateResourceException;
 import com.crm.exception.UnauthorizedException;
 import com.crm.config.TenantContext;
 import com.crm.repository.TenantRepository;
+import com.crm.repository.UserSessionRepository;
 import com.crm.repository.UserRepository;
 import com.crm.security.JwtTokenProvider;
+import com.crm.security.RolePermissionRegistry;
+import com.crm.security.TwoFactorTotpService;
 import com.crm.service.AuthService;
 import com.crm.service.TenantProvisioningService;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +26,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,12 +44,18 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
+    private final UserSessionRepository userSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TwoFactorTotpService twoFactorTotpService;
     private final TenantProvisioningService tenantProvisioningService;
+    private final TransactionTemplate transactionTemplate;
     
     @Value("${security.jwt.access-token-expiration}")
     private long accessTokenExpiration;
+
+    @Value("${security.jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration;
 
     @Override
     @Transactional
@@ -71,78 +87,90 @@ public class AuthServiceImpl implements AuthService {
         
         log.info("Created new admin user: {} for tenant: {}", user.getEmail(), tenant.getName());
 
-        // Generate tokens
-        String accessToken = jwtTokenProvider.generateAccessToken(user, tenant.getId(), user.getId());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId());
+        UserSession session = createSession(user, tenant);
+        String accessToken = jwtTokenProvider.generateAccessToken(user, tenant.getId(), user.getId(), session.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId(), session.getId());
 
         return buildAuthResponse(user, tenant, accessToken, refreshToken);
     }
 
     @Override
-    @Transactional
     public AuthResponse login(LoginRequest request) {
         Tenant tenant = resolveTenantForLogin(request);
         TenantContext.setTenantId(tenant.getId());
         try {
-            User user = userRepository.findByTenantIdAndEmailAndArchivedFalse(tenant.getId(), request.getEmail())
-                    .orElseThrow(() -> new UnauthorizedException("Invalid workspace, email, or password"));
+            return transactionTemplate.execute(status -> {
+                User user = userRepository.findByTenantIdAndEmailAndArchivedFalse(tenant.getId(), request.getEmail())
+                        .orElseThrow(() -> new UnauthorizedException("Invalid workspace, email, or password"));
 
-            if (!user.getIsActive() || user.getArchived()) {
-                throw new UnauthorizedException("User account is inactive");
-            }
+                if (!user.getIsActive() || user.getArchived()) {
+                    throw new UnauthorizedException("User account is inactive");
+                }
 
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                throw new UnauthorizedException("Invalid workspace, email, or password");
-            }
-            
-            // Update last login time
-            user.setLastLoginAt(LocalDateTime.now());
-            userRepository.save(user);
-            
-            log.info("User logged in: {} from tenant: {}", user.getEmail(), user.getTenantId());
+                if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                    throw new UnauthorizedException("Invalid workspace, email, or password");
+                }
 
-            // Generate tokens
-            String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId());
+                if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+                    if (request.getOtpCode() == null || request.getOtpCode().isBlank()) {
+                        throw new UnauthorizedException("Two-factor authentication code is required");
+                    }
+                    if (!twoFactorTotpService.verifyCode(user.getTwoFactorSecret(), request.getOtpCode())) {
+                        throw new UnauthorizedException("Invalid two-factor authentication code");
+                    }
+                }
 
-            return buildAuthResponse(user, tenant, accessToken, refreshToken);
+                user.setLastLoginAt(LocalDateTime.now());
+                userRepository.save(user);
+
+                log.info("User logged in: {} from tenant: {}", user.getEmail(), user.getTenantId());
+
+                UserSession session = createSession(user, tenant);
+                String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId(), session.getId());
+                String refreshToken = jwtTokenProvider.generateRefreshToken(user, user.getId(), tenant.getId(), session.getId());
+
+                return buildAuthResponse(user, tenant, accessToken, refreshToken);
+            });
         } finally {
             TenantContext.clear();
         }
     }
 
     @Override
-    @Transactional(readOnly = true)
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         try {
             String refreshToken = request.getRefreshToken();
             java.util.UUID userId = jwtTokenProvider.extractUserId(refreshToken);
             java.util.UUID tenantId = jwtTokenProvider.extractTenantId(refreshToken);
+            java.util.UUID sessionId = jwtTokenProvider.extractSessionId(refreshToken);
 
             if (tenantId == null) {
                 throw new UnauthorizedException("Refresh token missing tenant context");
             }
 
             TenantContext.setTenantId(tenantId);
-            User user = userRepository.findByIdAndTenantIdAndArchivedFalse(userId, tenantId)
-                    .orElseThrow(() -> new UnauthorizedException("User not found"));
-            Tenant tenant = tenantRepository.findByIdAndArchivedFalse(tenantId)
-                    .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
+            return transactionTemplate.execute(status -> {
+                User user = userRepository.findByIdAndTenantIdAndArchivedFalse(userId, tenantId)
+                        .orElseThrow(() -> new UnauthorizedException("User not found"));
+                Tenant tenant = tenantRepository.findByIdAndArchivedFalse(tenantId)
+                        .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
 
-            if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
-                throw new UnauthorizedException("Invalid refresh token");
-            }
+                if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
+                    throw new UnauthorizedException("Invalid refresh token");
+                }
 
-            if (!jwtTokenProvider.isTokenValid(refreshToken, user)) {
-                throw new UnauthorizedException("Invalid refresh token");
-            }
+                if (!jwtTokenProvider.isTokenValid(refreshToken, user)) {
+                    throw new UnauthorizedException("Invalid refresh token");
+                }
 
-            // Generate new access token
-            String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId());
-            
-            log.info("Token refreshed for user: {}", user.getEmail());
+                UserSession session = resolveActiveSession(tenantId, userId, sessionId);
+                touchSession(session);
+                String accessToken = jwtTokenProvider.generateAccessToken(user, user.getTenantId(), user.getId(), session.getId());
 
-            return buildAuthResponse(user, tenant, accessToken, refreshToken);
+                log.info("Token refreshed for user: {}", user.getEmail());
+
+                return buildAuthResponse(user, tenant, accessToken, refreshToken);
+            });
         } catch (Exception e) {
             log.error("Error refreshing token: {}", e.getMessage());
             throw new UnauthorizedException("Invalid refresh token");
@@ -174,6 +202,8 @@ public class AuthServiceImpl implements AuthService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .role(user.getRole().name())
+                .permissions(RolePermissionRegistry.permissionsFor(user.getRole()).stream().map(Enum::name).toList())
+                .dataScopes(RolePermissionRegistry.dataScopesFor(user.getRole()).stream().map(Enum::name).toList())
                 .build();
     }
 
@@ -223,5 +253,61 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return normalized;
+    }
+
+    private UserSession createSession(User user, Tenant tenant) {
+        LocalDateTime now = LocalDateTime.now();
+        UserSession session = UserSession.builder()
+                .userId(user.getId())
+                .userAgent(resolveUserAgent())
+                .ipAddress(resolveIpAddress())
+                .lastUsedAt(now)
+                .expiresAt(now.plus(Duration.ofMillis(refreshTokenExpiration)))
+                .build();
+        session.setTenantId(tenant.getId());
+        return userSessionRepository.save(session);
+    }
+
+    private UserSession resolveActiveSession(UUID tenantId, UUID userId, UUID sessionId) {
+        if (sessionId == null) {
+            throw new UnauthorizedException("Refresh token missing session context");
+        }
+        UserSession session = userSessionRepository.findByTenantIdAndUserIdAndIdAndArchivedFalse(tenantId, userId, sessionId)
+                .orElseThrow(() -> new UnauthorizedException("Session not found"));
+        if (session.getRevokedAt() != null || session.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException("Session is no longer active");
+        }
+        return session;
+    }
+
+    private void touchSession(UserSession session) {
+        session.setLastUsedAt(LocalDateTime.now());
+        session.setUserAgent(resolveUserAgent());
+        session.setIpAddress(resolveIpAddress());
+        userSessionRepository.save(session);
+    }
+
+    private String resolveUserAgent() {
+        HttpServletRequest request = currentRequest();
+        return request != null ? request.getHeader("User-Agent") : null;
+    }
+
+    private String resolveIpAddress() {
+        HttpServletRequest request = currentRequest();
+        if (request == null) {
+            return null;
+        }
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    private HttpServletRequest currentRequest() {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
+            return null;
+        }
+        return attributes.getRequest();
     }
 }

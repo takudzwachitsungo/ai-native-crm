@@ -40,6 +40,7 @@ public class DealController {
 
     @GetMapping
     @Operation(summary = "Get all deals", description = "Get paginated list of deals with optional filtering")
+    @PreAuthorize("hasAuthority('DEALS_VIEW')")
     public ResponseEntity<Page<DealResponseDTO>> getAllDeals(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @ModelAttribute DealFilterDTO filter
@@ -49,20 +50,21 @@ public class DealController {
 
     @GetMapping("/{id:[0-9a-fA-F\\-]{36}}")
     @Operation(summary = "Get deal by ID", description = "Get detailed information about a specific deal")
+    @PreAuthorize("hasAuthority('DEALS_VIEW')")
     public ResponseEntity<DealResponseDTO> getDealById(@PathVariable UUID id) {
         return ResponseEntity.ok(dealService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new deal", description = "Create a new deal")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DEALS_WRITE')")
     public ResponseEntity<DealResponseDTO> createDeal(@Valid @RequestBody DealRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(dealService.create(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update deal", description = "Update an existing deal")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DEALS_WRITE')")
     public ResponseEntity<DealResponseDTO> updateDeal(
             @PathVariable UUID id,
             @Valid @RequestBody DealRequestDTO request
@@ -72,7 +74,7 @@ public class DealController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete deal", description = "Delete a deal (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DEALS_MANAGE')")
     public ResponseEntity<Void> deleteDeal(@PathVariable UUID id) {
         dealService.delete(id);
         return ResponseEntity.noContent().build();
@@ -80,7 +82,7 @@ public class DealController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete deals", description = "Delete multiple deals at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DEALS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteDeals(@RequestBody List<UUID> ids) {
         dealService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -88,7 +90,7 @@ public class DealController {
 
     @PatchMapping("/{id}/stage")
     @Operation(summary = "Update deal stage", description = "Move deal to a different stage in the pipeline")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DEALS_WRITE')")
     public ResponseEntity<DealResponseDTO> updateDealStage(
             @PathVariable UUID id,
             @RequestParam DealStage stage
@@ -98,32 +100,35 @@ public class DealController {
 
     @GetMapping("/by-stage/{stage}")
     @Operation(summary = "Get deals by stage", description = "Get all deals in a specific pipeline stage")
+    @PreAuthorize("hasAuthority('DEALS_VIEW')")
     public ResponseEntity<List<DealResponseDTO>> getDealsByStage(@PathVariable DealStage stage) {
         return ResponseEntity.ok(dealService.findByStage(stage));
     }
 
     @GetMapping("/statistics")
     @Operation(summary = "Get deal statistics", description = "Get aggregated statistics about deals")
+    @PreAuthorize("hasAuthority('DEALS_VIEW')")
     public ResponseEntity<DealStatsDTO> getDealStatistics() {
         return ResponseEntity.ok(dealService.getStatistics());
     }
 
     @GetMapping("/attention-summary")
     @Operation(summary = "Get deals needing attention", description = "Get stalled, high-risk, and overdue-next-step deals that need action")
+    @PreAuthorize("hasAuthority('DEALS_VIEW')")
     public ResponseEntity<DealAttentionSummaryDTO> getAttentionSummary() {
         return ResponseEntity.ok(dealService.getAttentionSummary());
     }
 
     @GetMapping("/governance/territory-queue")
     @Operation(summary = "Get territory governance queue", description = "Get active deals whose owners do not match their territory with suggested in-territory owners")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DEALS_MANAGE')")
     public ResponseEntity<DealTerritoryQueueSummaryDTO> getTerritoryGovernanceQueue() {
         return ResponseEntity.ok(dealService.getTerritoryGovernanceQueue());
     }
 
     @PostMapping("/governance/reassign")
     @Operation(summary = "Bulk reassign territory mismatches", description = "Reassign territory-mismatched deals to the best suggested owner")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DEALS_MANAGE')")
     public ResponseEntity<DealTerritoryReassignmentResultDTO> reassignTerritoryMismatches(
             @RequestBody(required = false) DealTerritoryReassignmentRequestDTO request
     ) {
@@ -134,14 +139,14 @@ public class DealController {
 
     @PostMapping("/automation/stalled-review")
     @Operation(summary = "Create rescue tasks for stalled deals", description = "Review deals needing attention and create rescue tasks where coverage is missing")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DEALS_WRITE')")
     public ResponseEntity<DealAutomationResultDTO> runStalledReviewAutomation() {
         return ResponseEntity.ok(dealService.runStalledDealAutomation());
     }
 
     @PostMapping("/{id:[0-9a-fA-F\\-]{36}}/request-approval")
     @Operation(summary = "Request approval for a deal", description = "Request governance approval for a high-value or high-risk deal")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DEALS_WRITE')")
     public ResponseEntity<DealResponseDTO> requestApproval(
             @PathVariable UUID id,
             @RequestBody(required = false) DealApprovalActionRequestDTO request
@@ -151,7 +156,7 @@ public class DealController {
 
     @PostMapping("/{id:[0-9a-fA-F\\-]{36}}/approve")
     @Operation(summary = "Approve a deal", description = "Approve a deal that is pending governance approval")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DEALS_MANAGE')")
     public ResponseEntity<DealResponseDTO> approveDeal(
             @PathVariable UUID id,
             @RequestBody(required = false) DealApprovalActionRequestDTO request
@@ -161,7 +166,7 @@ public class DealController {
 
     @PostMapping("/{id:[0-9a-fA-F\\-]{36}}/reject")
     @Operation(summary = "Reject a deal approval request", description = "Reject a deal that is pending governance approval")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DEALS_MANAGE')")
     public ResponseEntity<DealResponseDTO> rejectDeal(
             @PathVariable UUID id,
             @RequestBody(required = false) DealApprovalActionRequestDTO request

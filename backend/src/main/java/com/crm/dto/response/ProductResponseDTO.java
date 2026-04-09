@@ -25,6 +25,14 @@ public class ProductResponseDTO {
     private ProductCategory category;
     private BigDecimal unitPrice;
     private BigDecimal cost;
+    private BigDecimal minimumPrice;
+    private Boolean allowDiscounting;
+    private BigDecimal maxDiscountPercent;
+    private Boolean configurable;
+    private Boolean bundleOnly;
+    private Integer minimumQuantity;
+    private Integer maximumQuantity;
+    private Integer bundleSize;
     private Integer stockQuantity;
     private Integer lowStockThreshold;
     private ProductStatus status;

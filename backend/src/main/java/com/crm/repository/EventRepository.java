@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -23,4 +24,10 @@ public interface EventRepository extends JpaRepository<Event, UUID>, JpaSpecific
     
     @Query("SELECT e FROM Event e WHERE e.tenantId = :tenantId AND DATE(e.startDateTime) = DATE(:date) AND e.archived = false")
     List<Event> findEventsOnDate(@Param("tenantId") UUID tenantId, @Param("date") LocalDateTime date);
+
+    Optional<Event> findByTenantIdAndExternalProviderAndExternalEventIdAndArchivedFalse(
+            UUID tenantId,
+            String externalProvider,
+            String externalEventId
+    );
 }

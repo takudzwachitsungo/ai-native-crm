@@ -533,8 +533,7 @@ export const myEntityAPI = {
 | **Redis** | 6379 | localhost:6379 | Cache |
 | **RabbitMQ** | 5672 | localhost:5672 | Message queue |
 | **RabbitMQ UI** | 15672 | http://localhost:15672 | Management console |
-| **Mailpit SMTP** | 1025 | localhost:1025 | Email testing |
-| **Mailpit UI** | 8025 | http://localhost:8025 | Email viewer |
+| **SMTP Provider** | 587 | provider-specific | Outbound email delivery |
 | **Jaeger** | 16686 | http://localhost:16686 | Distributed tracing |
 
 ---
@@ -579,7 +578,7 @@ export const myEntityAPI = {
 - **Database**: PostgreSQL 15 (pgvector/pgvector:pg15)
 - **Cache**: Redis 7 (redis:7-alpine)
 - **Queue**: RabbitMQ 3 (rabbitmq:3-management-alpine)
-- **Email**: Mailpit (axllent/mailpit)
+- **Email**: External SMTP provider
 - **Tracing**: Jaeger (jaegertracing/all-in-one)
 
 ---

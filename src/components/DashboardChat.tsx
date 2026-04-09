@@ -31,7 +31,6 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
     .reverse()
     .find((message) => message.role === 'assistant' && message.degradedMode);
 
-  // Auto scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingMessage, isLoading]);
@@ -47,28 +46,29 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
     setStreamingMessage('');
     setCurrentTool(null);
-    
-    // Expand chat on first message
+
     if (messages.length === 0) {
       onExpand(true);
     }
 
-    const conversationHistory: AIMessage[] = messages.map(m => ({
+    const conversationHistory: AIMessage[] = messages.map((m) => ({
       role: m.role,
-      content: m.content
+      content: m.content,
     }));
 
     const context = {
       page: 'dashboard',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
+      let fullResponse = '';
+
       for await (const event of streamAgenticResponse(
         [...conversationHistory, { role: 'user', content: userMessage.content }],
         context
@@ -78,29 +78,32 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
         } else if (event.type === 'tool_end') {
           setCurrentTool(null);
         } else if (event.type === 'token') {
-          setStreamingMessage(prev => prev + (event.content || ''));
+          fullResponse += event.content || '';
+          setStreamingMessage(fullResponse);
         } else if (event.type === 'done') {
           const assistantMessage: Message = {
             id: generateId(),
             role: 'assistant',
-            content: event.message || streamingMessage,
+            content: event.message || fullResponse,
             timestamp: new Date(),
             degradedMode: event.degraded_mode,
             degradedReason: event.degraded_reason ?? null,
           };
-          setMessages(prev => [...prev, assistantMessage]);
+          setMessages((prev) => [...prev, assistantMessage]);
           setStreamingMessage('');
         }
       }
     } catch (err: any) {
       console.error('Error getting AI response:', err);
-      const errorMessage: Message = {
-        id: generateId(),
-        role: 'assistant',
-        content: '❌ ' + (err.message || 'Failed to get response. Please try again.'),
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: 'assistant',
+          content: `Error: ${err.message || 'Failed to get response. Please try again.'}`,
+          timestamp: new Date(),
+        },
+      ]);
       setStreamingMessage('');
     } finally {
       setIsLoading(false);
@@ -115,7 +118,6 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
 
   return (
     <div className="mb-6">
-      {/* Chat Input - Always visible */}
       <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
         <div className="absolute left-3 text-muted-foreground z-10">
           <Bot size={18} />
@@ -139,10 +141,10 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
           type="submit"
           disabled={!input.trim() || isLoading}
           className={cn(
-            "absolute right-2 p-2 rounded-lg transition-colors",
+            'absolute right-2 p-2 rounded-lg transition-colors',
             input.trim() && !isLoading
-              ? "text-primary hover:bg-primary/10"
-              : "text-muted-foreground/40 cursor-not-allowed"
+              ? 'text-primary hover:bg-primary/10'
+              : 'text-muted-foreground/40 cursor-not-allowed'
           )}
           title="Send message"
         >
@@ -150,10 +152,8 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
         </button>
       </form>
 
-      {/* Conversation Area - Expands when there are messages */}
       {(messages.length > 0 || isLoading) && (
         <div className="mt-4 border rounded-xl bg-card shadow-sm overflow-hidden">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
             <div className="flex items-center gap-2">
               <Bot size={16} className="text-primary" />
@@ -172,7 +172,6 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
             </div>
           </div>
 
-          {/* Messages */}
           <div className="max-h-[500px] overflow-y-auto p-4 space-y-4">
             {latestDegradedMessage && (
               <AIDegradedNotice
@@ -184,7 +183,7 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
               <div
                 key={message.id}
                 className={cn(
-                  "flex gap-3",
+                  'flex gap-3',
                   message.role === 'user' ? 'justify-end' : 'justify-start'
                 )}
               >
@@ -195,7 +194,7 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
                 )}
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-lg px-4 py-2.5 text-sm",
+                    'max-w-[80%] rounded-lg px-4 py-2.5 text-sm',
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted'
@@ -219,7 +218,6 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
               </div>
             ))}
 
-            {/* Streaming message */}
             {streamingMessage && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 size-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -235,7 +233,6 @@ export function DashboardChat({ onExpand }: DashboardChatProps) {
               </div>
             )}
 
-            {/* Tool indicator */}
             {currentTool && (
               <div className="flex gap-2 items-center text-xs text-muted-foreground">
                 <Loader2 size={14} className="animate-spin" />

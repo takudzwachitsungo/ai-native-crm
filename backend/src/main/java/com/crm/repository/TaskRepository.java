@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -56,4 +57,13 @@ public interface TaskRepository extends JpaRepository<Task, UUID>, JpaSpecificat
     );
 
     Optional<Task> findByIdAndTenantIdAndArchivedFalse(UUID id, UUID tenantId);
+
+    @Modifying
+    @Query("UPDATE Task t SET t.relatedEntityId = :targetId WHERE t.tenantId = :tenantId AND t.archived = false AND t.relatedEntityType = :relatedEntityType AND t.relatedEntityId = :sourceId")
+    int reassignRelatedEntity(
+            @Param("tenantId") UUID tenantId,
+            @Param("relatedEntityType") String relatedEntityType,
+            @Param("sourceId") UUID sourceId,
+            @Param("targetId") UUID targetId
+    );
 }

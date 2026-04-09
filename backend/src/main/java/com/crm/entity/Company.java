@@ -1,10 +1,13 @@
 package com.crm.entity;
 
 import com.crm.entity.enums.CompanyStatus;
+import com.crm.entity.enums.CustomerPrivacyStatus;
+import com.crm.entity.enums.DataEnrichmentStatus;
 import com.crm.entity.enums.Industry;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -67,6 +70,20 @@ public class Company extends AbstractEntity {
 
     @Column(name = "owner_id")
     private UUID ownerId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "privacy_status", nullable = false, length = 30)
+    private CustomerPrivacyStatus privacyStatus = CustomerPrivacyStatus.ACTIVE;
+
+    @Column(name = "data_quality_score", nullable = false)
+    private Integer dataQualityScore = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "enrichment_status", nullable = false, length = 30)
+    private DataEnrichmentStatus enrichmentStatus = DataEnrichmentStatus.NOT_ENRICHED;
+
+    @Column(name = "enrichment_last_checked_at")
+    private LocalDateTime enrichmentLastCheckedAt;
 
     @Column(name = "parent_company_id")
     private UUID parentCompanyId;

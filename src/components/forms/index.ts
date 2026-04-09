@@ -4,6 +4,8 @@ export { DealForm } from './DealForm';
 export { TaskForm } from './TaskForm';
 export { CompanyForm } from './CompanyForm';
 export { ProductForm } from './ProductForm';
+export { CampaignForm } from './CampaignForm';
+export { SupportCaseForm } from './SupportCaseForm';
 export { EventForm } from './EventForm';
 export { EmailComposeModal } from './EmailComposeModal';
 export { DocumentUploadModal } from './DocumentUploadModal';

@@ -4,6 +4,7 @@ import com.crm.dto.response.AutomationRunResponseDTO;
 import com.crm.entity.AutomationRun;
 import com.crm.repository.AutomationRunRepository;
 import com.crm.service.AutomationRunService;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class AutomationRunServiceImpl implements AutomationRunService {
 
     private final AutomationRunRepository automationRunRepository;
+    private final MeterRegistry meterRegistry;
 
     @Override
     @Transactional
@@ -47,6 +49,12 @@ public class AutomationRunServiceImpl implements AutomationRunService {
                 .build();
         automationRun.setTenantId(tenantId);
         automationRunRepository.save(automationRun);
+        meterRegistry.counter(
+                "crm.automation.runs.total",
+                "automationKey", safeTagValue(automationKey),
+                "status", safeTagValue(runStatus),
+                "triggerSource", safeTagValue(triggerSource)
+        ).increment();
     }
 
     @Override
@@ -73,5 +81,9 @@ public class AutomationRunServiceImpl implements AutomationRunService {
                         .createdAt(run.getCreatedAt())
                         .build())
                 .toList();
+    }
+
+    private String safeTagValue(String value) {
+        return value == null || value.isBlank() ? "unknown" : value;
     }
 }

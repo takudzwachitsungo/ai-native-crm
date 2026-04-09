@@ -19,6 +19,7 @@ import com.crm.entity.Deal;
 import com.crm.entity.Task;
 import com.crm.entity.User;
 import com.crm.entity.WorkflowRule;
+import com.crm.entity.enums.AutomationEventType;
 import com.crm.entity.enums.DealApprovalStatus;
 import com.crm.entity.enums.DealRiskLevel;
 import com.crm.entity.enums.DealStage;
@@ -33,6 +34,9 @@ import com.crm.repository.ContactRepository;
 import com.crm.repository.DealRepository;
 import com.crm.repository.TaskRepository;
 import com.crm.repository.UserRepository;
+import com.crm.security.RecordAccessService;
+import com.crm.service.AutomationExecutionService;
+import com.crm.service.AutomationExecutionTargets;
 import com.crm.service.AutomationRunService;
 import com.crm.service.DealService;
 import com.crm.service.WorkflowRuleService;
@@ -40,7 +44,6 @@ import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -68,6 +71,8 @@ public class DealServiceImpl implements DealService {
     private final DealMapper dealMapper;
     private final WorkflowRuleService workflowRuleService;
     private final AutomationRunService automationRunService;
+    private final RecordAccessService recordAccessService;
+    private final AutomationExecutionService automationExecutionService;
 
     private static final EnumSet<TaskStatus> OPEN_TASK_STATUSES = EnumSet.of(
             TaskStatus.PENDING,
@@ -91,6 +96,10 @@ public class DealServiceImpl implements DealService {
         List<Specification<Deal>> specs = new ArrayList<>();
         specs.add(SpecificationBuilder.tenantEquals(tenantId));
         specs.add(SpecificationBuilder.notArchived());
+        Specification<Deal> accessScope = recordAccessService.dealReadScope();
+        if (accessScope != null) {
+            specs.add(accessScope);
+        }
         
         if (filter != null) {
             if (filter.getSearch() != null && !filter.getSearch().isBlank()) {
@@ -155,13 +164,13 @@ public class DealServiceImpl implements DealService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "deal", key = "#id")
     public DealResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         
         Deal deal = dealRepository.findById(id)
                 .filter(d -> d.getTenantId().equals(tenantId) && !d.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Deal", id));
+        recordAccessService.assertCanViewDeal(deal);
         
         return dealMapper.toDto(deal);
     }
@@ -175,11 +184,21 @@ public class DealServiceImpl implements DealService {
         
         Deal deal = dealMapper.toEntity(request);
         deal.setTenantId(tenantId);
+        deal.setOwnerId(recordAccessService.resolveAssignableOwnerId(deal.getOwnerId()));
 
         applyRelationshipsAndRules(tenantId, deal, request, null, null, approvalWorkflow);
         
         deal = dealRepository.save(deal);
         deal = dealRepository.findById(deal.getId()).orElse(deal);
+        var automationOutcome = automationExecutionService.executeRealTimeRules(
+                tenantId,
+                AutomationEventType.DEAL_CREATED,
+                AutomationExecutionTargets.builder().deal(deal).build()
+        );
+        if (automationOutcome.isMutatedTarget()) {
+            deal = dealRepository.save(deal);
+            deal = dealRepository.findById(deal.getId()).orElse(deal);
+        }
         if (!requiresApproval(deal, approvalWorkflow)) {
             completeApprovalTasks(tenantId, deal.getId());
         }
@@ -199,12 +218,23 @@ public class DealServiceImpl implements DealService {
         Deal deal = dealRepository.findById(id)
                 .filter(d -> d.getTenantId().equals(tenantId) && !d.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Deal", id));
+        recordAccessService.assertCanWriteDeal(deal);
 
         DealStage previousStage = deal.getStage();
         dealMapper.updateEntity(request, deal);
+        deal.setOwnerId(recordAccessService.resolveAssignableOwnerId(deal.getOwnerId()));
         applyRelationshipsAndRules(tenantId, deal, request, deal.getId(), previousStage, approvalWorkflow);
         deal = dealRepository.save(deal);
         deal = dealRepository.findById(deal.getId()).orElse(deal);
+        var automationOutcome = automationExecutionService.executeRealTimeRules(
+                tenantId,
+                AutomationEventType.DEAL_UPDATED,
+                AutomationExecutionTargets.builder().deal(deal).build()
+        );
+        if (automationOutcome.isMutatedTarget()) {
+            deal = dealRepository.save(deal);
+            deal = dealRepository.findById(deal.getId()).orElse(deal);
+        }
         if (!requiresApproval(deal, approvalWorkflow)) {
             completeApprovalTasks(tenantId, deal.getId());
         }
@@ -224,6 +254,7 @@ public class DealServiceImpl implements DealService {
         Deal deal = dealRepository.findById(id)
                 .filter(d -> d.getTenantId().equals(tenantId) && !d.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Deal", id));
+        recordAccessService.assertCanWriteDeal(deal);
         
         deal.setArchived(true);
         dealRepository.save(deal);
@@ -239,6 +270,7 @@ public class DealServiceImpl implements DealService {
         
         List<Deal> deals = dealRepository.findAllById(ids).stream()
                 .filter(d -> d.getTenantId().equals(tenantId) && !d.getArchived())
+                .filter(recordAccessService::canWriteDeal)
                 .collect(Collectors.toList());
         
         if (deals.isEmpty()) {
@@ -261,6 +293,7 @@ public class DealServiceImpl implements DealService {
         Deal deal = dealRepository.findById(id)
                 .filter(d -> d.getTenantId().equals(tenantId) && !d.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Deal", id));
+        recordAccessService.assertCanWriteDeal(deal);
         
         DealStage oldStage = deal.getStage();
         deal.setStage(newStage);
@@ -285,6 +318,15 @@ public class DealServiceImpl implements DealService {
         
         deal = dealRepository.save(deal);
         deal = dealRepository.findById(deal.getId()).orElse(deal);
+        var automationOutcome = automationExecutionService.executeRealTimeRules(
+                tenantId,
+                AutomationEventType.DEAL_UPDATED,
+                AutomationExecutionTargets.builder().deal(deal).build()
+        );
+        if (automationOutcome.isMutatedTarget()) {
+            deal = dealRepository.save(deal);
+            deal = dealRepository.findById(deal.getId()).orElse(deal);
+        }
         if (!requiresApproval(deal, approvalWorkflow)) {
             completeApprovalTasks(tenantId, deal.getId());
         }
@@ -301,6 +343,7 @@ public class DealServiceImpl implements DealService {
         
         List<Deal> deals = dealRepository.findByTenantIdAndStageAndArchivedFalse(tenantId, stage);
         return deals.stream()
+                .filter(recordAccessService::canViewDeal)
                 .map(dealMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -313,6 +356,9 @@ public class DealServiceImpl implements DealService {
         WorkflowRule approvalWorkflow = workflowRuleService.resolveDealApprovalWorkflow(tenantId);
         
         List<Deal> allDeals = dealRepository.findByTenantIdAndArchivedFalse(tenantId, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        allDeals = allDeals.stream()
+                .filter(recordAccessService::canViewDeal)
+                .toList();
         
         Long totalDeals = (long) allDeals.size();
         
@@ -391,6 +437,7 @@ public class DealServiceImpl implements DealService {
                 .getContent()
                 .stream()
                 .filter(this::isActiveDeal)
+                .filter(recordAccessService::canViewDeal)
                 .toList();
 
         Map<UUID, List<Task>> tasksByDeal = getTasksByDeal(tenantId, activeDeals);
@@ -433,6 +480,7 @@ public class DealServiceImpl implements DealService {
                 .getContent()
                 .stream()
                 .filter(this::isActiveDeal)
+                .filter(recordAccessService::canWriteDeal)
                 .toList();
         Map<UUID, List<Task>> tasksByDeal = getTasksByDeal(tenantId, activeDeals);
 
@@ -497,6 +545,7 @@ public class DealServiceImpl implements DealService {
                 .stream()
                 .filter(this::isActiveDeal)
                 .filter(this::hasTerritoryMismatch)
+                .filter(recordAccessService::canViewDeal)
                 .sorted(Comparator.comparingInt((Deal deal) -> attentionRank(deal, rescueWorkflow)).reversed()
                         .thenComparing(Deal::getUpdatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
@@ -527,6 +576,7 @@ public class DealServiceImpl implements DealService {
                 .stream()
                 .filter(this::isActiveDeal)
                 .filter(this::hasTerritoryMismatch)
+                .filter(recordAccessService::canWriteDeal)
                 .filter(deal -> requestedIds.isEmpty() || requestedIds.contains(deal.getId()))
                 .toList();
 
@@ -564,6 +614,7 @@ public class DealServiceImpl implements DealService {
         UUID tenantId = TenantContext.getTenantId();
         WorkflowRule approvalWorkflow = workflowRuleService.resolveDealApprovalWorkflow(tenantId);
         Deal deal = getTenantDeal(tenantId, id);
+        recordAccessService.assertCanWriteDeal(deal);
 
         if (!requiresApproval(deal, approvalWorkflow)) {
             throw new BadRequestException("This deal does not currently require approval");
@@ -591,6 +642,7 @@ public class DealServiceImpl implements DealService {
         UUID tenantId = TenantContext.getTenantId();
         WorkflowRule approvalWorkflow = workflowRuleService.resolveDealApprovalWorkflow(tenantId);
         Deal deal = getTenantDeal(tenantId, id);
+        recordAccessService.assertCanWriteDeal(deal);
 
         if (!requiresApproval(deal, approvalWorkflow)) {
             throw new BadRequestException("This deal no longer requires approval");
@@ -619,6 +671,7 @@ public class DealServiceImpl implements DealService {
         UUID tenantId = TenantContext.getTenantId();
         WorkflowRule approvalWorkflow = workflowRuleService.resolveDealApprovalWorkflow(tenantId);
         Deal deal = getTenantDeal(tenantId, id);
+        recordAccessService.assertCanWriteDeal(deal);
 
         if (!requiresApproval(deal, approvalWorkflow)) {
             throw new BadRequestException("This deal no longer requires approval");

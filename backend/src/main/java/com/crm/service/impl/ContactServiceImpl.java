@@ -6,11 +6,13 @@ import com.crm.dto.request.ContactRequestDTO;
 import com.crm.dto.response.ContactResponseDTO;
 import com.crm.entity.Company;
 import com.crm.entity.Contact;
+import com.crm.entity.enums.ContactStatus;
 import com.crm.exception.BadRequestException;
 import com.crm.exception.ResourceNotFoundException;
 import com.crm.mapper.ContactMapper;
 import com.crm.repository.CompanyRepository;
 import com.crm.repository.ContactRepository;
+import com.crm.service.CustomerDataGovernancePolicy;
 import com.crm.service.ContactService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class ContactServiceImpl implements ContactService {
     private final ContactRepository contactRepository;
     private final CompanyRepository companyRepository;
     private final ContactMapper contactMapper;
+    private final CustomerDataGovernancePolicy customerDataGovernancePolicy;
 
     @Override
     @Transactional(readOnly = true)
@@ -111,6 +114,7 @@ public class ContactServiceImpl implements ContactService {
         contact.setTenantId(tenantId);
 
         applyRelationships(tenantId, contact, request, null);
+        customerDataGovernancePolicy.applyContactGovernance(contact, request);
         
         contact = contactRepository.save(contact);
         log.info("Created contact: {} for tenant: {}", contact.getId(), tenantId);
@@ -130,6 +134,7 @@ public class ContactServiceImpl implements ContactService {
 
         contactMapper.updateEntity(request, contact);
         applyRelationships(tenantId, contact, request, id);
+        customerDataGovernancePolicy.applyContactGovernance(contact, request);
         contact = contactRepository.save(contact);
         
         log.info("Updated contact: {} for tenant: {}", id, tenantId);
@@ -230,6 +235,12 @@ public class ContactServiceImpl implements ContactService {
 
         if (contact.getIsPrimary() == null) {
             contact.setIsPrimary(Boolean.FALSE);
+        }
+        if (contact.getStatus() == null) {
+            contact.setStatus(ContactStatus.ACTIVE);
+        }
+        if (contact.getCountry() == null || contact.getCountry().isBlank()) {
+            contact.setCountry("United States");
         }
     }
 }

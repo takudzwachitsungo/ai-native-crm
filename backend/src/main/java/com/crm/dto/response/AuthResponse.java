@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
+import java.util.List;
 
 @Data
 @Builder
@@ -27,4 +28,6 @@ public class AuthResponse {
     private String firstName;
     private String lastName;
     private String role;
+    private List<String> permissions;
+    private List<String> dataScopes;
 }

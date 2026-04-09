@@ -7,6 +7,7 @@ import com.crm.dto.response.CompanyInsightsResponseDTO;
 import com.crm.dto.response.CompanyResponseDTO;
 import com.crm.dto.response.CompanyTerritoryQueueSummaryDTO;
 import com.crm.dto.response.CompanyTerritoryReassignmentResultDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -34,4 +35,6 @@ public interface CompanyService {
     void bulkDelete(List<UUID> ids);
     
     List<CompanyResponseDTO> searchByName(String name);
+
+    IntegrationSyncResultDTO syncToErp(UUID id, String providerKey);
 }

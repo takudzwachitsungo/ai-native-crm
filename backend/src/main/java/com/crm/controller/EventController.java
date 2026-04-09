@@ -3,7 +3,10 @@ package com.crm.controller;
 import com.crm.dto.request.EventFilterDTO;
 import com.crm.dto.request.EventRequestDTO;
 import com.crm.dto.response.EventResponseDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.service.EventService;
+import com.crm.service.WorkspaceGoogleWorkspaceSyncService;
+import com.crm.service.WorkspaceMicrosoft365SyncService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +34,8 @@ import java.util.UUID;
 public class EventController {
 
     private final EventService eventService;
+    private final WorkspaceMicrosoft365SyncService workspaceMicrosoft365SyncService;
+    private final WorkspaceGoogleWorkspaceSyncService workspaceGoogleWorkspaceSyncService;
 
     @GetMapping
     @Operation(summary = "Get all events", description = "Get paginated list of events with optional filtering")
@@ -95,5 +100,19 @@ public class EventController {
             @RequestParam(defaultValue = "7") int days
     ) {
         return ResponseEntity.ok(eventService.findUpcomingEvents(days));
+    }
+
+    @PostMapping("/sync/microsoft-365")
+    @Operation(summary = "Sync Microsoft 365 calendar", description = "Imports upcoming Microsoft 365 calendar events into the CRM calendar")
+    @PreAuthorize("hasAuthority('WORKSPACE_DATABASE_MANAGE')")
+    public ResponseEntity<IntegrationSyncResultDTO> syncMicrosoft365Events() {
+        return ResponseEntity.ok(workspaceMicrosoft365SyncService.syncEvents());
+    }
+
+    @PostMapping("/sync/google-workspace")
+    @Operation(summary = "Sync Google Workspace calendar", description = "Imports upcoming Google Calendar events into the CRM calendar")
+    @PreAuthorize("hasAuthority('WORKSPACE_DATABASE_MANAGE')")
+    public ResponseEntity<IntegrationSyncResultDTO> syncGoogleWorkspaceEvents() {
+        return ResponseEntity.ok(workspaceGoogleWorkspaceSyncService.syncEvents());
     }
 }

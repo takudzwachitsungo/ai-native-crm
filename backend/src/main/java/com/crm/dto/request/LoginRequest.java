@@ -26,4 +26,7 @@ public class LoginRequest {
         message = "Workspace slug may only contain lowercase letters, numbers, and hyphens"
     )
     private String workspaceSlug;
+
+    @Pattern(regexp = "^\\d{6}$", message = "Authentication code must be a 6-digit number")
+    private String otpCode;
 }

@@ -21,6 +21,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.crm.security.JwtAuthenticationFilter;
+import com.crm.security.AuthTenantContextFilter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
@@ -36,6 +37,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthTenantContextFilter authTenantContextFilter;
     private final UserDetailsService userDetailsService;
 
     @Bean
@@ -61,7 +63,8 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(authTenantContextFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(jwtAuthenticationFilter, AuthTenantContextFilter.class);
 
         return http.build();
     }

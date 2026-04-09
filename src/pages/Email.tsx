@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageLayout } from '../components/PageLayout';
 import { Icons } from '../components/icons';
 import { cn } from '../lib/utils';
@@ -15,7 +15,6 @@ export default function EmailPage() {
   const [activeTab, setActiveTab] = useState<EmailFolder>('INBOX');
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
-  const [showMailpitViewer, setShowMailpitViewer] = useState(false);
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
@@ -26,15 +25,15 @@ export default function EmailPage() {
     }
   }, [searchParams, setSearchParams]);
 
-  // Fetch emails based on folder
   const { data: emailsPage, isLoading } = useQuery({
     queryKey: ['emails', activeTab],
-    queryFn: () => emailsApi.getAll({ 
-      page: 0, 
-      size: 50,
-      sort: 'createdAt,desc',
-      folder: activeTab === 'TEMPLATES' ? 'TEMPLATES' : activeTab,
-    }),
+    queryFn: () =>
+      emailsApi.getAll({
+        page: 0,
+        size: 50,
+        sort: 'createdAt,desc',
+        folder: activeTab === 'TEMPLATES' ? 'TEMPLATES' : activeTab,
+      }),
   });
 
   const emails = emailsPage?.content || [];
@@ -45,7 +44,6 @@ export default function EmailPage() {
     }
   }, [emails, selectedEmail]);
 
-  // Mark as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => emailsApi.markAsRead(id),
     onSuccess: () => {
@@ -53,7 +51,6 @@ export default function EmailPage() {
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => emailsApi.delete(id),
     onSuccess: () => {
@@ -63,7 +60,6 @@ export default function EmailPage() {
     },
   });
 
-  // Send mutation
   const sendMutation = useMutation({
     mutationFn: (id: string) => emailsApi.send(id),
     onSuccess: () => {
@@ -72,6 +68,28 @@ export default function EmailPage() {
     },
     onError: (error: any) => {
       showToast(error.response?.data?.message || 'Failed to send email', 'error');
+    },
+  });
+
+  const syncMicrosoft365Mutation = useMutation({
+    mutationFn: () => emailsApi.syncMicrosoft365(),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      showToast(result.summary, 'success');
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || 'Failed to sync Microsoft 365 email', 'error');
+    },
+  });
+
+  const syncGoogleWorkspaceMutation = useMutation({
+    mutationFn: () => emailsApi.syncGoogleWorkspace(),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      showToast(result.summary, 'success');
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || 'Failed to sync Google Workspace email', 'error');
     },
   });
 
@@ -88,24 +106,25 @@ export default function EmailPage() {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
+
     if (days === 0) {
       return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    } else if (days === 1) {
-      return 'Yesterday';
-    } else if (days < 7) {
-      return `${days} days ago`;
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
+    if (days === 1) {
+      return 'Yesterday';
+    }
+    if (days < 7) {
+      return `${days} days ago`;
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const getPreview = (body: string, maxLength: number = 100) => {
+  const getPreview = (body: string, maxLength = 100) => {
     if (!body) return '';
-    return body.length > maxLength ? body.substring(0, maxLength) + '...' : body;
+    return body.length > maxLength ? `${body.substring(0, maxLength)}...` : body;
   };
 
-  const filteredEmails = emails.filter(email => {
+  const filteredEmails = emails.filter((email) => {
     if (activeTab === 'INBOX') return email.folder === 'INBOX' || !email.folder;
     return email.folder === activeTab;
   });
@@ -125,107 +144,106 @@ export default function EmailPage() {
     }
 
     return (
-    <div className="flex h-[calc(100vh-190px)]">
-      {/* Email List */}
-      <div className={cn(
-        "border-r border-border overflow-y-auto",
-        selectedEmail ? "w-2/5" : "w-full"
-      )}>
-        {filteredEmails.map((email) => (
-          <div
-            key={email.id}
-            onClick={() => handleEmailClick(email)}
-            className={cn(
-              "p-4 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors",
-              !email.isRead && "bg-primary/5",
-              selectedEmail?.id === email.id && "bg-muted"
-            )}
-          >
-            <div className="flex items-start justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <span className={cn("font-medium text-sm", !email.isRead && "font-semibold")}>
-                  {activeTab === 'SENT' ? (email.toEmail || 'Unknown Recipient') : (email.fromEmail || 'Unknown Sender')}
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground">{formatDate(email.createdAt)}</span>
-            </div>
-            <p className={cn("text-sm mb-1", !email.isRead && "font-semibold")}>{email.subject || '(No Subject)'}</p>
-            <p className="text-xs text-muted-foreground line-clamp-2">{getPreview(email.body)}</p>
-            {email.isDraft && (
-              <div className="flex gap-1 mt-2">
-                <span className="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded">
-                  Draft
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Email Detail */}
-      {selectedEmail && (
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-semibold mb-1">{selectedEmail.subject || '(No Subject)'}</h2>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="font-medium">From: {selectedEmail.fromEmail}</span>
-                  <span>•</span>
-                  <span>{formatDate(selectedEmail.createdAt)}</span>
-                </div>
-                {selectedEmail.toEmail && (
-                  <div className="text-sm text-muted-foreground mt-1">
-                    <span>To: {selectedEmail.toEmail}</span>
-                  </div>
-                )}
-                {selectedEmail.ccEmail && (
-                  <div className="text-sm text-muted-foreground mt-1">
-                    <span>CC: {selectedEmail.ccEmail}</span>
-                  </div>
-                )}
-              </div>
-              <button onClick={() => setSelectedEmail(null)} className="text-muted-foreground hover:text-foreground">
-                <Icons.X size={20} />
-              </button>
-            </div>
-            
-            <div className="prose max-w-none dark:prose-invert">
-              <div className="whitespace-pre-wrap">{selectedEmail.body}</div>
-            </div>
-
-            <div className="flex gap-2 mt-6">
-              {selectedEmail.isDraft && (
-                <button 
-                  onClick={() => selectedEmail.id && sendMutation.mutate(selectedEmail.id)}
-                  disabled={sendMutation.isPending}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  <Icons.Send size={16} />
-                  {sendMutation.isPending ? 'Sending...' : 'Send Now'}
-                </button>
+      <div className="flex h-[calc(100vh-190px)]">
+        <div
+          className={cn(
+            'border-r border-border overflow-y-auto',
+            selectedEmail ? 'w-2/5' : 'w-full'
+          )}
+        >
+          {filteredEmails.map((email) => (
+            <div
+              key={email.id}
+              onClick={() => handleEmailClick(email)}
+              className={cn(
+                'p-4 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors',
+                !email.isRead && 'bg-primary/5',
+                selectedEmail?.id === email.id && 'bg-muted'
               )}
-              <button 
-                onClick={() => selectedEmail.id && deleteMutation.mutate(selectedEmail.id)}
-                disabled={deleteMutation.isPending}
-                className="px-4 py-2 border border-border rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                <Icons.Trash size={16} />
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
-              <button
-                onClick={() => window.open('http://localhost:8025', '_blank')}
-                className="px-4 py-2 border border-primary/50 text-primary rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2"
-                title="View in Mailpit"
-              >
-                <Icons.ExternalLink size={16} />
-                View in Mailpit
-              </button>
+            >
+              <div className="flex items-start justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className={cn('font-medium text-sm', !email.isRead && 'font-semibold')}>
+                    {activeTab === 'SENT'
+                      ? email.toEmail || 'Unknown Recipient'
+                      : email.fromEmail || 'Unknown Sender'}
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">{formatDate(email.createdAt)}</span>
+              </div>
+              <p className={cn('text-sm mb-1', !email.isRead && 'font-semibold')}>
+                {email.subject || '(No Subject)'}
+              </p>
+              <p className="text-xs text-muted-foreground line-clamp-2">{getPreview(email.body)}</p>
+              {email.isDraft && (
+                <div className="flex gap-1 mt-2">
+                  <span className="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded">
+                    Draft
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {selectedEmail && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">{selectedEmail.subject || '(No Subject)'}</h2>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="font-medium">From: {selectedEmail.fromEmail}</span>
+                    <span>&bull;</span>
+                    <span>{formatDate(selectedEmail.createdAt)}</span>
+                  </div>
+                  {selectedEmail.toEmail && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      <span>To: {selectedEmail.toEmail}</span>
+                    </div>
+                  )}
+                  {selectedEmail.ccEmail && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      <span>CC: {selectedEmail.ccEmail}</span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedEmail(null)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Icons.X size={20} />
+                </button>
+              </div>
+
+              <div className="prose max-w-none dark:prose-invert">
+                <div className="whitespace-pre-wrap">{selectedEmail.body}</div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                {selectedEmail.isDraft && (
+                  <button
+                    onClick={() => selectedEmail.id && sendMutation.mutate(selectedEmail.id)}
+                    disabled={sendMutation.isPending}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Icons.Send size={16} />
+                    {sendMutation.isPending ? 'Sending...' : 'Send Now'}
+                  </button>
+                )}
+                <button
+                  onClick={() => selectedEmail.id && deleteMutation.mutate(selectedEmail.id)}
+                  disabled={deleteMutation.isPending}
+                  className="px-4 py-2 border border-border rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Icons.Trash size={16} />
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     );
   };
 
@@ -235,14 +253,22 @@ export default function EmailPage() {
       subtitle="Manage communications"
       icon={<Icons.Mail size={20} />}
       actions={
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowMailpitViewer(!showMailpitViewer)}
-            className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2"
-            title="View sent emails in Mailpit"
+            onClick={() => syncGoogleWorkspaceMutation.mutate()}
+            disabled={syncGoogleWorkspaceMutation.isPending}
+            className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
           >
-            <Icons.Mail size={16} />
-            {showMailpitViewer ? 'Hide' : 'Show'} Mailpit
+            <Icons.Download size={16} />
+            {syncGoogleWorkspaceMutation.isPending ? 'Syncing Gmail...' : 'Sync Gmail'}
+          </button>
+          <button
+            onClick={() => syncMicrosoft365Mutation.mutate()}
+            disabled={syncMicrosoft365Mutation.isPending}
+            className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <Icons.Download size={16} />
+            {syncMicrosoft365Mutation.isPending ? 'Syncing Outlook...' : 'Sync Outlook'}
           </button>
           <button
             onClick={() => setIsComposeOpen(true)}
@@ -254,7 +280,6 @@ export default function EmailPage() {
         </div>
       }
     >
-      {/* Tabs */}
       <div className="border-b border-border bg-background">
         <div className="flex px-6">
           <button
@@ -263,8 +288,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              "px-4 py-3 border-b-2 transition-colors text-sm font-medium",
-              activeTab === 'INBOX' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              activeTab === 'INBOX'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             Inbox
@@ -275,8 +302,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              "px-4 py-3 border-b-2 transition-colors text-sm font-medium",
-              activeTab === 'SENT' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              activeTab === 'SENT'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             Sent
@@ -287,8 +316,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              "px-4 py-3 border-b-2 transition-colors text-sm font-medium",
-              activeTab === 'DRAFTS' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              activeTab === 'DRAFTS'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             Drafts
@@ -299,50 +330,23 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              "px-4 py-3 border-b-2 transition-colors text-sm font-medium",
-              activeTab === 'TEMPLATES' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              activeTab === 'TEMPLATES'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             Templates
           </button>
         </div>
-
-        {/* Mailpit Viewer */}
-        {showMailpitViewer && (
-        <div className="border-b border-border bg-muted/30 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Icons.Mail size={20} className="text-primary" />
-              <div>
-                <h3 className="font-semibold text-sm">Mailpit Email Testing Server</h3>
-                <p className="text-xs text-muted-foreground">View all sent emails (test environment)</p>
-              </div>
-            </div>
-            <button
-              onClick={() => window.open('http://localhost:8025', '_blank')}
-              className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-            >
-              Open in New Tab →
-            </button>
-          </div>
-          <div className="bg-background rounded-lg border border-border overflow-hidden">
-            <iframe
-              src="http://localhost:8025"
-              className="w-full h-[400px]"
-              title="Mailpit Email Viewer"
-            />
-          </div>
-        </div>
-        )}
       </div>
 
-      {(activeTab === 'INBOX' || activeTab === 'SENT' || activeTab === 'DRAFTS' || activeTab === 'TEMPLATES') && renderInbox()}
+      {(activeTab === 'INBOX'
+        || activeTab === 'SENT'
+        || activeTab === 'DRAFTS'
+        || activeTab === 'TEMPLATES') && renderInbox()}
 
-      {/* Compose Modal */}
-      <EmailComposeModal
-        isOpen={isComposeOpen}
-        onClose={() => setIsComposeOpen(false)}
-      />
+      <EmailComposeModal isOpen={isComposeOpen} onClose={() => setIsComposeOpen(false)} />
     </PageLayout>
   );
 }

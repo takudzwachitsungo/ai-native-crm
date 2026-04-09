@@ -10,11 +10,13 @@ import com.crm.dto.response.CompanyResponseDTO;
 import com.crm.dto.response.CompanyTerritoryQueueItemDTO;
 import com.crm.dto.response.CompanyTerritoryQueueSummaryDTO;
 import com.crm.dto.response.CompanyTerritoryReassignmentResultDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.entity.Company;
 import com.crm.entity.Contact;
 import com.crm.entity.Deal;
 import com.crm.entity.Task;
 import com.crm.entity.User;
+import com.crm.entity.enums.CompanyStatus;
 import com.crm.entity.enums.DealRiskLevel;
 import com.crm.entity.enums.DealStage;
 import com.crm.entity.enums.InfluenceLevel;
@@ -29,12 +31,14 @@ import com.crm.repository.ContactRepository;
 import com.crm.repository.DealRepository;
 import com.crm.repository.TaskRepository;
 import com.crm.repository.UserRepository;
+import com.crm.security.RecordAccessService;
 import com.crm.service.CompanyService;
+import com.crm.service.CustomerDataGovernancePolicy;
+import com.crm.service.WorkspaceErpSyncService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -66,6 +70,9 @@ public class CompanyServiceImpl implements CompanyService {
     private final DealRepository dealRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final CustomerDataGovernancePolicy customerDataGovernancePolicy;
+    private final RecordAccessService recordAccessService;
+    private final WorkspaceErpSyncService workspaceErpSyncService;
 
     private static final EnumSet<TaskStatus> OPEN_TASK_STATUSES = EnumSet.of(
             TaskStatus.PENDING,
@@ -81,6 +88,10 @@ public class CompanyServiceImpl implements CompanyService {
         List<Specification<Company>> specs = new ArrayList<>();
         specs.add(SpecificationBuilder.tenantEquals(tenantId));
         specs.add(SpecificationBuilder.notArchived());
+        Specification<Company> accessScope = recordAccessService.companyReadScope();
+        if (accessScope != null) {
+            specs.add(accessScope);
+        }
         
         if (filter != null) {
             if (filter.getSearch() != null && !filter.getSearch().isBlank()) {
@@ -141,13 +152,13 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "companies", key = "#id")
     public CompanyResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         
         Company company = companyRepository.findById(id)
                 .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Company", id));
+        recordAccessService.assertCanViewCompany(company);
         
         return companyMapper.toDto(company);
     }
@@ -160,6 +171,7 @@ public class CompanyServiceImpl implements CompanyService {
         Company company = companyRepository.findById(id)
                 .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Company", id));
+        recordAccessService.assertCanViewCompany(company);
 
         List<Contact> contacts = contactRepository.findByTenantIdAndCompanyIdAndArchivedFalse(tenantId, id);
         List<Deal> deals = dealRepository.findByTenantIdAndCompanyIdAndArchivedFalse(tenantId, id);
@@ -314,6 +326,7 @@ public class CompanyServiceImpl implements CompanyService {
                 .getContent()
                 .stream()
                 .filter(this::hasTerritoryMismatch)
+                .filter(recordAccessService::canViewCompany)
                 .sorted(Comparator.comparingInt(this::territoryPriorityRank).reversed()
                         .thenComparing(Company::getUpdatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
@@ -342,6 +355,9 @@ public class CompanyServiceImpl implements CompanyService {
     public CompanyTerritoryReassignmentResultDTO reassignTerritoryMismatches(CompanyTerritoryReassignmentRequestDTO request) {
         UUID tenantId = TenantContext.getTenantId();
         List<Company> companies = resolveCompaniesForReassignment(tenantId, request);
+        companies = companies.stream()
+                .filter(recordAccessService::canWriteCompany)
+                .toList();
 
         int reviewedCompanies = 0;
         int reassignedCompanies = 0;
@@ -406,8 +422,10 @@ public class CompanyServiceImpl implements CompanyService {
         
         Company company = companyMapper.toEntity(request);
         company.setTenantId(tenantId);
+        company.setOwnerId(recordAccessService.resolveAssignableOwnerId(company.getOwnerId()));
         applyHierarchy(tenantId, company, request.getParentCompanyId(), null);
         applyTerritory(company, request.getTerritory());
+        customerDataGovernancePolicy.applyCompanyGovernance(company, request);
         
         company = companyRepository.save(company);
         company = companyRepository.findById(company.getId()).orElse(company);
@@ -425,10 +443,13 @@ public class CompanyServiceImpl implements CompanyService {
         Company company = companyRepository.findById(id)
                 .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Company", id));
+        recordAccessService.assertCanWriteCompany(company);
         
         companyMapper.updateEntity(request, company);
+        company.setOwnerId(recordAccessService.resolveAssignableOwnerId(company.getOwnerId()));
         applyHierarchy(tenantId, company, request.getParentCompanyId(), id);
         applyTerritory(company, request.getTerritory());
+        customerDataGovernancePolicy.applyCompanyGovernance(company, request);
         company = companyRepository.save(company);
         company = companyRepository.findById(company.getId()).orElse(company);
         
@@ -446,6 +467,7 @@ public class CompanyServiceImpl implements CompanyService {
         Company company = companyRepository.findById(id)
                 .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Company", id));
+        recordAccessService.assertCanWriteCompany(company);
         
         company.setArchived(true);
         companyRepository.save(company);
@@ -461,6 +483,7 @@ public class CompanyServiceImpl implements CompanyService {
         
         List<Company> companies = companyRepository.findAllById(ids).stream()
                 .filter(c -> c.getTenantId().equals(tenantId) && !c.getArchived())
+                .filter(recordAccessService::canWriteCompany)
                 .collect(Collectors.toList());
         
         if (companies.isEmpty()) {
@@ -480,8 +503,20 @@ public class CompanyServiceImpl implements CompanyService {
         
         List<Company> companies = companyRepository.searchByName(tenantId, "%" + name.toLowerCase() + "%");
         return companies.stream()
+                .filter(recordAccessService::canViewCompany)
                 .map(companyMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"companies", "dashboard-metrics"}, allEntries = true)
+    public IntegrationSyncResultDTO syncToErp(UUID id, String providerKey) {
+        Company company = companyRepository.findById(id)
+                .filter(item -> TenantContext.getTenantId().equals(item.getTenantId()) && !item.getArchived())
+                .orElseThrow(() -> new ResourceNotFoundException("Company", id));
+        recordAccessService.assertCanWriteCompany(company);
+        return workspaceErpSyncService.exportCompany(id, providerKey);
     }
 
     private List<Company> resolveCompaniesForReassignment(UUID tenantId, CompanyTerritoryReassignmentRequestDTO request) {
@@ -541,6 +576,9 @@ public class CompanyServiceImpl implements CompanyService {
             territory = inferCompanyTerritory(company);
         }
         company.setTerritory(territory);
+        if (company.getStatus() == null) {
+            company.setStatus(CompanyStatus.ACTIVE);
+        }
     }
 
     private CompanyTerritoryQueueItemDTO toTerritoryQueueItem(Company company, List<Task> companyTasks) {

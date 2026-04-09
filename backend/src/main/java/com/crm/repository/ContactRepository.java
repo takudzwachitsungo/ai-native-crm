@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -25,4 +26,8 @@ public interface ContactRepository extends JpaRepository<Contact, UUID>, JpaSpec
     long countByTenantIdAndArchivedFalse(UUID tenantId);
 
     List<Contact> findByTenantIdAndArchivedFalse(UUID tenantId);
+
+    @Modifying
+    @Query("UPDATE Contact c SET c.reportsToId = :targetId WHERE c.tenantId = :tenantId AND c.archived = false AND c.reportsToId = :sourceId AND c.id <> :targetId")
+    int reassignReportsTo(@Param("tenantId") UUID tenantId, @Param("sourceId") UUID sourceId, @Param("targetId") UUID targetId);
 }

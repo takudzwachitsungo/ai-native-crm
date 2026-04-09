@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -74,6 +75,18 @@ public class Quote extends AbstractEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", insertable = false, updatable = false)
     private User owner;
+
+    @Column(name = "pricing_approval_required", nullable = false)
+    private Boolean pricingApprovalRequired = false;
+
+    @Column(name = "pricing_approval_reason", columnDefinition = "TEXT")
+    private String pricingApprovalReason;
+
+    @Column(name = "pricing_approved_at")
+    private LocalDateTime pricingApprovedAt;
+
+    @Column(name = "pricing_approved_by")
+    private UUID pricingApprovedBy;
 
     @OneToMany(mappedBy = "quote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default

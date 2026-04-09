@@ -65,17 +65,17 @@ spring:
           multiplier: 2.0
   
   mail:
-    host: ${MAIL_HOST:localhost}
-    port: ${MAIL_PORT:1025}
-    username: ${MAIL_USERNAME:test@crm.local}
-    password: ${MAIL_PASSWORD:any-password}
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: ${MAIL_SMTP_AUTH:true}
           starttls:
-            enable: false
-        debug: true
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+        debug: ${MAIL_DEBUG:false}
   
   cache:
     type: redis
@@ -95,6 +95,8 @@ security:
     secret: ${JWT_SECRET:your-secret-key-change-this-in-production-min-256-bits}
     access-token-expiration: 86400000  # 24 hours (24 * 60 * 60 * 1000)
     refresh-token-expiration: 604800000  # 7 days
+  two-factor:
+    issuer: ${TWO_FACTOR_ISSUER:Cicosy CRM}
 
 # AI Configuration
 openai:
@@ -203,6 +205,7 @@ tenancy:
     database-name-prefix: ${TENANCY_DATABASE_NAME_PREFIX:crm_tenant}
     admin-database-name: ${TENANCY_ADMIN_DATABASE_NAME:postgres}
   security:
+    # Supports plain values plus env:/file:/base64: references.
     database-credentials-key: ${TENANCY_DATABASE_CREDENTIALS_KEY:${JWT_SECRET:change-this-tenant-db-key}}
 
 governance:
@@ -210,3 +213,12 @@ governance:
     enabled: ${GOVERNANCE_AUTOMATION_ENABLED:true}
     interval-ms: ${GOVERNANCE_AUTOMATION_INTERVAL_MS:3600000}
     initial-delay-ms: ${GOVERNANCE_AUTOMATION_INITIAL_DELAY_MS:300000}
+
+integrations:
+  automation:
+    enabled: ${INTEGRATIONS_AUTOMATION_ENABLED:true}
+    interval-ms: ${INTEGRATIONS_AUTOMATION_INTERVAL_MS:900000}
+    initial-delay-ms: ${INTEGRATIONS_AUTOMATION_INITIAL_DELAY_MS:180000}
+
+billing:
+  portal-base-url: ${BILLING_PORTAL_BASE_URL:}

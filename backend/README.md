@@ -1,168 +1,116 @@
-# CRM Backend - AI-Powered Spring Boot Application
+# CRM Backend
 
-A production-ready, enterprise-grade Spring Boot backend for a modern Customer Relationship Management system with advanced AI capabilities, multi-tenancy support, and comprehensive observability.
+Spring Boot backend for the multi-tenant AI-native CRM platform.
 
-## Features
+## Current Scope
 
-- **Complete CRM Entity Management**: Leads, Contacts, Companies, Deals, Tasks, Events, Products, Quotes, Invoices, Documents, Emails
-- **AI/RAG Capabilities**: OpenAI integration with pgvector for semantic search, intelligent lead scoring, chat assistant
-- **Security**: JWT authentication, role-based authorization (Admin, Manager, Sales Rep, User)
-- **Multi-Tenancy**: Tenant isolation with Hibernate filters and PostgreSQL Row-Level Security
-- **Performance**: Redis caching, connection pooling, async processing with RabbitMQ
-- **Observability**: OpenTelemetry tracing, Prometheus metrics, structured JSON logging
-- **Rate Limiting**: Bucket4j with tier-based limits (Free: 100/min, Pro: 1000/min, Enterprise: custom)
+The backend now includes:
+- workspace-aware authentication and dedicated tenant database routing
+- scoped RBAC with permission-based guards
+- core CRM modules for leads, contacts, companies, deals, tasks, email, documents, quotes, invoices, and contracts
+- workflow and automation foundations
+- campaign management, segmentation, and nurture journeys
+- support case management with SLA and queue operations
+- customer data governance and merge flows
+- field service work orders
+- workspace operations summary and automation observability
 
-## Tech Stack
+## Runtime
 
-- **Framework**: Spring Boot 3.2.1 with Java 17
-- **Database**: PostgreSQL 15 with pgvector extension
-- **Caching**: Redis 7
-- **Message Queue**: RabbitMQ 3
-- **Security**: Spring Security with JWT (jjwt)
-- **AI**: OpenAI API with text-embedding-3-small
-- **Observability**: OpenTelemetry, Prometheus, Logstash
-- **Documentation**: OpenAPI/Swagger
-- **Build Tool**: Maven
+Primary local runtime is Docker Compose from [docker-compose.run.yml](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\backend\docker-compose.run.yml).
+
+Key host endpoints:
+- Backend API: `http://localhost:8080`
+- Swagger: `http://localhost:8080/swagger-ui.html`
+- Actuator health: `http://localhost:8080/actuator/health`
+- AI service health: `http://localhost:8000/health`
+- RabbitMQ UI: `http://localhost:15672`
 
 ## Prerequisites
 
-- Java 17 or higher
-- Docker and Docker Compose
-- Maven 3.9+ (or use included Maven wrapper)
+- Docker Desktop / Docker Engine with Compose support
+- Java 17+
+- Maven 3.9+ if you want to run backend tests outside Docker
 
-## Quick Start
+Note:
+- there is currently no Maven wrapper checked into this repo
+- use `mvn` directly or the Docker build/runtime paths
 
-### 1. Clone and Setup
+## Environment
 
-```bash
-cd backend
-cp .env.example .env
-# Edit .env with your configuration
-```
+Use [\.env.example](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\backend\.env.example) as the backend template.
 
-### 2. Start Infrastructure with Docker
+Important backend notes:
+- `TENANCY_DATABASE_CREDENTIALS_KEY` now supports plain values plus `env:`, `file:`, and `base64:` references
+- Docker Compose uses [\.env](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\backend\.env) for the local stack
+- email delivery now expects a real SMTP provider configuration via `MAIL_*` environment variables
 
-```bash
-# Start PostgreSQL, Redis, RabbitMQ, Jaeger
-docker-compose up -d
+## Start The Stack
 
-# For development with additional tools (pgAdmin, Redis Commander)
-docker-compose -f docker-compose.dev.yml up -d
-```
-
-### 3. Build and Run
+From [backend](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\backend):
 
 ```bash
-# Using Maven Wrapper
-./mvnw clean install
-
-# Run application
-./mvnw spring-boot:run
-
-# Or run with specific profile
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+docker compose -f docker-compose.run.yml up -d --build
 ```
 
-The API will be available at `http://localhost:8080`
-
-### 4. Access Documentation
-
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **API Docs**: http://localhost:8080/v3/api-docs
-- **Health Check**: http://localhost:8080/actuator/health
-- **Prometheus Metrics**: http://localhost:8080/actuator/prometheus
-
-## Package Structure
-
-```
-com.crm/
-├── entity/          # JPA entities with audit support
-├── repository/      # Spring Data JPA repositories
-├── service/         # Service interfaces
-├── service/impl/    # Service implementations
-├── controller/      # REST controllers
-├── config/          # Spring configurations
-├── dto/             # Request/Response DTOs
-│   ├── request/
-│   └── response/
-├── mapper/          # MapStruct entity-DTO mappers
-├── security/        # JWT and authentication
-├── ai/              # AI/RAG services
-├── messaging/       # RabbitMQ message consumers
-├── exception/       # Custom exceptions and handlers
-└── util/            # Utility classes
-```
-
-## API Endpoints
-
-### Authentication
-- `POST /api/v1/auth/register` - User registration
-- `POST /api/v1/auth/login` - User login
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `POST /api/v1/auth/logout` - Logout
-
-### Core Entities
-- `/api/v1/leads` - Lead management
-- `/api/v1/contacts` - Contact management
-- `/api/v1/companies` - Company management
-- `/api/v1/deals` - Deal management
-- `/api/v1/tasks` - Task management
-- `/api/v1/calendar/events` - Calendar events
-- `/api/v1/products` - Product catalog
-- `/api/v1/quotes` - Quote management
-- `/api/v1/invoices` - Invoice management
-- `/api/v1/documents` - Document management
-- `/api/v1/emails` - Email management
-
-### Analytics & AI
-- `/api/v1/dashboard/metrics` - Dashboard KPIs
-- `/api/v1/forecasting` - Sales forecasting
-- `/api/v1/ai/chat` - AI chat assistant
-- `/api/v1/ai/email/generate` - AI email generation
-
-## Database Migrations
-
-Flyway migrations are located in `src/main/resources/db/migration/`:
-
-- `V1__create_schema.sql` - Initial schema with all tables
-- `V2__create_indexes.sql` - Performance indexes
-- `V3__enable_pgvector.sql` - pgvector extension setup
-- `V4__row_level_security.sql` - PostgreSQL RLS policies
-
-## Testing
+Check health:
 
 ```bash
-# Run all tests
-./mvnw test
-
-# Run with coverage report
-./mvnw clean test jacoco:report
-
-# View coverage report
-open target/site/jacoco/index.html
+curl http://localhost:8080/actuator/health
+curl http://localhost:8000/health
 ```
 
-## Docker Deployment
+## Backend Verification
+
+Run backend smoke from the repo root:
 
 ```bash
-# Build Docker image
-docker build -t crm-backend:latest .
-
-# Run with docker-compose
-docker-compose up -d
+npm run smoke
 ```
 
-## Environment Variables
+Skip AI checks when only backend verification matters:
 
-See [.env.example](.env.example) for all available environment variables.
+```bash
+CRM_SMOKE_SKIP_AI=true npm run smoke
+```
 
-## Contributing
+See [SMOKE_TESTING.md](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\docs\SMOKE_TESTING.md) and [BACKEND_TESTING_READINESS.md](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\docs\BACKEND_TESTING_READINESS.md).
 
-1. Create feature branch
-2. Make changes with tests
-3. Run `./mvnw clean verify`
-4. Submit pull request
+## Main API Areas
 
-## License
+- `/api/v1/auth`
+- `/api/v1/leads`
+- `/api/v1/contacts`
+- `/api/v1/companies`
+- `/api/v1/deals`
+- `/api/v1/tasks`
+- `/api/v1/documents`
+- `/api/v1/emails`
+- `/api/v1/campaigns`
+- `/api/v1/cases`
+- `/api/v1/contracts`
+- `/api/v1/field-service/work-orders`
+- `/api/v1/data-governance`
+- `/api/v1/workflows`
+- `/api/v1/automation-rules`
+- `/api/v1/workspace`
+- `/api/v1/dashboard`
 
-Proprietary - All rights reserved
+## Backend Testing Focus
+
+For thorough QA, prioritize:
+- auth, tenant routing, and permissions
+- lead to deal flow
+- campaign to lead attribution and nurture progression
+- case SLA, queue assignment, and service dashboards
+- contract lifecycle and CPQ guardrails
+- data governance duplicate detection and merge
+- field service work order lifecycle
+- workspace ops and automation history
+
+## Reference Docs
+
+- [SMOKE_TESTING.md](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\docs\SMOKE_TESTING.md)
+- [DEPLOYMENT.md](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\docs\DEPLOYMENT.md)
+- [CI_CD.md](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\docs\CI_CD.md)
+- [TENANCY_RBAC_NEXT.md](C:\Users\cni.alad\Documents\Projects\Projects\Cicosy-CRM\ai-native-crm\docs\TENANCY_RBAC_NEXT.md)

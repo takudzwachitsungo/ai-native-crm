@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -48,4 +49,6 @@ public class UserCreateRequestDTO {
 
     @PositiveOrZero(message = "Annual quota must be zero or positive")
     private BigDecimal annualQuota;
+
+    private UUID managerId;
 }

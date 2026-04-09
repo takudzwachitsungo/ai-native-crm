@@ -1,6 +1,8 @@
 package com.crm.dto.request;
 
 import com.crm.entity.enums.CompanyStatus;
+import com.crm.entity.enums.CustomerPrivacyStatus;
+import com.crm.entity.enums.DataEnrichmentStatus;
 import com.crm.entity.enums.Industry;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -9,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -64,4 +67,14 @@ public class CompanyRequestDTO {
     private UUID ownerId;
 
     private UUID parentCompanyId;
+
+    private CustomerPrivacyStatus privacyStatus;
+
+    @Min(value = 0, message = "Data quality score must be between 0 and 100")
+    @Max(value = 100, message = "Data quality score must be between 0 and 100")
+    private Integer dataQualityScore;
+
+    private DataEnrichmentStatus enrichmentStatus;
+
+    private LocalDateTime enrichmentLastCheckedAt;
 }

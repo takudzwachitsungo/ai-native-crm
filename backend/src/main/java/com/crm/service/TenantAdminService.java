@@ -2,6 +2,7 @@ package com.crm.service;
 
 import com.crm.dto.request.TenantDatabaseSettingsUpdateRequestDTO;
 import com.crm.dto.response.TenantDatabaseSettingsResponseDTO;
+import com.crm.dto.response.WorkspaceOperationsSummaryDTO;
 
 public interface TenantAdminService {
 
@@ -12,4 +13,6 @@ public interface TenantAdminService {
     TenantDatabaseSettingsResponseDTO validateCurrentTenantDatabaseSettings();
 
     TenantDatabaseSettingsResponseDTO migrateCurrentTenantToDedicatedDatabase();
+
+    WorkspaceOperationsSummaryDTO getWorkspaceOperationsSummary();
 }

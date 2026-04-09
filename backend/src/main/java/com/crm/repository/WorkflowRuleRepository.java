@@ -12,4 +12,6 @@ import java.util.UUID;
 public interface WorkflowRuleRepository extends JpaRepository<WorkflowRule, UUID> {
 
     Optional<WorkflowRule> findByTenantIdAndRuleTypeAndArchivedFalse(UUID tenantId, WorkflowRuleType ruleType);
+
+    long countByTenantIdAndIsActiveTrueAndArchivedFalse(UUID tenantId);
 }

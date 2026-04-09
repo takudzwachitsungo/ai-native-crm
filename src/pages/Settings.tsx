@@ -2,19 +2,33 @@ import { useEffect, useState } from "react";
 import { Icons } from "../components/icons";
 import { cn } from "../lib/utils";
 import { PageLayout } from "../components/PageLayout";
-import { dashboardApi, tenantAdminApi, territoriesApi, usersApi, workflowRulesApi } from "../lib/api";
+import { accountApi, dashboardApi, settingsApi, tenantAdminApi, territoriesApi, usersApi, workflowRulesApi } from "../lib/api";
 import type {
+  AccountProfile,
   AutomationRun,
+  BillingPortalSummary,
+  CampaignNurtureWorkflowSettings,
+  CaseAssignmentWorkflowSettings,
+  CaseSlaWorkflowSettings,
   DealApprovalWorkflowSettings,
   DealRescueWorkflowSettings,
   GovernanceOpsWorkflowSettings,
+  IntegrationCapability,
   LeadIntakeWorkflowSettings,
+  NotificationPreferences,
   QuotaRiskWorkflowSettings,
+  SettingsCapabilityOverview,
   TerritoryEscalationWorkflowSettings,
   TenantDatabaseSettings,
   TenantDatabaseSettingsUpdateRequest,
   TenantUser,
+  TwoFactorSetup,
+  TwoFactorStatus,
   UserRole,
+  UserSessionSummary,
+  WorkspaceIntegration,
+  WorkspaceIntegrationOAuthStart,
+  WorkspaceIntegrationUpdateRequest,
   WorkspaceTerritory,
 } from "../lib/types";
 import { useAuth } from "../contexts/AuthContext";
@@ -40,14 +54,38 @@ const settingSections: SettingSection[] = [
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { showToast } = useToast();
-  const previewSectionMessage =
-    "This section is currently a product preview and is not connected to backend workflows yet.";
   const [activeSection, setActiveSection] = useState("profile");
   const [darkMode, setDarkMode] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
+  const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    avatar: "",
+  });
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences | null>(null);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    revokeOtherSessions: true,
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [sessions, setSessions] = useState<UserSessionSummary[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatus | null>(null);
+  const [twoFactorSetup, setTwoFactorSetup] = useState<TwoFactorSetup | null>(null);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorDisablePassword, setTwoFactorDisablePassword] = useState("");
+  const [billingSummary, setBillingSummary] = useState<BillingPortalSummary | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TenantUser[]>([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamSubmitting, setTeamSubmitting] = useState(false);
@@ -58,6 +96,18 @@ export default function SettingsPage() {
   const [leadWorkflowDraft, setLeadWorkflowDraft] = useState<LeadIntakeWorkflowSettings | null>(null);
   const [leadWorkflowLoading, setLeadWorkflowLoading] = useState(false);
   const [leadWorkflowSaving, setLeadWorkflowSaving] = useState(false);
+  const [campaignNurtureWorkflow, setCampaignNurtureWorkflow] = useState<CampaignNurtureWorkflowSettings | null>(null);
+  const [campaignNurtureWorkflowDraft, setCampaignNurtureWorkflowDraft] = useState<CampaignNurtureWorkflowSettings | null>(null);
+  const [campaignNurtureWorkflowLoading, setCampaignNurtureWorkflowLoading] = useState(false);
+  const [campaignNurtureWorkflowSaving, setCampaignNurtureWorkflowSaving] = useState(false);
+  const [caseAssignmentWorkflow, setCaseAssignmentWorkflow] = useState<CaseAssignmentWorkflowSettings | null>(null);
+  const [caseAssignmentWorkflowDraft, setCaseAssignmentWorkflowDraft] = useState<CaseAssignmentWorkflowSettings | null>(null);
+  const [caseAssignmentWorkflowLoading, setCaseAssignmentWorkflowLoading] = useState(false);
+  const [caseAssignmentWorkflowSaving, setCaseAssignmentWorkflowSaving] = useState(false);
+  const [caseSlaWorkflow, setCaseSlaWorkflow] = useState<CaseSlaWorkflowSettings | null>(null);
+  const [caseSlaWorkflowDraft, setCaseSlaWorkflowDraft] = useState<CaseSlaWorkflowSettings | null>(null);
+  const [caseSlaWorkflowLoading, setCaseSlaWorkflowLoading] = useState(false);
+  const [caseSlaWorkflowSaving, setCaseSlaWorkflowSaving] = useState(false);
   const [dealRescueWorkflow, setDealRescueWorkflow] = useState<DealRescueWorkflowSettings | null>(null);
   const [dealRescueWorkflowDraft, setDealRescueWorkflowDraft] = useState<DealRescueWorkflowSettings | null>(null);
   const [dealRescueWorkflowLoading, setDealRescueWorkflowLoading] = useState(false);
@@ -87,6 +137,17 @@ export default function SettingsPage() {
   const [workspaceSaving, setWorkspaceSaving] = useState(false);
   const [workspaceValidating, setWorkspaceValidating] = useState(false);
   const [workspaceMigrating, setWorkspaceMigrating] = useState(false);
+  const [settingsCapabilities, setSettingsCapabilities] = useState<SettingsCapabilityOverview | null>(null);
+  const [settingsCapabilitiesLoading, setSettingsCapabilitiesLoading] = useState(false);
+  const [workspaceIntegrations, setWorkspaceIntegrations] = useState<WorkspaceIntegration[]>([]);
+  const [workspaceIntegrationsLoading, setWorkspaceIntegrationsLoading] = useState(false);
+  const [integrationDrafts, setIntegrationDrafts] = useState<Record<string, WorkspaceIntegrationUpdateRequest>>({});
+  const [integrationSavingKey, setIntegrationSavingKey] = useState<string | null>(null);
+  const [integrationOAuthLinks, setIntegrationOAuthLinks] = useState<Record<string, WorkspaceIntegrationOAuthStart>>({});
+  const [integrationAuthCodes, setIntegrationAuthCodes] = useState<Record<string, string>>({});
+  const [integrationOAuthStartingKey, setIntegrationOAuthStartingKey] = useState<string | null>(null);
+  const [integrationOAuthExchangingKey, setIntegrationOAuthExchangingKey] = useState<string | null>(null);
+  const [integrationOAuthRefreshingKey, setIntegrationOAuthRefreshingKey] = useState<string | null>(null);
   const [workspaceForm, setWorkspaceForm] = useState<TenantDatabaseSettingsUpdateRequest>({
     dedicatedDatabaseEnabled: false,
     databaseUrl: "",
@@ -120,8 +181,64 @@ export default function SettingsPage() {
     return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
   };
 
+  const formatOptionalDateTime = (value?: string | null) => {
+    if (!value) return "Not yet recorded";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  };
+
   const roleLabel = (role: UserRole) => {
     return roleLabels[role] ?? "User";
+  };
+
+  const integrationStatusLabel = (status: IntegrationCapability["status"]) => {
+    switch (status) {
+      case "ACTIVE":
+        return "Active";
+      case "CONFIGURED":
+        return "Configured";
+      case "SETUP_REQUIRED":
+        return "Setup Required";
+      case "AVAILABLE":
+        return "Available";
+      case "PREVIEW":
+      default:
+        return "Preview";
+    }
+  };
+
+  const integrationStatusClassName = (status: IntegrationCapability["status"]) => {
+    switch (status) {
+      case "ACTIVE":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+      case "CONFIGURED":
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+      case "SETUP_REQUIRED":
+        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+      case "AVAILABLE":
+        return "bg-secondary text-secondary-foreground";
+      case "PREVIEW":
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const integrationSyncStatusLabel = (integration: WorkspaceIntegration) => {
+    if (integration.lastSyncSucceeded == null) {
+      return integration.syncEnabled ? "Sync pending first run" : "Sync disabled";
+    }
+    return integration.lastSyncSucceeded ? "Last sync succeeded" : "Last sync failed";
+  };
+
+  const integrationSyncStatusClassName = (integration: WorkspaceIntegration) => {
+    if (integration.lastSyncSucceeded == null) {
+      return integration.syncEnabled
+        ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300"
+        : "border-border bg-muted/30 text-muted-foreground";
+    }
+    return integration.lastSyncSucceeded
+      ? "border-green-200 bg-green-50 text-green-800 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300"
+      : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300";
   };
 
   const activeTerritories = territories.filter((territory) => territory.isActive);
@@ -223,6 +340,36 @@ export default function SettingsPage() {
     }
   };
 
+  const loadCampaignNurtureWorkflow = async () => {
+    if (!isAdmin) return;
+    setCampaignNurtureWorkflowLoading(true);
+    try {
+      const response = await workflowRulesApi.getCampaignNurture();
+      setCampaignNurtureWorkflow(response);
+      setCampaignNurtureWorkflowDraft(response);
+    } catch (error) {
+      console.error("Failed to load campaign nurture workflow:", error);
+      showToast("Failed to load workflow settings", "error");
+    } finally {
+      setCampaignNurtureWorkflowLoading(false);
+    }
+  };
+
+  const loadCaseAssignmentWorkflow = async () => {
+    if (!isAdmin) return;
+    setCaseAssignmentWorkflowLoading(true);
+    try {
+      const response = await workflowRulesApi.getCaseAssignment();
+      setCaseAssignmentWorkflow(response);
+      setCaseAssignmentWorkflowDraft(response);
+    } catch (error) {
+      console.error("Failed to load case assignment workflow:", error);
+      showToast("Failed to load workflow settings", "error");
+    } finally {
+      setCaseAssignmentWorkflowLoading(false);
+    }
+  };
+
   const loadDealRescueWorkflow = async () => {
     if (!isAdmin) return;
     setDealRescueWorkflowLoading(true);
@@ -235,6 +382,21 @@ export default function SettingsPage() {
       showToast("Failed to load workflow settings", "error");
     } finally {
       setDealRescueWorkflowLoading(false);
+    }
+  };
+
+  const loadCaseSlaWorkflow = async () => {
+    if (!isAdmin) return;
+    setCaseSlaWorkflowLoading(true);
+    try {
+      const response = await workflowRulesApi.getCaseSla();
+      setCaseSlaWorkflow(response);
+      setCaseSlaWorkflowDraft(response);
+    } catch (error) {
+      console.error("Failed to load case SLA workflow:", error);
+      showToast("Failed to load workflow settings", "error");
+    } finally {
+      setCaseSlaWorkflowLoading(false);
     }
   };
 
@@ -312,6 +474,403 @@ export default function SettingsPage() {
     }
   };
 
+  const loadSettingsCapabilities = async () => {
+    setSettingsCapabilitiesLoading(true);
+    try {
+      const response = await settingsApi.getCapabilities();
+      setSettingsCapabilities(response);
+    } catch (error) {
+      console.error("Failed to load settings capabilities:", error);
+      showToast("Failed to load settings capability overview", "error");
+    } finally {
+      setSettingsCapabilitiesLoading(false);
+    }
+  };
+
+  const loadAccountProfile = async () => {
+    setProfileLoading(true);
+    try {
+      const response = await accountApi.getProfile();
+      setAccountProfile(response);
+      setProfileForm({
+        firstName: response.firstName ?? "",
+        lastName: response.lastName ?? "",
+        email: response.email ?? "",
+        avatar: response.avatar ?? "",
+      });
+    } catch (error) {
+      console.error("Failed to load account profile:", error);
+      showToast("Failed to load account profile", "error");
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const loadNotificationPreferences = async () => {
+    setNotificationLoading(true);
+    try {
+      const response = await accountApi.getNotificationPreferences();
+      setNotificationPreferences(response);
+    } catch (error) {
+      console.error("Failed to load notification preferences:", error);
+      showToast("Failed to load notification preferences", "error");
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
+  const loadSecurityWorkspace = async () => {
+    setSessionsLoading(true);
+    setTwoFactorLoading(true);
+    try {
+      const [sessionResponse, twoFactorResponse] = await Promise.all([
+        accountApi.getSessions(),
+        accountApi.getTwoFactorStatus(),
+      ]);
+      setSessions(sessionResponse);
+      setTwoFactorStatus(twoFactorResponse);
+    } catch (error) {
+      console.error("Failed to load security workspace:", error);
+      showToast("Failed to load security settings", "error");
+    } finally {
+      setSessionsLoading(false);
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const loadBillingSummary = async () => {
+    setBillingLoading(true);
+    try {
+      const response = await accountApi.getBillingPortal();
+      setBillingSummary(response);
+    } catch (error) {
+      console.error("Failed to load billing summary:", error);
+      showToast("Failed to load billing summary", "error");
+    } finally {
+      setBillingLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setProfileSaving(true);
+    try {
+      const response = await accountApi.updateProfile({
+        firstName: profileForm.firstName.trim(),
+        lastName: profileForm.lastName.trim(),
+        email: profileForm.email.trim(),
+        avatar: profileForm.avatar.trim() || undefined,
+      });
+      setAccountProfile(response);
+      updateUser({
+        firstName: response.firstName,
+        lastName: response.lastName,
+        email: response.email,
+      });
+      showToast("Profile updated", "success");
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      showToast("Failed to update profile", "error");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleToggleNotificationPreference = async (key: keyof NotificationPreferences) => {
+    if (!notificationPreferences) return;
+    const nextPreferences = {
+      ...notificationPreferences,
+      [key]: !notificationPreferences[key],
+    };
+    setNotificationPreferences(nextPreferences);
+    setNotificationSaving(true);
+    try {
+      const response = await accountApi.updateNotificationPreferences({
+        [key]: nextPreferences[key],
+      });
+      setNotificationPreferences(response);
+      showToast("Notification preferences updated", "success");
+    } catch (error) {
+      console.error("Failed to update notification preferences:", error);
+      setNotificationPreferences(notificationPreferences);
+      showToast("Failed to update notification preferences", "error");
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      showToast("Enter your current and new password", "warning");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showToast("New password confirmation does not match", "warning");
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await accountApi.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        revokeOtherSessions: passwordForm.revokeOtherSessions,
+      });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+        revokeOtherSessions: true,
+      });
+      await loadSecurityWorkspace();
+      showToast("Password updated", "success");
+    } catch (error) {
+      console.error("Failed to change password:", error);
+      showToast("Failed to change password", "error");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      await accountApi.revokeSession(sessionId);
+      await loadSecurityWorkspace();
+      showToast("Session revoked", "success");
+    } catch (error) {
+      console.error("Failed to revoke session:", error);
+      showToast("Failed to revoke session", "error");
+    }
+  };
+
+  const handleRevokeOtherSessions = async () => {
+    try {
+      await accountApi.revokeOtherSessions();
+      await loadSecurityWorkspace();
+      showToast("Other sessions revoked", "success");
+    } catch (error) {
+      console.error("Failed to revoke other sessions:", error);
+      showToast("Failed to revoke other sessions", "error");
+    }
+  };
+
+  const handleBeginTwoFactorSetup = async () => {
+    setTwoFactorLoading(true);
+    try {
+      const response = await accountApi.beginTwoFactorSetup();
+      setTwoFactorSetup(response);
+      setTwoFactorCode("");
+      await loadSecurityWorkspace();
+      showToast("Two-factor setup started", "success");
+    } catch (error) {
+      console.error("Failed to begin two-factor setup:", error);
+      showToast("Failed to start two-factor setup", "error");
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleEnableTwoFactor = async () => {
+    if (!twoFactorCode.trim()) {
+      showToast("Enter the 6-digit code from your authenticator app", "warning");
+      return;
+    }
+    setTwoFactorLoading(true);
+    try {
+      const response = await accountApi.enableTwoFactor(twoFactorCode.trim());
+      setTwoFactorStatus(response);
+      setTwoFactorSetup(null);
+      setTwoFactorCode("");
+      showToast("Two-factor authentication enabled", "success");
+    } catch (error) {
+      console.error("Failed to enable two-factor authentication:", error);
+      showToast("Failed to enable two-factor authentication", "error");
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleDisableTwoFactor = async () => {
+    if (!twoFactorDisablePassword.trim()) {
+      showToast("Enter your current password to disable two-factor authentication", "warning");
+      return;
+    }
+    setTwoFactorLoading(true);
+    try {
+      const response = await accountApi.disableTwoFactor(twoFactorDisablePassword.trim());
+      setTwoFactorStatus(response);
+      setTwoFactorSetup(null);
+      setTwoFactorDisablePassword("");
+      showToast("Two-factor authentication disabled", "success");
+    } catch (error) {
+      console.error("Failed to disable two-factor authentication:", error);
+      showToast("Failed to disable two-factor authentication", "error");
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleOpenBillingPortal = async () => {
+    try {
+      const response = await accountApi.getBillingPortal();
+      setBillingSummary(response);
+      if (response.portalEnabled && response.portalUrl) {
+        window.open(response.portalUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      showToast(response.detail, "info");
+    } catch (error) {
+      console.error("Failed to open billing portal:", error);
+      showToast("Failed to open billing portal", "error");
+    }
+  };
+
+  const loadWorkspaceIntegrations = async () => {
+    setWorkspaceIntegrationsLoading(true);
+    try {
+      const response = await settingsApi.getIntegrations();
+      setWorkspaceIntegrations(response);
+      setIntegrationDrafts(
+        response.reduce<Record<string, WorkspaceIntegrationUpdateRequest>>((acc, integration) => {
+          acc[integration.key] = {
+            authType: integration.authType ?? "OAUTH2",
+            baseUrl: integration.baseUrl ?? "",
+            clientId: integration.clientId ?? "",
+            clientSecret: "",
+            accountIdentifier: integration.accountIdentifier ?? "",
+            redirectUri: integration.redirectUri ?? "",
+            scopes: integration.scopes ?? "",
+            syncEnabled: integration.syncEnabled,
+            active: integration.active,
+          };
+          return acc;
+        }, {})
+      );
+    } catch (error) {
+      console.error("Failed to load workspace integrations:", error);
+      showToast("Failed to load workspace integrations", "error");
+    } finally {
+      setWorkspaceIntegrationsLoading(false);
+    }
+  };
+
+  const updateIntegrationDraft = (
+    key: string,
+    field: keyof WorkspaceIntegrationUpdateRequest,
+    value: string | boolean
+  ) => {
+    setIntegrationDrafts((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveIntegration = async (providerKey: string) => {
+    const draft = integrationDrafts[providerKey];
+    if (!draft) return;
+
+    setIntegrationSavingKey(providerKey);
+    try {
+      const updated = await settingsApi.updateIntegration(providerKey, draft);
+      setWorkspaceIntegrations((prev) => prev.map((item) => (item.key === providerKey ? updated : item)));
+      setIntegrationDrafts((prev) => ({
+        ...prev,
+        [providerKey]: {
+          authType: updated.authType ?? "OAUTH2",
+          baseUrl: updated.baseUrl ?? "",
+          clientId: updated.clientId ?? "",
+          clientSecret: "",
+          accountIdentifier: updated.accountIdentifier ?? "",
+          redirectUri: updated.redirectUri ?? "",
+          scopes: updated.scopes ?? "",
+          syncEnabled: updated.syncEnabled,
+          active: updated.active,
+        },
+      }));
+      await loadSettingsCapabilities();
+      showToast(`${updated.name} configuration saved`, "success");
+    } catch (error) {
+      console.error("Failed to save integration:", error);
+      showToast("Failed to save integration configuration", "error");
+    } finally {
+      setIntegrationSavingKey(null);
+    }
+  };
+
+  const handleStartIntegrationOAuth = async (providerKey: string) => {
+    setIntegrationOAuthStartingKey(providerKey);
+    try {
+      const response = await settingsApi.startIntegrationOAuth(providerKey);
+      setIntegrationOAuthLinks((prev) => ({
+        ...prev,
+        [providerKey]: response,
+      }));
+      showToast("Authorization link generated", "success");
+    } catch (error) {
+      console.error("Failed to start integration OAuth:", error);
+      showToast("Failed to start OAuth flow", "error");
+    } finally {
+      setIntegrationOAuthStartingKey(null);
+    }
+  };
+
+  const handleExchangeIntegrationOAuth = async (providerKey: string) => {
+    const oauth = integrationOAuthLinks[providerKey];
+    const code = integrationAuthCodes[providerKey]?.trim();
+
+    if (!oauth) {
+      showToast("Start the OAuth flow first", "warning");
+      return;
+    }
+
+    if (!code) {
+      showToast("Paste the authorization code first", "warning");
+      return;
+    }
+
+    setIntegrationOAuthExchangingKey(providerKey);
+    try {
+      const updated = await settingsApi.exchangeIntegrationOAuth(providerKey, {
+        code,
+        state: oauth.state,
+      });
+      setWorkspaceIntegrations((prev) => prev.map((item) => (item.key === providerKey ? updated : item)));
+      setIntegrationAuthCodes((prev) => ({
+        ...prev,
+        [providerKey]: "",
+      }));
+      setIntegrationOAuthLinks((prev) => {
+        const next = { ...prev };
+        delete next[providerKey];
+        return next;
+      });
+      await loadSettingsCapabilities();
+      showToast(`${updated.name} connected successfully`, "success");
+    } catch (error) {
+      console.error("Failed to exchange integration OAuth code:", error);
+      showToast("Failed to exchange OAuth code", "error");
+    } finally {
+      setIntegrationOAuthExchangingKey(null);
+    }
+  };
+
+  const handleRefreshIntegrationOAuth = async (providerKey: string) => {
+    setIntegrationOAuthRefreshingKey(providerKey);
+    try {
+      const updated = await settingsApi.refreshIntegrationOAuth(providerKey);
+      setWorkspaceIntegrations((prev) => prev.map((item) => (item.key === providerKey ? updated : item)));
+      await loadSettingsCapabilities();
+      showToast(`${updated.name} token refreshed`, "success");
+    } catch (error) {
+      console.error("Failed to refresh integration OAuth token:", error);
+      showToast("Failed to refresh connector token", "error");
+    } finally {
+      setIntegrationOAuthRefreshingKey(null);
+    }
+  };
+
   useEffect(() => {
     if (activeSection === "team") {
       void loadTeamMembers();
@@ -322,6 +881,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeSection === "automation" && isAdmin) {
       void loadLeadWorkflow();
+      void loadCampaignNurtureWorkflow();
+      void loadCaseAssignmentWorkflow();
+      void loadCaseSlaWorkflow();
       void loadDealRescueWorkflow();
       void loadQuotaRiskWorkflow();
       void loadDealApprovalWorkflow();
@@ -338,33 +900,49 @@ export default function SettingsPage() {
   }, [activeSection, isAdmin]);
 
   useEffect(() => {
-    const rawPreferences = localStorage.getItem("crm-settings-preferences");
-    if (!rawPreferences) return;
-
-    try {
-      const parsed = JSON.parse(rawPreferences) as {
-        darkMode?: boolean;
-        emailNotifications?: boolean;
-        pushNotifications?: boolean;
-      };
-      setDarkMode(parsed.darkMode ?? false);
-      setEmailNotifications(parsed.emailNotifications ?? true);
-      setPushNotifications(parsed.pushNotifications ?? true);
-    } catch (error) {
-      console.warn("Could not parse saved settings preferences", error);
+    if (["profile", "notifications", "integrations", "billing", "security"].includes(activeSection)) {
+      void loadSettingsCapabilities();
     }
-  }, []);
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "profile") {
+      void loadAccountProfile();
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "notifications") {
+      void loadNotificationPreferences();
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "security") {
+      void loadSecurityWorkspace();
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "billing") {
+      void loadBillingSummary();
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "integrations") {
+      void loadWorkspaceIntegrations();
+    }
+  }, [activeSection]);
 
   useEffect(() => {
     localStorage.setItem(
       "crm-settings-preferences",
       JSON.stringify({
         darkMode,
-        emailNotifications,
-        pushNotifications,
       })
     );
-  }, [darkMode, emailNotifications, pushNotifications]);
+  }, [darkMode]);
 
   const handleCreateMember = async () => {
     if (!newMember.firstName || !newMember.lastName || !newMember.email || !newMember.password) {
@@ -512,6 +1090,40 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveCampaignNurtureWorkflow = async () => {
+    if (!isAdmin || !campaignNurtureWorkflowDraft) return;
+
+    setCampaignNurtureWorkflowSaving(true);
+    try {
+      const response = await workflowRulesApi.updateCampaignNurture(campaignNurtureWorkflowDraft);
+      setCampaignNurtureWorkflow(response);
+      setCampaignNurtureWorkflowDraft(response);
+      showToast("Campaign nurture workflow updated", "success");
+    } catch (error) {
+      console.error("Failed to update campaign nurture workflow:", error);
+      showToast("Failed to update workflow settings", "error");
+    } finally {
+      setCampaignNurtureWorkflowSaving(false);
+    }
+  };
+
+  const handleSaveCaseAssignmentWorkflow = async () => {
+    if (!isAdmin || !caseAssignmentWorkflowDraft) return;
+
+    setCaseAssignmentWorkflowSaving(true);
+    try {
+      const response = await workflowRulesApi.updateCaseAssignment(caseAssignmentWorkflowDraft);
+      setCaseAssignmentWorkflow(response);
+      setCaseAssignmentWorkflowDraft(response);
+      showToast("Case assignment workflow updated", "success");
+    } catch (error) {
+      console.error("Failed to update case assignment workflow:", error);
+      showToast("Failed to update workflow settings", "error");
+    } finally {
+      setCaseAssignmentWorkflowSaving(false);
+    }
+  };
+
   const handleSaveDealRescueWorkflow = async () => {
     if (!isAdmin || !dealRescueWorkflowDraft) return;
 
@@ -526,6 +1138,23 @@ export default function SettingsPage() {
       showToast("Failed to update workflow settings", "error");
     } finally {
       setDealRescueWorkflowSaving(false);
+    }
+  };
+
+  const handleSaveCaseSlaWorkflow = async () => {
+    if (!isAdmin || !caseSlaWorkflowDraft) return;
+
+    setCaseSlaWorkflowSaving(true);
+    try {
+      const response = await workflowRulesApi.updateCaseSla(caseSlaWorkflowDraft);
+      setCaseSlaWorkflow(response);
+      setCaseSlaWorkflowDraft(response);
+      showToast("Case SLA workflow updated", "success");
+    } catch (error) {
+      console.error("Failed to update case SLA workflow:", error);
+      showToast("Failed to update workflow settings", "error");
+    } finally {
+      setCaseSlaWorkflowSaving(false);
     }
   };
 
@@ -696,16 +1325,350 @@ export default function SettingsPage() {
     </div>
   );
 
+  const renderIntegrationsContent = () => (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold">Integrations And System Connectors</h3>
+        <p className="text-sm text-muted-foreground">
+          This workspace now keeps connector setup per tenant. Native CRM channels are built in,
+          while third-party providers can be prepared here before OAuth exchange and sync jobs are
+          fully wired.
+        </p>
+      </div>
+      {settingsCapabilitiesLoading || workspaceIntegrationsLoading ? (
+        <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+          Loading workspace integrations...
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Native Channels</p>
+              <p className="mt-2 text-sm font-semibold">
+                {workspaceIntegrations.filter((item) => item.providerType === "NATIVE").length}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configured</p>
+              <p className="mt-2 text-sm font-semibold">
+                {workspaceIntegrations.filter((item) => ["ACTIVE", "CONFIGURED"].includes(item.status)).length}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Editable Connectors</p>
+              <p className="mt-2 text-sm font-semibold">
+                {workspaceIntegrations.filter((item) => item.editable).length}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-4 md:col-span-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sync Health</p>
+              <p className="mt-2 text-sm font-semibold">
+                {workspaceIntegrations.filter((item) => item.lastSyncSucceeded === true).length} succeeding ·{" "}
+                {workspaceIntegrations.filter((item) => item.lastSyncSucceeded === false).length} failing ·{" "}
+                {workspaceIntegrations.filter((item) => item.syncEnabled && item.lastSyncSucceeded == null).length} waiting
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {workspaceIntegrations.map((integration) => {
+              const draft = integrationDrafts[integration.key] ?? {
+                authType: integration.authType ?? "OAUTH2",
+                baseUrl: integration.baseUrl ?? "",
+                clientId: integration.clientId ?? "",
+                clientSecret: "",
+                accountIdentifier: integration.accountIdentifier ?? "",
+                redirectUri: integration.redirectUri ?? "",
+                scopes: integration.scopes ?? "",
+                syncEnabled: integration.syncEnabled,
+                active: integration.active,
+              };
+              const oauth = integrationOAuthLinks[integration.key];
+              const isOauthConnector = (draft.authType ?? integration.authType ?? "OAUTH2") === "OAUTH2";
+
+              return (
+                <div key={integration.key} className="p-4 bg-card border border-border rounded-lg space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{integration.name}</p>
+                      <p className="text-sm text-muted-foreground">{integration.description}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        "px-3 py-1.5 text-xs rounded-full transition-colors",
+                        integrationStatusClassName(integration.status)
+                      )}
+                    >
+                      {integrationStatusLabel(integration.status)}
+                    </span>
+                  </div>
+
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {integration.category.replaceAll("_", " ")} · {integration.providerType === "NATIVE" ? "Built In" : "Third Party"}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{integration.detail}</p>
+
+                  {integration.lastValidationMessage ? (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                      {integration.lastValidationMessage}
+                    </div>
+                  ) : null}
+
+                  {integration.connected ? (
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300">
+                      <p className="font-medium">Connector connected</p>
+                      <p className="mt-1 text-xs">
+                        Connected {integration.connectedAt ? new Date(integration.connectedAt).toLocaleString() : "recently"}
+                        {integration.tokenExpiresAt ? ` · token expires ${new Date(integration.tokenExpiresAt).toLocaleString()}` : ""}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <div className={cn("rounded-lg border p-3 text-sm", integrationSyncStatusClassName(integration))}>
+                    <p className="font-medium">{integrationSyncStatusLabel(integration)}</p>
+                    <div className="mt-1 space-y-1 text-xs">
+                      <p>Last sync start: {formatOptionalDateTime(integration.lastSyncStartedAt)}</p>
+                      <p>Last sync end: {formatOptionalDateTime(integration.lastSyncedAt)}</p>
+                      <p>
+                        {integration.lastSyncMessage ?? (
+                          integration.syncEnabled
+                            ? "Connector maintenance will publish sync results here after the first run."
+                            : "Enable sync on this connector to start scheduled maintenance and import activity."
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {integration.editable ? (
+                    isAdmin ? (
+                      <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Auth Type</label>
+                            <select
+                              value={draft.authType ?? "OAUTH2"}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "authType", e.target.value)}
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            >
+                              <option value="OAUTH2">OAuth 2.0</option>
+                              <option value="API_KEY">API Key</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Account / Tenant</label>
+                            <input
+                              type="text"
+                              value={draft.accountIdentifier ?? ""}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "accountIdentifier", e.target.value)}
+                              placeholder="Workspace, tenant, or company ID"
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Base URL</label>
+                            <input
+                              type="text"
+                              value={draft.baseUrl ?? ""}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "baseUrl", e.target.value)}
+                              placeholder="https://api.provider.com"
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Client ID</label>
+                            <input
+                              type="text"
+                              value={draft.clientId ?? ""}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "clientId", e.target.value)}
+                              placeholder="Client ID"
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Client Secret</label>
+                            <input
+                              type="password"
+                              value={draft.clientSecret ?? ""}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "clientSecret", e.target.value)}
+                              placeholder={integration.clientSecretConfigured ? "Stored secret will be kept if blank" : "Client secret or API key"}
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Redirect URI</label>
+                            <input
+                              type="text"
+                              value={draft.redirectUri ?? ""}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "redirectUri", e.target.value)}
+                              placeholder="https://your-app/callback"
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Scopes</label>
+                            <input
+                              type="text"
+                              value={draft.scopes ?? ""}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "scopes", e.target.value)}
+                              placeholder="space-separated scopes"
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-6">
+                          <label className="flex items-center gap-3 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(draft.syncEnabled)}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "syncEnabled", e.target.checked)}
+                              className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                            />
+                            Enable sync when connector jobs are ready
+                          </label>
+                          <label className="flex items-center gap-3 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(draft.active)}
+                              onChange={(e) => updateIntegrationDraft(integration.key, "active", e.target.checked)}
+                              className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                            />
+                            Mark connector active for this workspace
+                          </label>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => void handleSaveIntegration(integration.key)}
+                            disabled={integrationSavingKey === integration.key}
+                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                          >
+                            {integrationSavingKey === integration.key ? "Saving..." : "Save Connector Setup"}
+                          </button>
+                        </div>
+
+                        {isOauthConnector ? (
+                          <div className="rounded-lg border border-border bg-background p-4 space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-medium">OAuth Connection</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Start the provider authorization flow, approve access, then paste the returned authorization code here.
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                {integration.connected ? (
+                                  <button
+                                    onClick={() => void handleRefreshIntegrationOAuth(integration.key)}
+                                    disabled={integrationOAuthRefreshingKey === integration.key}
+                                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:opacity-60 transition-colors"
+                                  >
+                                    {integrationOAuthRefreshingKey === integration.key ? "Refreshing..." : "Refresh Token"}
+                                  </button>
+                                ) : null}
+                                <button
+                                  onClick={() => void handleStartIntegrationOAuth(integration.key)}
+                                  disabled={!integration.oauthReady || integrationOAuthStartingKey === integration.key}
+                                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:opacity-60 transition-colors"
+                                >
+                                  {integrationOAuthStartingKey === integration.key ? "Starting..." : integration.connected ? "Reconnect OAuth" : "Start OAuth"}
+                                </button>
+                              </div>
+                            </div>
+
+                            {!integration.oauthReady ? (
+                              <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
+                                Save the connector with client credentials and a redirect URI before starting OAuth.
+                              </div>
+                            ) : null}
+
+                            {oauth ? (
+                              <div className="space-y-3">
+                                <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Authorization URL</p>
+                                  <a
+                                    href={oauth.authorizationUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block break-all text-sm text-primary underline underline-offset-2"
+                                  >
+                                    {oauth.authorizationUrl}
+                                  </a>
+                                  <p className="text-xs text-muted-foreground">
+                                    State expires {new Date(oauth.expiresAt).toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Authorization Code</label>
+                                  <textarea
+                                    value={integrationAuthCodes[integration.key] ?? ""}
+                                    onChange={(e) =>
+                                      setIntegrationAuthCodes((prev) => ({
+                                        ...prev,
+                                        [integration.key]: e.target.value,
+                                      }))
+                                    }
+                                    rows={3}
+                                    placeholder="Paste the provider code returned after consent"
+                                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                  />
+                                </div>
+
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={() => void handleExchangeIntegrationOAuth(integration.key)}
+                                    disabled={integrationOAuthExchangingKey === integration.key || !(integrationAuthCodes[integration.key] ?? "").trim()}
+                                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                                  >
+                                    {integrationOAuthExchangingKey === integration.key ? "Connecting..." : "Exchange Code"}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
+                        Only workspace admins can manage connector credentials and activation settings.
+                      </div>
+                    )
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
+                      This channel is managed by the platform itself and does not require per-workspace OAuth setup here.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   const renderContent = () => {
+    if (activeSection === "integrations") {
+      return renderIntegrationsContent();
+    }
+
     switch (activeSection) {
       case "profile":
         return (
           <div className="space-y-6">
+            <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+              {settingsCapabilitiesLoading
+                ? "Loading account capability overview..."
+                : settingsCapabilities?.profileEditingEnabled
+                  ? "Your profile is now backed by a real account endpoint and updates will persist for this workspace user."
+                  : "Profile identity is currently sourced from your authenticated workspace session."}
+            </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
               <div className="flex items-start gap-6">
                 <div className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-semibold">
-                  {getInitials(user?.firstName || "", user?.lastName || "") || "U"}
+                  {getInitials(profileForm.firstName || user?.firstName || "", profileForm.lastName || user?.lastName || "") || "U"}
                 </div>
                 <div className="flex-1 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -713,8 +1676,8 @@ export default function SettingsPage() {
                       <label className="block text-sm font-medium mb-1">First Name</label>
                       <input
                         type="text"
-                        defaultValue={user?.firstName || ""}
-                        disabled
+                        value={profileForm.firstName}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))}
                         className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
@@ -722,8 +1685,8 @@ export default function SettingsPage() {
                       <label className="block text-sm font-medium mb-1">Last Name</label>
                       <input
                         type="text"
-                        defaultValue={user?.lastName || ""}
-                        disabled
+                        value={profileForm.lastName}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))}
                         className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
@@ -732,8 +1695,18 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium mb-1">Email</label>
                     <input
                       type="email"
-                      defaultValue={user?.email || ""}
-                      disabled
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Avatar URL</label>
+                    <input
+                      type="url"
+                      value={profileForm.avatar}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, avatar: e.target.value }))}
+                      placeholder="https://..."
                       className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
@@ -741,10 +1714,34 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium mb-1">Role</label>
                     <input
                       type="text"
-                      defaultValue={user?.role ? roleLabel(user.role as UserRole) : ""}
+                      value={accountProfile?.role ? roleLabel(accountProfile.role as UserRole) : user?.role ? roleLabel(user.role as UserRole) : ""}
                       disabled
                       className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Workspace Slug</label>
+                    <input
+                      type="text"
+                      value={accountProfile?.tenantSlug || user?.tenantSlug || ""}
+                      disabled
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
+                    <div>
+                      <p className="font-medium">Last Login</p>
+                      <p className="text-sm text-muted-foreground">
+                        {accountProfile?.lastLoginAt ? formatOptionalDateTime(accountProfile.lastLoginAt) : "Not available yet"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={profileSaving || profileLoading}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                    >
+                      {profileSaving ? "Saving..." : "Save Profile"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -779,7 +1776,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Timezone</p>
-                    <p className="text-sm text-muted-foreground">Set your local timezone</p>
+                    <p className="text-sm text-muted-foreground">Display preference only for now</p>
                   </div>
                   <select className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option>Pacific Time (PT)</option>
@@ -791,16 +1788,11 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <button
-                onClick={() => showToast("Profile editing is not wired yet. User details are currently read-only.", "info")}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                Save Changes
-              </button>
+              <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-700">
+                Profile updates now persist through the live account self-service backend, so QA can validate name, email, avatar, and session-facing identity changes from this section.
+              </div>
             </div>
-          </div>
-        );
+          );
 
       case "workspace":
         return (
@@ -1322,16 +2314,22 @@ export default function SettingsPage() {
           );
         }
 
-        if (
-          leadWorkflowLoading
-          || dealRescueWorkflowLoading
-          || quotaRiskWorkflowLoading
-          || dealApprovalWorkflowLoading
-          || governanceOpsWorkflowLoading
-          || territoryEscalationWorkflowLoading
-          || !leadWorkflowDraft
-          || !dealRescueWorkflowDraft
-          || !quotaRiskWorkflowDraft
+          if (
+            leadWorkflowLoading
+            || campaignNurtureWorkflowLoading
+            || caseAssignmentWorkflowLoading
+            || caseSlaWorkflowLoading
+            || dealRescueWorkflowLoading
+            || quotaRiskWorkflowLoading
+            || dealApprovalWorkflowLoading
+            || governanceOpsWorkflowLoading
+            || territoryEscalationWorkflowLoading
+            || !leadWorkflowDraft
+            || !campaignNurtureWorkflowDraft
+            || !caseAssignmentWorkflowDraft
+            || !caseSlaWorkflowDraft
+            || !dealRescueWorkflowDraft
+            || !quotaRiskWorkflowDraft
           || !dealApprovalWorkflowDraft
           || !governanceOpsWorkflowDraft
           || !territoryEscalationWorkflowDraft
@@ -1611,10 +2609,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                Lead intake is now joined by deal rescue on the same tenant-managed workflow foundation, so future automations can reuse this pattern instead of becoming more hardcoded service logic.
-              </div>
-
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setLeadWorkflowDraft(leadWorkflow)}
@@ -1631,6 +2625,508 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-semibold">Campaign Nurture Workflow</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Accelerate campaign-attributed leads with a score boost, tighter follow-up SLA, and campaign-specific priority routing.
+                  </p>
+                </div>
+                <span className={cn(
+                  "px-3 py-1 text-xs rounded-full border",
+                  campaignNurtureWorkflowDraft.isActive
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                )}>
+                  {campaignNurtureWorkflowDraft.isActive ? "Active" : "Paused"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Name</label>
+                  <input
+                    type="text"
+                    value={campaignNurtureWorkflowDraft.name}
+                    onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Status</label>
+                  <button
+                    onClick={() => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative mt-2",
+                      campaignNurtureWorkflowDraft.isActive ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
+                        campaignNurtureWorkflowDraft.isActive ? "translate-x-6" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={campaignNurtureWorkflowDraft.description || ""}
+                    onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, description: e.target.value } : prev)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                  <div>
+                    <p className="font-medium">Attribution Guardrails</p>
+                    <p className="text-sm text-muted-foreground">Choose whether only live campaigns should trigger nurture acceleration.</p>
+                  </div>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={campaignNurtureWorkflowDraft.requireActiveCampaign}
+                      onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, requireActiveCampaign: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Only accelerate leads tied to active campaigns
+                  </label>
+                </div>
+
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Nurture Acceleration</p>
+                    <p className="text-sm text-muted-foreground">Boost score and speed for attributed leads when campaigns are performing.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Score Boost</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={campaignNurtureWorkflowDraft.campaignScoreBoost}
+                        onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, campaignScoreBoost: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Follow-up Days</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={campaignNurtureWorkflowDraft.campaignFollowUpDays}
+                        onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, campaignFollowUpDays: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Task Priority</label>
+                      <select
+                        value={campaignNurtureWorkflowDraft.campaignTaskPriority}
+                        onChange={(e) => setCampaignNurtureWorkflowDraft((prev) => prev ? { ...prev, campaignTaskPriority: e.target.value as CampaignNurtureWorkflowSettings["campaignTaskPriority"] } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                Campaign nurture now sits beside lead intake on the same tenant-managed workflow foundation, so marketing-attributed follow-up can be tuned without editing backend service logic.
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCampaignNurtureWorkflowDraft(campaignNurtureWorkflow)}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={handleSaveCampaignNurtureWorkflow}
+                  disabled={campaignNurtureWorkflowSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {campaignNurtureWorkflowSaving ? "Saving..." : "Save Campaign Nurture Workflow"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-semibold">Case SLA Workflow</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Control default support-case targets, breach follow-up tasks, and when breached cases escalate automatically.
+                  </p>
+                </div>
+                <span className={cn(
+                  "px-3 py-1 text-xs rounded-full border",
+                  caseSlaWorkflowDraft.isActive
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                )}>
+                  {caseSlaWorkflowDraft.isActive ? "Active" : "Paused"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Name</label>
+                  <input
+                    type="text"
+                    value={caseSlaWorkflowDraft.name}
+                    onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Status</label>
+                  <button
+                    onClick={() => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative mt-2",
+                      caseSlaWorkflowDraft.isActive ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
+                        caseSlaWorkflowDraft.isActive ? "translate-x-6" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={caseSlaWorkflowDraft.description || ""}
+                    onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, description: e.target.value } : prev)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Default SLA Targets</p>
+                    <p className="text-sm text-muted-foreground">Define workspace-level response and resolution targets by case priority.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Response</label>
+                      <input type="number" min={1} max={72} value={caseSlaWorkflowDraft.urgentResponseHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, urgentResponseHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Resolution</label>
+                      <input type="number" min={1} max={168} value={caseSlaWorkflowDraft.urgentResolutionHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, urgentResolutionHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Medium Response</label>
+                      <input type="number" min={1} max={168} value={caseSlaWorkflowDraft.mediumResponseHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, mediumResponseHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Medium Resolution</label>
+                      <input type="number" min={1} max={336} value={caseSlaWorkflowDraft.mediumResolutionHours} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, mediumResolutionHours: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.autoResponseTargetsEnabled} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, autoResponseTargetsEnabled: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Auto-apply response targets when a case is created
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.autoResolutionTargetsEnabled} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, autoResolutionTargetsEnabled: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Auto-apply resolution targets when a case is created
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Breach Automation</p>
+                    <p className="text-sm text-muted-foreground">Route follow-up work and escalations automatically once a case breaches its SLA.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.createBreachTasks} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, createBreachTasks: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Create breach follow-up tasks
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.autoEscalateBreachedCases} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, autoEscalateBreachedCases: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Automatically move breached cases to escalated status
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.escalateOnResponseBreach} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalateOnResponseBreach: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Escalate when response SLA is breached
+                    </label>
+                    <label className="flex items-center gap-3 text-sm">
+                      <input type="checkbox" checked={caseSlaWorkflowDraft.escalateOnResolutionBreach} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalateOnResolutionBreach: e.target.checked } : prev)} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                      Escalate when resolution SLA is breached
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Response Task Due</label>
+                      <input type="number" min={0} max={30} value={caseSlaWorkflowDraft.responseBreachTaskDueDays} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, responseBreachTaskDueDays: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Resolution Task Due</label>
+                      <input type="number" min={0} max={30} value={caseSlaWorkflowDraft.resolutionBreachTaskDueDays} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, resolutionBreachTaskDueDays: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Escalation Task Due</label>
+                      <input type="number" min={0} max={30} value={caseSlaWorkflowDraft.escalationTaskDueDays} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalationTaskDueDays: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Escalation Priority</label>
+                      <select value={caseSlaWorkflowDraft.escalationTaskPriority} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, escalationTaskPriority: e.target.value as CaseSlaWorkflowSettings["escalationTaskPriority"] } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div>
+                  <p className="font-medium">Customer Tier Accelerators</p>
+                  <p className="text-sm text-muted-foreground">
+                    Shorten default SLA targets for premium and strategic customers without changing the base priority ladder.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Premium Response %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.premiumResponseMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, premiumResponseMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Strategic Response %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.strategicResponseMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, strategicResponseMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Premium Resolution %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.premiumResolutionMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, premiumResolutionMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Strategic Resolution %</label>
+                    <input type="number" min={25} max={100} value={caseSlaWorkflowDraft.strategicResolutionMultiplierPercent} onChange={(e) => setCaseSlaWorkflowDraft((prev) => prev ? { ...prev, strategicResolutionMultiplierPercent: Number(e.target.value) } : prev)} className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+                  `100%` keeps the standard SLA. Lower percentages make the target faster. Strategic targets should stay equal to or faster than premium targets.
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCaseSlaWorkflowDraft(caseSlaWorkflow)}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={handleSaveCaseSlaWorkflow}
+                  disabled={caseSlaWorkflowSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {caseSlaWorkflowSaving ? "Saving..." : "Save Case SLA Workflow"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-semibold">Case Assignment Workflow</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Control how unassigned and escalated support cases get routed, whether account owners are preferred, and how quickly assignment tasks are due.
+                  </p>
+                </div>
+                <span className={cn(
+                  "px-3 py-1 text-xs rounded-full border",
+                  caseAssignmentWorkflowDraft.isActive
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                )}>
+                  {caseAssignmentWorkflowDraft.isActive ? "Active" : "Paused"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Name</label>
+                  <input
+                    type="text"
+                    value={caseAssignmentWorkflowDraft.name}
+                    onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Workflow Status</label>
+                  <button
+                    onClick={() => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, isActive: !prev.isActive } : prev)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative mt-2",
+                      caseAssignmentWorkflowDraft.isActive ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
+                        caseAssignmentWorkflowDraft.isActive ? "translate-x-6" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={caseAssignmentWorkflowDraft.description || ""}
+                    onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, description: e.target.value } : prev)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+                  <div>
+                    <p className="font-medium">Queue Triggers</p>
+                    <p className="text-sm text-muted-foreground">Choose which support cases should be included when assignment automation runs.</p>
+                  </div>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.autoAssignUnassignedCases}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, autoAssignUnassignedCases: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Assign new cases that do not have an owner
+                  </label>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.autoReassignEscalatedCases}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, autoReassignEscalatedCases: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Re-route escalated cases for fresh ownership review
+                  </label>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.preferAccountOwner}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, preferAccountOwner: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Prefer the linked account owner before falling back to load balancing
+                  </label>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={caseAssignmentWorkflowDraft.createAssignmentTasks}
+                      onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, createAssignmentTasks: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    Create assignment tasks for routed cases
+                  </label>
+                </div>
+
+                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                  <div>
+                    <p className="font-medium">Assignment Task SLA</p>
+                    <p className="text-sm text-muted-foreground">Set separate due dates and priorities for urgent support work versus the standard queue.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Default Due Days</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={caseAssignmentWorkflowDraft.defaultAssignmentTaskDueDays}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, defaultAssignmentTaskDueDays: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Due Days</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        value={caseAssignmentWorkflowDraft.urgentAssignmentTaskDueDays}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, urgentAssignmentTaskDueDays: Number(e.target.value) } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Default Priority</label>
+                      <select
+                        value={caseAssignmentWorkflowDraft.defaultAssignmentTaskPriority}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, defaultAssignmentTaskPriority: e.target.value as CaseAssignmentWorkflowSettings["defaultAssignmentTaskPriority"] } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Urgent Priority</label>
+                      <select
+                        value={caseAssignmentWorkflowDraft.urgentAssignmentTaskPriority}
+                        onChange={(e) => setCaseAssignmentWorkflowDraft((prev) => prev ? { ...prev, urgentAssignmentTaskPriority: e.target.value as CaseAssignmentWorkflowSettings["urgentAssignmentTaskPriority"] } : prev)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCaseAssignmentWorkflowDraft(caseAssignmentWorkflow)}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={handleSaveCaseAssignmentWorkflow}
+                  disabled={caseAssignmentWorkflowSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {caseAssignmentWorkflowSaving ? "Saving..." : "Save Case Assignment Workflow"}
+                </button>
+              </div>
+            </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+               Lead intake, campaign nurture, case assignment, case SLA, and deal rescue now share the same tenant-managed workflow foundation, so new automation lanes can keep reusing the same policy surface instead of becoming hardcoded service logic.
+              </div>
 
             <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
               <div className="flex items-center justify-between gap-4">
@@ -2493,9 +3989,17 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <h3 className="text-lg font-semibold">Notification Preferences</h3>
             <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-              These notification preferences are currently stored only in this browser and are not
-              synced to your account yet.
+              {settingsCapabilitiesLoading
+                ? "Loading notification capability overview..."
+                : settingsCapabilities?.notificationSyncEnabled
+                  ? "Notification preferences are synced to your account and persist across sessions."
+                  : "Notification preferences are not synced yet."}
             </div>
+            {notificationLoading || !notificationPreferences ? (
+              <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                Loading notification preferences...
+              </div>
+            ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div>
@@ -2503,15 +4007,16 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Receive updates via email</p>
                 </div>
                 <button
-                  onClick={() => setEmailNotifications(!emailNotifications)}
+                  onClick={() => void handleToggleNotificationPreference("emailNotificationsEnabled")}
+                  disabled={notificationSaving}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    emailNotifications ? "bg-primary" : "bg-muted"
+                    notificationPreferences.emailNotificationsEnabled ? "bg-primary" : "bg-muted"
                   )}
                 >
                   <div className={cn(
                     "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
-                    emailNotifications ? "translate-x-6" : "translate-x-0.5"
+                    notificationPreferences.emailNotificationsEnabled ? "translate-x-6" : "translate-x-0.5"
                   )} />
                 </button>
               </div>
@@ -2521,73 +4026,110 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Receive push notifications in browser</p>
                 </div>
                 <button
-                  onClick={() => setPushNotifications(!pushNotifications)}
+                  onClick={() => void handleToggleNotificationPreference("pushNotificationsEnabled")}
+                  disabled={notificationSaving}
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
-                    pushNotifications ? "bg-primary" : "bg-muted"
+                    notificationPreferences.pushNotificationsEnabled ? "bg-primary" : "bg-muted"
                   )}
                 >
                   <div className={cn(
                     "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
-                    pushNotifications ? "translate-x-6" : "translate-x-0.5"
+                    notificationPreferences.pushNotificationsEnabled ? "translate-x-6" : "translate-x-0.5"
                   )} />
                 </button>
               </div>
               <div className="border-t border-border pt-4">
                 <h4 className="font-medium mb-3">Notify me about:</h4>
                 <div className="space-y-2">
-                  {["New leads assigned", "Deal stage changes", "Task reminders", "Team mentions", "Weekly reports"].map((item) => (
-                    <label key={item} className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                      <span className="text-sm">{item}</span>
+                  {[
+                    ["New leads assigned", "leadAssignmentEnabled"],
+                    ["Deal stage changes", "dealStageChangesEnabled"],
+                    ["Task reminders", "taskRemindersEnabled"],
+                    ["Team mentions", "teamMentionsEnabled"],
+                    ["Weekly reports", "weeklyReportsEnabled"],
+                  ].map(([label, key]) => (
+                    <label key={label} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(notificationPreferences[key as keyof NotificationPreferences])}
+                        onChange={() => void handleToggleNotificationPreference(key as keyof NotificationPreferences)}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm">{label}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
+            )}
           </div>
         );
 
       case "integrations":
         return (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold">Connected Apps</h3>
-            <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-              {previewSectionMessage}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Integrations And System Connectors</h3>
+              <p className="text-sm text-muted-foreground">
+                This view shows the product&apos;s actual integration capability state. Native CRM
+                channels are marked as active or configured, while third-party connectors stay in
+                setup-ready until a workspace completes live provider authorization and first sync.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { name: "Slack", description: "Team communication", connected: true },
-                { name: "Google Calendar", description: "Calendar sync", connected: true },
-                { name: "Salesforce", description: "CRM import", connected: false },
-                { name: "HubSpot", description: "Marketing automation", connected: false },
-                { name: "Zapier", description: "Workflow automation", connected: true },
-                { name: "Mailchimp", description: "Email campaigns", connected: false },
-              ].map((app) => (
-                <div key={app.name} className="p-4 bg-card border border-border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{app.name}</p>
-                      <p className="text-sm text-muted-foreground">{app.description}</p>
-                    </div>
-                    <button className={cn(
-                      "px-3 py-1.5 text-sm rounded-lg transition-colors",
-                      app.connected
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    )}
-                    onClick={() =>
-                      showToast(
-                        `${app.name} integration is still in preview and not wired yet.`,
-                        "info"
-                      )
-                    }>
-                      {app.connected ? "Connected" : "Connect"}
-                    </button>
+            {settingsCapabilitiesLoading ? (
+              <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                Loading integration capability overview...
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Native Channels</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {settingsCapabilities?.integrations.filter((item) => item.providerType === "NATIVE").length ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configured</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {settingsCapabilities?.integrations.filter((item) => ["ACTIVE", "CONFIGURED"].includes(item.status)).length ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview Connectors</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {settingsCapabilities?.integrations.filter((item) => item.status === "PREVIEW").length ?? 0}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(settingsCapabilities?.integrations ?? []).map((integration) => (
+                    <div key={integration.key} className="p-4 bg-card border border-border rounded-lg space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{integration.name}</p>
+                          <p className="text-sm text-muted-foreground">{integration.description}</p>
+                        </div>
+                        <span
+                          className={cn(
+                            "px-3 py-1.5 text-xs rounded-full transition-colors",
+                            integrationStatusClassName(integration.status)
+                          )}
+                        >
+                          {integrationStatusLabel(integration.status)}
+                        </span>
+                      </div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {integration.category.replaceAll("_", " ")} · {integration.providerType === "NATIVE" ? "Built In" : "Third Party"}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{integration.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         );
 
@@ -2596,43 +4138,52 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <h3 className="text-lg font-semibold">Subscription</h3>
             <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-              {previewSectionMessage}
+              {settingsCapabilitiesLoading
+                ? "Loading workspace billing capability overview..."
+                : settingsCapabilities?.billingPortalEnabled
+                  ? "Billing portal actions are available for this workspace."
+                  : "Workspace tier is live, but billing portal actions are not configured for this environment."}
             </div>
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-primary">Professional Plan</p>
-                  <p className="text-sm text-muted-foreground">$49 per user/month, 5 users</p>
+                  <p className="font-semibold text-primary">
+                    {billingSummary?.tenantTier ? tenantTierLabels[billingSummary.tenantTier] : user?.tenantTier ? tenantTierLabels[user.tenantTier] : "Free"} Workspace
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {billingLoading ? "Loading billing connection..." : billingSummary?.detail || "Tenant-aware workspace tier from authentication and billing state."}
+                  </p>
                 </div>
                 <button
-                  onClick={() => showToast("Billing upgrades are not wired yet.", "info")}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  onClick={() => void handleOpenBillingPortal()}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
                 >
-                  Upgrade
+                  Open Billing Portal
                 </button>
               </div>
             </div>
-            <div>
-              <h4 className="font-medium mb-3">Billing History</h4>
-              <div className="space-y-2">
-                {[
-                  { date: "Dec 1, 2024", amount: "$245.00", status: "Paid" },
-                  { date: "Nov 1, 2024", amount: "$245.00", status: "Paid" },
-                  { date: "Oct 1, 2024", amount: "$245.00", status: "Paid" },
-                ].map((invoice, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm">{invoice.date}</span>
-                    <span className="text-sm font-medium">{invoice.amount}</span>
-                    <span className="text-sm text-green-600">{invoice.status}</span>
-                    <button
-                      onClick={() => showToast("Billing document downloads are not wired yet.", "info")}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Download
-                    </button>
-                  </div>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace Tier</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {billingSummary?.tenantTier ? tenantTierLabels[billingSummary.tenantTier] : user?.tenantTier ? tenantTierLabels[user.tenantTier] : "Free"}
+                </p>
               </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Portal Access</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {billingSummary?.portalEnabled ? "Enabled" : "Not Configured"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace Scope</p>
+                <p className="mt-2 text-sm font-semibold">{billingSummary?.tenantName || user?.tenantName || "Workspace"}</p>
+              </div>
+            </div>
+            <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+              {billingSummary?.portalEnabled && billingSummary.portalUrl
+                ? `Billing portal ready: ${billingSummary.portalUrl}`
+                : "Configure BILLING_PORTAL_BASE_URL to expose a live billing portal for this workspace."}
             </div>
           </div>
         );
@@ -2642,51 +4193,208 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <h3 className="text-lg font-semibold">Security Settings</h3>
             <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-              {previewSectionMessage}
+              {settingsCapabilitiesLoading
+                ? "Loading security capability overview..."
+                : "Authentication and access control are live, and self-service password, 2FA, and session controls are now available from this workspace."}
             </div>
-            <div className="space-y-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Change Password</p>
-                    <p className="text-sm text-muted-foreground">Last changed 30 days ago</p>
-                  </div>
-                  <button
-                    onClick={() => showToast("Password management is not wired yet.", "info")}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
-                  >
-                    Update
-                  </button>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Authentication</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {settingsCapabilities?.jwtAuthenticationEnabled ? "JWT Sessions" : "Not detected"}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Workspace-authenticated API access is active for this account.
+                </p>
               </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Two-Factor Authentication</p>
-                    <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-                  </div>
-                  <button
-                    onClick={() => showToast("Two-factor authentication is not wired yet.", "info")}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    Enable
-                  </button>
-                </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Access Control</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {settingsCapabilities?.permissionBasedAccessEnabled ? "Permission Based RBAC" : "Role Only"}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Backend access checks now use permission and scoped-record rules.
+                </p>
               </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Active Sessions</p>
-                    <p className="text-sm text-muted-foreground">2 devices currently logged in</p>
-                  </div>
-                  <button
-                    onClick={() => showToast("Session management is not wired yet.", "info")}
-                    className="px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  >
-                    Sign Out All
-                  </button>
-                </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Password Self-Service</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {settingsCapabilities?.passwordSelfServiceEnabled ? "Enabled" : "Not Wired"}
+                </p>
               </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Two-Factor Authentication</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {twoFactorStatus?.enabled ? "Enabled" : twoFactorStatus?.pendingVerification ? "Pending Verification" : settingsCapabilities?.twoFactorEnabled ? "Available" : "Not Wired"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Session Management</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {settingsCapabilities?.sessionManagementEnabled ? `${sessions.length} Session${sessions.length === 1 ? "" : "s"}` : "Not Wired"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace Isolation</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {settingsCapabilities?.dedicatedDatabaseSupported ? "Dedicated DB Supported" : "Shared Only"}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+                <div>
+                  <h4 className="font-semibold">Change Password</h4>
+                  <p className="text-sm text-muted-foreground">Update your password and optionally revoke every other session.</p>
+                </div>
+                <input
+                  type="password"
+                  placeholder="Current password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+                <input
+                  type="password"
+                  placeholder="New password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+                <label className="flex items-center gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={passwordForm.revokeOtherSessions}
+                    onChange={(e) => setPasswordForm((prev) => ({ ...prev, revokeOtherSessions: e.target.checked }))}
+                  />
+                  Revoke other active sessions after the password change
+                </label>
+                <button
+                  onClick={() => void handleChangePassword()}
+                  disabled={passwordSaving}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {passwordSaving ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+                <div>
+                  <h4 className="font-semibold">Two-Factor Authentication</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {twoFactorStatus?.enabled
+                      ? `Enabled${twoFactorStatus.enabledAt ? ` on ${formatOptionalDateTime(twoFactorStatus.enabledAt)}` : ""}.`
+                      : "Protect sign-in with a time-based one-time code."}
+                  </p>
+                </div>
+                {!twoFactorStatus?.enabled && !twoFactorSetup && (
+                  <button
+                    onClick={() => void handleBeginTwoFactorSetup()}
+                    disabled={twoFactorLoading}
+                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:opacity-60 transition-colors"
+                  >
+                    {twoFactorLoading ? "Preparing..." : "Start 2FA Setup"}
+                  </button>
+                )}
+                {twoFactorSetup && (
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">Add this key to your authenticator app, then confirm the 6-digit code.</p>
+                    <div className="rounded bg-background p-3 text-sm break-all">{twoFactorSetup.manualEntryKey}</div>
+                    <div className="rounded bg-background p-3 text-xs break-all">{twoFactorSetup.otpauthUri}</div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="123456"
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value)}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                    />
+                    <button
+                      onClick={() => void handleEnableTwoFactor()}
+                      disabled={twoFactorLoading}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                    >
+                      {twoFactorLoading ? "Enabling..." : "Enable 2FA"}
+                    </button>
+                  </div>
+                )}
+                {twoFactorStatus?.enabled && (
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                    <input
+                      type="password"
+                      placeholder="Current password to disable 2FA"
+                      value={twoFactorDisablePassword}
+                      onChange={(e) => setTwoFactorDisablePassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                    />
+                    <button
+                      onClick={() => void handleDisableTwoFactor()}
+                      disabled={twoFactorLoading}
+                      className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-60 transition-colors"
+                    >
+                      {twoFactorLoading ? "Disabling..." : "Disable 2FA"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-semibold">Active Sessions</h4>
+                  <p className="text-sm text-muted-foreground">Review and revoke current or stale sessions.</p>
+                </div>
+                <button
+                  onClick={() => void handleRevokeOtherSessions()}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Revoke Other Sessions
+                </button>
+              </div>
+              {sessionsLoading ? (
+                <div className="text-sm text-muted-foreground">Loading sessions...</div>
+              ) : (
+                <div className="space-y-3">
+                  {sessions.map((session) => (
+                    <div key={session.sessionId} className="rounded-lg border border-border p-4 flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{session.currentSession ? "Current Session" : "Active Session"}</p>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-xs",
+                            session.active ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-muted text-muted-foreground"
+                          )}>
+                            {session.active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{session.userAgent || "Unknown device"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Last used {session.lastUsedAt ? formatOptionalDateTime(session.lastUsedAt) : "unknown"} • IP {session.ipAddress || "unknown"}
+                        </p>
+                      </div>
+                      {!session.currentSession && session.active && (
+                        <button
+                          onClick={() => void handleRevokeSession(session.sessionId)}
+                          className="px-3 py-2 text-sm bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {!sessions.length && (
+                    <div className="text-sm text-muted-foreground">No sessions found for this account yet.</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );

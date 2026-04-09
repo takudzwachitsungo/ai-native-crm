@@ -10,18 +10,25 @@ import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Contacts from './pages/Contacts';
 import Companies from './pages/Companies';
+import Campaigns from './pages/Campaigns';
+import Cases from './pages/Cases';
 import Deals from './pages/Deals';
 import Pipeline from './pages/Pipeline';
 import Products from './pages/Products';
 import Quotes from './pages/Quotes';
 import Invoices from './pages/Invoices';
+import Contracts from './pages/Contracts';
+import Documents from './pages/Documents';
 import Tasks from './pages/Tasks';
 import Calendar from './pages/Calendar';
 import Email from './pages/Email';
 import Reports from './pages/Reports';
 import Forecasting from './pages/Forecasting';
+import RevenueOps from './pages/RevenueOps';
+import FieldService from './pages/FieldService';
 import Settings from './pages/Settings';
 import Chat from './pages/Chat';
+import IntegrationOAuthCallback from './pages/IntegrationOAuthCallback';
 import Login from './pages/Login';
 import './index.css';
 
@@ -79,17 +86,24 @@ function App() {
                         <Route path="/leads" element={<Leads />} />
                         <Route path="/contacts" element={<Contacts />} />
                         <Route path="/companies" element={<Companies />} />
+                        <Route path="/campaigns" element={<Campaigns />} />
+                        <Route path="/cases" element={<Cases />} />
                         <Route path="/deals" element={<Deals />} />
                         <Route path="/pipeline" element={<Pipeline />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/quotes" element={<Quotes />} />
+                        <Route path="/contracts" element={<Contracts />} />
                         <Route path="/invoices" element={<Invoices />} />
+                        <Route path="/documents" element={<Documents />} />
                         <Route path="/tasks" element={<Tasks />} />
                         <Route path="/calendar" element={<Calendar />} />
                         <Route path="/email" element={<Email />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/forecasting" element={<Forecasting />} />
+                        <Route path="/revenue-ops" element={<RevenueOps />} />
+                        <Route path="/field-service" element={<FieldService />} />
                         <Route path="/settings" element={<Settings />} />
+                        <Route path="/settings/integrations/:provider/callback" element={<IntegrationOAuthCallback />} />
                         <Route path="/chat" element={<Chat />} />
                       </Routes>
                     </main>

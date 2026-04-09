@@ -17,6 +17,7 @@ export interface LoginRequest {
   email: string;
   password: string;
   workspaceSlug?: string;
+  otpCode?: string;
 }
 
 export interface RegisterRequest {
@@ -43,6 +44,8 @@ export interface AuthResponse {
   firstName: string;
   lastName: string;
   role: UserRole;
+  permissions?: string[];
+  dataScopes?: string[];
 }
 
 export type TenantTier = 'FREE' | 'PRO' | 'ENTERPRISE';
@@ -114,6 +117,212 @@ export interface TenantDatabaseSettings {
   lastValidationMessage?: string | null;
 }
 
+export type IntegrationCapabilityStatus =
+  | 'ACTIVE'
+  | 'CONFIGURED'
+  | 'SETUP_REQUIRED'
+  | 'AVAILABLE'
+  | 'PREVIEW';
+
+export interface IntegrationCapability {
+  key: string;
+  name: string;
+  category: string;
+  providerType: 'NATIVE' | 'THIRD_PARTY';
+  status: IntegrationCapabilityStatus;
+  description: string;
+  detail: string;
+}
+
+export interface SettingsCapabilityOverview {
+  profileEditingEnabled: boolean;
+  notificationSyncEnabled: boolean;
+  billingPortalEnabled: boolean;
+  passwordSelfServiceEnabled: boolean;
+  twoFactorEnabled: boolean;
+  sessionManagementEnabled: boolean;
+  jwtAuthenticationEnabled: boolean;
+  permissionBasedAccessEnabled: boolean;
+  dedicatedDatabaseSupported: boolean;
+  smtpConfigured: boolean;
+  integrations: IntegrationCapability[];
+}
+
+export interface AccountProfile {
+  userId: string;
+  tenantId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string | null;
+  role: UserRole;
+  tenantName: string;
+  tenantSlug: string;
+  tenantTier: TenantTier;
+  lastLoginAt?: string | null;
+}
+
+export interface AccountProfileUpdateRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string;
+}
+
+export interface NotificationPreferences {
+  emailNotificationsEnabled: boolean;
+  pushNotificationsEnabled: boolean;
+  leadAssignmentEnabled: boolean;
+  dealStageChangesEnabled: boolean;
+  taskRemindersEnabled: boolean;
+  teamMentionsEnabled: boolean;
+  weeklyReportsEnabled: boolean;
+}
+
+export interface NotificationPreferenceUpdateRequest {
+  emailNotificationsEnabled?: boolean;
+  pushNotificationsEnabled?: boolean;
+  leadAssignmentEnabled?: boolean;
+  dealStageChangesEnabled?: boolean;
+  taskRemindersEnabled?: boolean;
+  teamMentionsEnabled?: boolean;
+  weeklyReportsEnabled?: boolean;
+}
+
+export interface UserSessionSummary {
+  sessionId: string;
+  currentSession: boolean;
+  active: boolean;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+  createdAt?: string | null;
+  lastUsedAt?: string | null;
+  expiresAt?: string | null;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
+}
+
+export interface BillingPortalSummary {
+  tenantName: string;
+  tenantSlug: string;
+  tenantTier: TenantTier;
+  portalEnabled: boolean;
+  portalUrl?: string | null;
+  detail: string;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  pendingVerification: boolean;
+  issuer: string;
+  enabledAt?: string | null;
+}
+
+export interface TwoFactorSetup {
+  enabled: boolean;
+  pendingVerification: boolean;
+  issuer: string;
+  manualEntryKey: string;
+  otpauthUri: string;
+}
+
+export type ForecastSubmissionStatus = 'SUBMITTED' | 'APPROVED' | 'CHANGES_REQUESTED';
+
+export interface ForecastSubmissionSummary {
+  id: string;
+  title: string;
+  forecast_category: 'COMMIT' | 'BEST_CASE' | 'UPSIDE';
+  manager_adjustment_percent: number;
+  snapshot_label?: string | null;
+  notes?: string | null;
+  status: ForecastSubmissionStatus;
+  submitted_at: string;
+  submitted_by_user_id: string;
+  reviewed_at?: string | null;
+  reviewed_by_user_id?: string | null;
+  review_notes?: string | null;
+  forecast_snapshot: {
+    generated_at?: string;
+    final_forecast?: number;
+    base_forecast?: number;
+    total_quota?: number;
+    forecast_vs_quota?: number;
+    forecast_category?: 'COMMIT' | 'BEST_CASE' | 'UPSIDE';
+    manager_adjustment_percent?: number;
+    variance_to_prior?: Record<string, any> | null;
+    snapshot_history?: Array<any>;
+    rollup_hierarchy?: Array<any>;
+  };
+}
+
+export interface WorkspaceIntegration {
+  id?: string;
+  key: string;
+  name: string;
+  category: string;
+  providerType: 'NATIVE' | 'THIRD_PARTY';
+  status: IntegrationCapabilityStatus;
+  description: string;
+  detail: string;
+  editable: boolean;
+  authType?: string | null;
+  baseUrl?: string | null;
+  clientId?: string | null;
+  clientIdConfigured: boolean;
+  clientSecretConfigured: boolean;
+  accountIdentifier?: string | null;
+  redirectUri?: string | null;
+  scopes?: string | null;
+  syncEnabled: boolean;
+  active: boolean;
+  lastValidatedAt?: string | null;
+  lastValidationSucceeded?: boolean | null;
+  lastValidationMessage?: string | null;
+  connected?: boolean;
+  connectedAt?: string | null;
+  tokenExpiresAt?: string | null;
+  oauthReady?: boolean;
+  lastSyncStartedAt?: string | null;
+  lastSyncedAt?: string | null;
+  lastSyncSucceeded?: boolean | null;
+  lastSyncMessage?: string | null;
+}
+
+export interface WorkspaceIntegrationUpdateRequest {
+  authType?: string;
+  baseUrl?: string;
+  clientId?: string;
+  clientSecret?: string;
+  accountIdentifier?: string;
+  redirectUri?: string;
+  scopes?: string;
+  syncEnabled?: boolean;
+  active?: boolean;
+}
+
+export interface WorkspaceIntegrationOAuthStart {
+  providerKey: string;
+  authorizationUrl: string;
+  state: string;
+  expiresAt: string;
+}
+
+export interface WorkspaceIntegrationOAuthExchangeRequest {
+  code: string;
+  state: string;
+}
+
+export interface IntegrationSyncResult {
+  providerKey: string;
+  entityType: string;
+  fetchedCount: number;
+  importedCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  summary: string;
+  syncedAt: string;
+}
+
 export interface WorkspaceTerritory {
   id: string;
   name: string;
@@ -141,6 +350,72 @@ export interface LeadIntakeWorkflowSettings {
   fastTrackValueThreshold: number;
   defaultTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
   fastTrackTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CampaignNurtureWorkflowSettings {
+  id?: string;
+  ruleType: 'CAMPAIGN_NURTURE';
+  name: string;
+  description?: string;
+  isActive: boolean;
+  requireActiveCampaign: boolean;
+  campaignScoreBoost: number;
+  campaignFollowUpDays: number;
+  campaignTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CaseAssignmentWorkflowSettings {
+  id?: string;
+  ruleType: 'CASE_ASSIGNMENT';
+  name: string;
+  description?: string;
+  isActive: boolean;
+  autoAssignUnassignedCases: boolean;
+  autoReassignEscalatedCases: boolean;
+  preferAccountOwner: boolean;
+  createAssignmentTasks: boolean;
+  defaultAssignmentTaskDueDays: number;
+  urgentAssignmentTaskDueDays: number;
+  defaultAssignmentTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  urgentAssignmentTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CaseSlaWorkflowSettings {
+  id?: string;
+  ruleType: 'CASE_SLA';
+  name: string;
+  description?: string;
+  isActive: boolean;
+  autoResponseTargetsEnabled: boolean;
+  autoResolutionTargetsEnabled: boolean;
+  urgentResponseHours: number;
+  highResponseHours: number;
+  mediumResponseHours: number;
+  lowResponseHours: number;
+  urgentResolutionHours: number;
+  highResolutionHours: number;
+  mediumResolutionHours: number;
+  lowResolutionHours: number;
+  premiumResponseMultiplierPercent: number;
+  strategicResponseMultiplierPercent: number;
+  premiumResolutionMultiplierPercent: number;
+  strategicResolutionMultiplierPercent: number;
+  createBreachTasks: boolean;
+  responseBreachTaskDueDays: number;
+  resolutionBreachTaskDueDays: number;
+  responseBreachTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  resolutionBreachTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
+  autoEscalateBreachedCases: boolean;
+  escalateOnResponseBreach: boolean;
+  escalateOnResolutionBreach: boolean;
+  escalationTaskDueDays: number;
+  escalationTaskPriority: 'LOW' | 'MEDIUM' | 'HIGH';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -528,6 +803,8 @@ export interface Lead {
   ownerId?: string;
   ownerName?: string;
   ownerTerritory?: string;
+  campaignId?: string;
+  campaignName?: string;
   territoryMismatch?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -879,6 +1156,197 @@ export interface Quote {
   updatedAt?: string;
 }
 
+export interface Contract {
+  id?: string;
+  tenantId?: string;
+  contractNumber: string;
+  title?: string;
+  companyId: string;
+  companyName?: string;
+  contactId?: string;
+  contactName?: string;
+  quoteId?: string;
+  quoteNumber?: string;
+  ownerId?: string;
+  ownerName?: string;
+  territory?: string;
+  status?: 'DRAFT' | 'ACTIVE' | 'RENEWAL_DUE' | 'TERMINATED' | 'EXPIRED';
+  startDate: string;
+  endDate: string;
+  renewalDate?: string;
+  autoRenew?: boolean;
+  renewalNoticeDays?: number;
+  contractValue?: number;
+  renewalInvoiceId?: string;
+  renewalInvoiceGeneratedAt?: string;
+  renewedFromContractId?: string;
+  renewedToContractId?: string;
+  activatedAt?: string;
+  terminatedAt?: string;
+  terminationReason?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Campaign {
+  id?: string;
+  name: string;
+  type: 'EMAIL' | 'EVENT' | 'SOCIAL' | 'CONTENT' | 'WEBINAR' | 'PARTNERSHIP' | 'OUTBOUND' | 'OTHER';
+  status: 'DRAFT' | 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
+  channel: 'EMAIL' | 'SOCIAL' | 'PAID_ADS' | 'WEBSITE' | 'EVENT' | 'PHONE' | 'SMS' | 'PARTNER' | 'MULTI_CHANNEL';
+  targetAudience?: string;
+  segmentType?: 'INDUSTRY' | 'TERRITORY' | 'PERSONA' | 'ACCOUNT_BASED' | 'LIFECYCLE' | 'CUSTOM';
+  segmentName?: string;
+  primaryPersona?: string;
+  territoryFocus?: string;
+  journeyStage?: 'AWARENESS' | 'CONSIDERATION' | 'DECISION' | 'EXPANSION' | 'RETENTION';
+  autoEnrollNewLeads?: boolean;
+  nurtureCadenceDays?: number;
+  nurtureTouchCount?: number;
+  primaryCallToAction?: string;
+  audienceSize?: number;
+  budget?: number;
+  expectedRevenue?: number;
+  actualRevenue?: number;
+  leadsGenerated?: number;
+  opportunitiesCreated?: number;
+  conversions?: number;
+  startDate?: string;
+  endDate?: string;
+  ownerId?: string;
+  ownerName?: string;
+  roiPercent?: number;
+  attributedLeadCount?: number;
+  attributedPipelineValue?: number;
+  description?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CampaignStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  campaignsByStatus: Partial<Record<Campaign['status'], number>>;
+  totalBudget: number;
+  totalExpectedRevenue: number;
+  totalActualRevenue: number;
+  totalLeadsGenerated: number;
+  totalOpportunitiesCreated: number;
+  totalConversions: number;
+  totalAttributedLeads: number;
+  totalAttributedPipelineValue: number;
+}
+
+export interface CampaignInsights {
+  campaignId: string;
+  campaignName: string;
+  segmentName?: string;
+  segmentType?: string;
+  journeyStage?: string;
+  autoEnrollNewLeads?: boolean;
+  nurtureCadenceDays?: number;
+  nurtureTouchCount?: number;
+  attributedLeadCount: number;
+  openAttributedLeadCount: number;
+  fastTrackedLeadCount: number;
+  attributedPipelineValue: number;
+  averageLeadScore: number;
+  leadsByStatus: Record<string, number>;
+  leadsBySource: Record<string, number>;
+  leadsByTerritory: Record<string, number>;
+  recommendedActions: string[];
+}
+
+export interface SupportCase {
+  id?: string;
+  tenantId?: string;
+  caseNumber: string;
+  title: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'WAITING_ON_CUSTOMER' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  customerTier: 'STANDARD' | 'PREMIUM' | 'STRATEGIC';
+  source: 'EMAIL' | 'PHONE' | 'PORTAL' | 'CHAT' | 'INTERNAL' | 'OTHER';
+  companyId?: string;
+  companyName?: string;
+  contactId?: string;
+  contactName?: string;
+  ownerId?: string;
+  ownerName?: string;
+  responseDueAt?: string;
+  firstRespondedAt?: string;
+  resolutionDueAt?: string;
+  resolvedAt?: string;
+  overdueResponse?: boolean;
+  overdueResolution?: boolean;
+  responseSlaStatus?: 'ON_TRACK' | 'WATCH' | 'BREACHED' | 'MET';
+  resolutionSlaStatus?: 'ON_TRACK' | 'WATCH' | 'BREACHED' | 'MET';
+  customerImpact?: string;
+  description?: string;
+  resolutionSummary?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SupportCaseStats {
+  totalCases: number;
+  openCases: number;
+  escalatedCases: number;
+  overdueResponseCases: number;
+  overdueResolutionCases: number;
+  responseWatchCases: number;
+  resolutionWatchCases: number;
+  casesByStatus: Partial<Record<SupportCase['status'], number>>;
+  casesByPriority: Partial<Record<SupportCase['priority'], number>>;
+}
+
+export interface SupportCaseSlaAutomationResult {
+  reviewedCases: number;
+  responseTasksCreated: number;
+  resolutionTasksCreated: number;
+  escalationTasksCreated: number;
+  escalatedCases: number;
+  alreadyCoveredCases: number;
+  createdTaskIds: string[];
+}
+
+export interface SupportCaseAssignmentQueueItem {
+  caseId: string;
+  caseNumber: string;
+  title: string;
+  status: SupportCase['status'];
+  priority: SupportCase['priority'];
+  companyName?: string;
+  ownerId?: string;
+  ownerName?: string;
+  suggestedOwnerId?: string;
+  suggestedOwnerName?: string;
+  suggestedReason?: string;
+  queueReason: 'UNASSIGNED' | 'ESCALATED';
+  responseSlaStatus?: SupportCase['responseSlaStatus'];
+  resolutionSlaStatus?: SupportCase['resolutionSlaStatus'];
+  createdAt?: string;
+}
+
+export interface SupportCaseAssignmentQueueSummary {
+  totalItems: number;
+  unassignedCases: number;
+  escalatedCases: number;
+  urgentCases: number;
+  breachedCases: number;
+  items: SupportCaseAssignmentQueueItem[];
+}
+
+export interface SupportCaseAssignmentAutomationResult {
+  reviewedCases: number;
+  assignedCases: number;
+  assignmentTasksCreated: number;
+  skippedCases: number;
+  updatedCaseIds: string[];
+  createdTaskIds: string[];
+}
+
 export interface QuoteLineItem {
   id?: string;
   productId: string;
@@ -917,6 +1385,55 @@ export interface InvoiceLineItem {
   unitPrice: number;
   taxRate?: number;
   total?: number;
+}
+
+export interface WorkOrder {
+  id?: string;
+  orderNumber?: string;
+  title: string;
+  status?: 'OPEN' | 'SCHEDULED' | 'DISPATCHED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  workType?: 'INSTALLATION' | 'MAINTENANCE' | 'REPAIR' | 'INSPECTION' | 'DELIVERY' | 'OTHER';
+  companyId?: string;
+  companyName?: string;
+  contactId?: string;
+  contactName?: string;
+  supportCaseId?: string;
+  supportCaseNumber?: string;
+  assignedTechnicianId?: string;
+  assignedTechnicianName?: string;
+  territory?: string;
+  serviceAddress?: string;
+  scheduledStartAt?: string;
+  scheduledEndAt?: string;
+  dispatchedAt?: string;
+  startedAt?: string;
+  completedAt?: string;
+  description?: string;
+  completionNotes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FieldTechnicianWorkload {
+  technicianId?: string;
+  technicianName?: string;
+  territory?: string;
+  activeWorkOrders?: number;
+  scheduledWorkOrders?: number;
+  urgentWorkOrders?: number;
+}
+
+export interface WorkOrderStats {
+  totalWorkOrders: number;
+  activeWorkOrders: number;
+  scheduledWorkOrders: number;
+  dispatchedWorkOrders: number;
+  completedWorkOrders: number;
+  overdueScheduledWorkOrders: number;
+  workOrdersByStatus: Record<string, number>;
+  workOrdersByPriority: Record<string, number>;
+  technicianWorkloads: FieldTechnicianWorkload[];
 }
 
 export interface Document {

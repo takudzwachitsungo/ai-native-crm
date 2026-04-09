@@ -9,6 +9,7 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    otpCode: '',
     firstName: '',
     lastName: '',
     companyName: '',
@@ -32,6 +33,7 @@ export default function Login() {
           email: formData.email,
           password: formData.password,
           workspaceSlug: formData.workspaceSlug || undefined,
+          otpCode: formData.otpCode || undefined,
         });
         navigate('/');
       } else {
@@ -217,6 +219,23 @@ export default function Login() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+
+            {isLogin && (
+              <div>
+                <label htmlFor="otpCode" className="block text-sm font-medium text-gray-700">
+                  Authentication Code
+                </label>
+                <input
+                  id="otpCode"
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.otpCode}
+                  onChange={(e) => setFormData({ ...formData, otpCode: e.target.value })}
+                  placeholder="Only required if 2FA is enabled"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
           </div>
 
           <div>

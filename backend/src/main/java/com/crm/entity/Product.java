@@ -31,6 +31,30 @@ public class Product extends AbstractEntity {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "minimum_price", precision = 19, scale = 2)
+    private BigDecimal minimumPrice;
+
+    @Column(name = "allow_discounting", nullable = false)
+    private Boolean allowDiscounting = true;
+
+    @Column(name = "max_discount_percent", precision = 5, scale = 2)
+    private BigDecimal maxDiscountPercent = BigDecimal.valueOf(100);
+
+    @Column(name = "is_configurable", nullable = false)
+    private Boolean configurable = false;
+
+    @Column(name = "bundle_only", nullable = false)
+    private Boolean bundleOnly = false;
+
+    @Column(name = "minimum_quantity")
+    private Integer minimumQuantity;
+
+    @Column(name = "maximum_quantity")
+    private Integer maximumQuantity;
+
+    @Column(name = "bundle_size")
+    private Integer bundleSize = 1;
+
     @Column(precision = 19, scale = 2)
     private BigDecimal cost;
 

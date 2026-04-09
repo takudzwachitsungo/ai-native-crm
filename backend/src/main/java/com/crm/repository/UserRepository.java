@@ -28,11 +28,15 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
     List<User> findByTenantIdAndRoleInAndIsActiveTrueAndArchivedFalse(UUID tenantId, Collection<UserRole> roles);
 
+    List<User> findByTenantIdAndManagerIdAndArchivedFalse(UUID tenantId, UUID managerId);
+
     Page<User> findByTenantIdAndArchivedFalse(UUID tenantId, Pageable pageable);
 
     Optional<User> findByIdAndTenantIdAndArchivedFalse(UUID id, UUID tenantId);
 
     long countByTenantIdAndTerritoryAndArchivedFalse(UUID tenantId, String territory);
+
+    long countByTenantIdAndIsActiveTrueAndArchivedFalse(UUID tenantId);
     
     boolean existsByTenantIdAndEmail(UUID tenantId, String email);
 

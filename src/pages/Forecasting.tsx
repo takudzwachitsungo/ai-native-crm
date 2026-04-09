@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { PageLayout } from '../components/PageLayout';
 import { Icons } from '../components/icons';
 import { AIDegradedNotice } from '../components/AIDegradedNotice';
-import { cn } from '../lib/utils';
-import { dashboardApi, forecastingApi } from '../lib/api';
+import { forecastingApi } from '../lib/api';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { exportToCSV } from '../lib/helpers';
-import { useAuth } from '../contexts/AuthContext';
+import { cn } from '../lib/utils';
 import { useToast } from '../components/Toast';
+import type { ForecastSubmissionSummary } from '../lib/types';
 
-// Helper function to render markdown bold syntax
+type ForecastCategory = 'COMMIT' | 'BEST_CASE' | 'UPSIDE';
+
 const renderMarkdownText = (text: string) => {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, idx) => {
@@ -24,253 +24,86 @@ const renderMarkdownText = (text: string) => {
 const formatCompactCurrency = (value: number | null | undefined) =>
   `$${(((value ?? 0) as number) / 1000).toFixed(0)}K`;
 
-const formatCoverage = (ratio: number | null | undefined) => `${(ratio ?? 0).toFixed(2)}x`;
+const formatPercent = (value: number | null | undefined) => `${Math.round(value ?? 0)}%`;
 
-const formatDateTime = (value?: string | null) => {
-  if (!value) {
-    return 'Not yet created';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
+const formatVariance = (value: number | null | undefined) => {
+  const amount = value ?? 0;
+  return `${amount >= 0 ? '+' : ''}${formatCompactCurrency(amount)}`;
 };
 
-const pacingBadgeClasses = (status?: string) =>
+const categoryCardClasses = (isSelected: boolean) =>
   cn(
-    "text-xs px-2 py-1 border rounded-full",
-    status === 'ON_TRACK'
-      ? "bg-green-500/10 text-green-600 border-green-500/20"
-      : status === 'WATCH'
-        ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-        : status === 'AT_RISK'
-          ? "bg-red-500/10 text-red-600 border-red-500/20"
-          : "bg-muted text-muted-foreground border-border"
-  );
-
-const pacingLabel = (status?: string) => {
-  switch (status) {
-    case 'ON_TRACK':
-      return 'On Track';
-    case 'WATCH':
-      return 'Watch';
-    case 'AT_RISK':
-      return 'At Risk';
-    default:
-      return 'No Quota';
-  }
-};
-
-const escalationBadgeClasses = (level?: string) =>
-  cn(
-    "text-xs px-2 py-1 border rounded-full",
-    level === 'CRITICAL'
-      ? "bg-red-500/10 text-red-600 border-red-500/20"
-      : level === 'HIGH'
-        ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
-        : "bg-blue-500/10 text-blue-700 border-blue-500/20"
-  );
-
-const governanceReviewBadgeClasses = (status?: string) =>
-  cn(
-    "text-xs px-2 py-1 border rounded-full",
-    status === 'CRITICAL'
-      ? "bg-red-500/10 text-red-600 border-red-500/20"
-      : status === 'HIGH'
-        ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
-        : status === 'WATCH'
-          ? "bg-yellow-500/10 text-yellow-700 border-yellow-500/20"
-          : "bg-green-500/10 text-green-700 border-green-500/20"
+    'rounded-lg border p-4 transition-colors',
+    isSelected ? 'border-primary bg-primary/5' : 'border-border bg-card'
   );
 
 export default function Forecasting() {
-  const { user } = useAuth();
   const { showToast } = useToast();
-  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forecastData, setForecastData] = useState<any>(null);
   const [cacheAge, setCacheAge] = useState<number | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
-  const canManageQuotaRisk = user?.role === 'ADMIN' || user?.role === 'MANAGER';
-  const { data: revenueOpsSummary } = useQuery({
-    queryKey: ['revenue-ops-summary'],
-    queryFn: () => dashboardApi.getRevenueOpsSummary(),
-    staleTime: 30000,
-  });
-  const { data: quotaRiskAlerts } = useQuery({
-    queryKey: ['quota-risk-alerts'],
-    queryFn: () => dashboardApi.getQuotaRiskAlerts(),
-    enabled: canManageQuotaRisk,
-    staleTime: 30000,
-  });
-  const { data: territoryExceptions } = useQuery({
-    queryKey: ['territory-exceptions'],
-    queryFn: () => dashboardApi.getTerritoryExceptions(),
-    enabled: canManageQuotaRisk,
-    staleTime: 30000,
-  });
-  const { data: territoryEscalations } = useQuery({
-    queryKey: ['territory-escalations'],
-    queryFn: () => dashboardApi.getTerritoryEscalations(),
-    enabled: canManageQuotaRisk,
-    staleTime: 30000,
-  });
-  const { data: governanceInbox } = useQuery({
-    queryKey: ['governance-inbox'],
-    queryFn: () => dashboardApi.getGovernanceInbox(),
-    enabled: canManageQuotaRisk,
-    staleTime: 30000,
-  });
-  const { data: automationRuns } = useQuery({
-    queryKey: ['automation-runs'],
-    queryFn: () => dashboardApi.getAutomationRuns(6),
-    enabled: canManageQuotaRisk,
-    staleTime: 30000,
-  });
-  const createQuotaRiskTasksMutation = useMutation({
-    mutationFn: () => dashboardApi.runQuotaRiskAlertAutomation(),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['automation-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['quota-risk-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['governance-inbox'] });
-      showToast(
-        `Created ${result.tasksCreated} follow-up task${result.tasksCreated === 1 ? '' : 's'} for quota-risk reps.`,
-        'success'
-      );
-    },
-    onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to create quota risk tasks', 'error');
-    },
-  });
-  const createTerritoryExceptionTasksMutation = useMutation({
-    mutationFn: () => dashboardApi.runTerritoryExceptionAutomation(),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['automation-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-exceptions'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-escalations'] });
-      showToast(
-        `Created ${result.tasksCreated} territory review task${result.tasksCreated === 1 ? '' : 's'}.`,
-        'success'
-      );
-    },
-    onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to create territory exception tasks', 'error');
-    },
-  });
-  const createTerritoryEscalationTasksMutation = useMutation({
-    mutationFn: () => dashboardApi.runTerritoryEscalationAutomation(),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['automation-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-escalations'] });
-      queryClient.invalidateQueries({ queryKey: ['governance-inbox'] });
-      showToast(
-        `Created ${result.tasksCreated} territory escalation alert${result.tasksCreated === 1 ? '' : 's'}.`,
-        'success'
-      );
-    },
-    onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to create territory escalation alerts', 'error');
-    },
-  });
-  const autoRemediateTerritoryExceptionsMutation = useMutation({
-    mutationFn: () => dashboardApi.runTerritoryAutoRemediation(),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['automation-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-exceptions'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-escalations'] });
-      queryClient.invalidateQueries({ queryKey: ['governance-inbox'] });
-      queryClient.invalidateQueries({ queryKey: ['quota-risk-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['revenue-ops-summary'] });
-      showToast(
-        `Reassigned ${result.leadsReassigned} lead${result.leadsReassigned === 1 ? '' : 's'}, ${result.companiesReassigned} account${result.companiesReassigned === 1 ? '' : 's'}, and ${result.dealsReassigned} deal${result.dealsReassigned === 1 ? '' : 's'}.`,
-        'success'
-      );
-    },
-    onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to auto-remediate territory exceptions', 'error');
-    },
-  });
-  const createGovernanceDigestMutation = useMutation({
-    mutationFn: () => dashboardApi.runGovernanceDigestAutomation(),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['automation-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['governance-inbox'] });
-      showToast(
-        result.digestsCreated > 0
-          ? `Created ${result.digestsCreated} governance digest task.`
-          : 'Governance digest already exists for today.',
-        'success'
-      );
-    },
-    onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to create governance digest', 'error');
-    },
-  });
-  const runGovernanceAutomationMutation = useMutation({
-    mutationFn: () => dashboardApi.runGovernanceAutomation(),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['automation-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['governance-inbox'] });
-      queryClient.invalidateQueries({ queryKey: ['quota-risk-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-escalations'] });
-      showToast(
-        `Governance automation created ${result.digestsCreated} digest(s), escalated ${result.overdueTasksEscalated} overdue review task(s), and created ${result.escalationTasksCreated} escalation task(s).`,
-        'success'
-      );
-    },
-    onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to run governance automation', 'error');
-    },
-  });
-  const acknowledgeGovernanceTaskMutation = useMutation({
-    mutationFn: (taskId: string) => dashboardApi.acknowledgeGovernanceTask(taskId),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['governance-inbox'] });
-      queryClient.invalidateQueries({ queryKey: ['quota-risk-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-escalations'] });
-      showToast(
-        result.acknowledged
-          ? `Marked governance task ${result.taskId} as reviewed.`
-          : 'Governance task was already acknowledged.',
-        'success'
-      );
-    },
-    onError: (error: any) => {
-      showToast(error.response?.data?.message || 'Failed to acknowledge governance task', 'error');
-    },
-  });
-  
+  const [forecastCategory, setForecastCategory] = useState<ForecastCategory>('COMMIT');
+  const [managerAdjustmentPercent, setManagerAdjustmentPercent] = useState(0);
+  const [submissionTitle, setSubmissionTitle] = useState('Weekly forecast submission');
+  const [submissionNotes, setSubmissionNotes] = useState('');
+  const [submissionReviewNotes, setSubmissionReviewNotes] = useState<Record<string, string>>({});
+  const [submissions, setSubmissions] = useState<ForecastSubmissionSummary[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionSaving, setSubmissionSaving] = useState(false);
+  const [submissionReviewingId, setSubmissionReviewingId] = useState<string | null>(null);
+
+  const syncForecastState = (data: any) => {
+    setForecastData(data);
+    setCacheAge(data.cache_age_seconds || 0);
+    setLastUpdate(data.generated_at || null);
+    setForecastCategory((data.selected_forecast_category as ForecastCategory) || 'COMMIT');
+    setManagerAdjustmentPercent(data.manager_adjustment_percent || 0);
+    setError(null);
+  };
+
   const loadCachedForecast = async () => {
     try {
       const data = await forecastingApi.getLatest();
       if (data.success) {
-        setForecastData(data);
-        setCacheAge(data.cache_age_seconds || 0);
-        setLastUpdate(data.generated_at || null);
+        syncForecastState(data);
       } else {
         setError(data.error || 'No cached forecast available');
       }
     } catch (err) {
       console.error('Error loading cached forecast:', err);
-      // If cached forecast fails, generate fresh one
       await loadForecast();
     }
   };
-  
+
+  const loadSubmissions = async () => {
+    try {
+      setSubmissionsLoading(true);
+      const response = await forecastingApi.listSubmissions();
+      if (response.success) {
+        setSubmissions(response.submissions || []);
+      }
+    } catch (err) {
+      console.error('Error loading forecast submissions:', err);
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  };
+
   const loadForecast = async () => {
     try {
       setIsRefreshing(true);
       setError(null);
-      const data = await forecastingApi.generate(6);
+      const data = await forecastingApi.generate({
+        forecastMonths: 6,
+        forecastCategory,
+        managerAdjustmentPercent,
+        snapshotLabel: `${forecastCategory} refresh`,
+      });
       if (data.success) {
-        setForecastData(data);
-        setCacheAge(0);
-        setLastUpdate(new Date().toISOString());
+        syncForecastState({ ...data, cache_age_seconds: 0, generated_at: new Date().toISOString() });
       } else {
         setError(data.error || 'Failed to generate forecast');
       }
@@ -281,43 +114,106 @@ export default function Forecasting() {
       setIsRefreshing(false);
     }
   };
-  
+
   useEffect(() => {
-    // Initial load: try cached first
     const init = async () => {
       setIsLoading(true);
-      await loadCachedForecast();
+      await Promise.all([loadCachedForecast(), loadSubmissions()]);
       setIsLoading(false);
     };
     init();
 
-    // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
       loadCachedForecast();
     }, 60000);
 
     return () => clearInterval(interval);
   }, []);
-  
+
+  const handleSubmitForecast = async () => {
+    try {
+      setSubmissionSaving(true);
+      const created = await forecastingApi.submitForReview({
+        title: submissionTitle.trim() || `${forecastCategory} forecast submission`,
+        forecastMonths: 6,
+        forecastCategory,
+        managerAdjustmentPercent,
+        snapshotLabel: `${forecastCategory} submission`,
+        notes: submissionNotes.trim() || undefined,
+      });
+      setSubmissions((prev) => [created, ...prev]);
+      setSubmissionNotes('');
+      showToast('Forecast submitted for review', 'success');
+    } catch (err) {
+      console.error('Error submitting forecast for review:', err);
+      showToast('Failed to submit forecast for review', 'error');
+    } finally {
+      setSubmissionSaving(false);
+    }
+  };
+
+  const handleReviewSubmission = async (
+    submissionId: string,
+    status: 'APPROVED' | 'CHANGES_REQUESTED'
+  ) => {
+    try {
+      setSubmissionReviewingId(submissionId);
+      const updated = await forecastingApi.reviewSubmission(submissionId, {
+        status,
+        reviewNotes: submissionReviewNotes[submissionId]?.trim() || undefined,
+      });
+      setSubmissions((prev) => prev.map((item) => (item.id === submissionId ? updated : item)));
+      showToast(
+        status === 'APPROVED' ? 'Forecast approved' : 'Forecast sent back for changes',
+        'success'
+      );
+    } catch (err) {
+      console.error('Error reviewing forecast submission:', err);
+      showToast('Failed to review forecast submission', 'error');
+    } finally {
+      setSubmissionReviewingId(null);
+    }
+  };
+
+  const monthlyForecasts = forecastData?.monthly_forecasts || [];
+  const teamForecasts = forecastData?.team_forecasts || [];
+  const rollupHierarchy = forecastData?.rollup_hierarchy || [];
+  const categoryBreakdown = forecastData?.forecast_categories || [];
+  const totalQuota = forecastData?.total_quota ?? 0;
+  const finalForecast = forecastData?.final_forecast ?? 0;
+  const baseForecast = forecastData?.base_forecast ?? 0;
+  const weightedPipeline = forecastData?.weighted_pipeline ?? 0;
+  const totalClosed = forecastData?.closed_revenue ?? teamForecasts.reduce((sum: number, member: any) => sum + (member.closed ?? 0), 0);
+  const avgAttainment = teamForecasts.length > 0
+    ? teamForecasts.reduce((sum: number, member: any) => sum + (member.attainment ?? 0), 0) / teamForecasts.length
+    : 0;
+  const priorVariance = forecastData?.variance_to_prior;
+  const snapshotHistory = forecastData?.snapshot_history || [];
+
+  const forecastSummary = useMemo(() => ({
+    quotaAttainment: totalQuota > 0 ? (finalForecast / totalQuota) * 100 : 0,
+    closedAttainment: totalQuota > 0 ? (totalClosed / totalQuota) * 100 : 0,
+  }), [finalForecast, totalClosed, totalQuota]);
+
   if (isLoading) {
     return (
       <PageLayout
         title="Forecasting"
-        subtitle="Sales forecasting and projections"
+        subtitle="Forecast categories, snapshots, and rollup hierarchy"
         icon={<Icons.TrendingUp size={20} />}
       >
         <div className="p-6">
-          <LoadingSkeleton count={8} height={60} />
+          <LoadingSkeleton count={6} height={64} />
         </div>
       </PageLayout>
     );
   }
-  
+
   if (error || !forecastData) {
     return (
       <PageLayout
         title="Forecasting"
-        subtitle="Sales forecasting and projections"
+        subtitle="Forecast categories, snapshots, and rollup hierarchy"
         icon={<Icons.TrendingUp size={20} />}
       >
         <div className="p-6">
@@ -335,53 +231,27 @@ export default function Forecasting() {
       </PageLayout>
     );
   }
-  
-  const monthlyForecasts = forecastData.monthly_forecasts || [];
-  const teamForecasts = forecastData.team_forecasts || [];
-  const totalQuota = revenueOpsSummary?.totalQuarterlyQuota ?? forecastData.total_quota ?? 0;
-  const totalForecast = forecastData.weighted_pipeline || 0;
-  const totalClosed = teamForecasts.reduce((sum: number, member: any) => sum + member.closed, 0);
-  const totalPipeline = teamForecasts.reduce((sum: number, member: any) => sum + member.pipeline, 0);
-  const avgAttainment = teamForecasts.length > 0 
-    ? Math.round(teamForecasts.reduce((sum: number, member: any) => sum + member.attainment, 0) / teamForecasts.length)
-    : 0;
-  const revenueOpsTeam = revenueOpsSummary?.teamProgress || [];
-  const territorySummaries = revenueOpsSummary?.territorySummaries || [];
-  const atRiskReps = quotaRiskAlerts?.alerts || revenueOpsTeam.filter((member: any) => member.pacingStatus === 'AT_RISK' || member.pacingStatus === 'WATCH');
-  const governanceDigestStatusLabel = governanceInbox?.digestDue
-    ? 'Digest due today'
-    : governanceInbox?.lastDigestCreatedAt
-      ? 'Digest up to date'
-      : 'No digest yet';
-  const showGovernanceInbox = canManageQuotaRisk
-    && !!governanceInbox
-    && ((governanceInbox.totalItems ?? 0) > 0 || (governanceInbox.recentDigests?.length ?? 0) > 0);
-  const showAutomationRuns = canManageQuotaRisk && !!automationRuns && automationRuns.length > 0;
 
   return (
     <PageLayout
       title="Forecasting"
-      subtitle="Sales forecasting and projections"
+      subtitle="Forecast categories, snapshots, and rollup hierarchy"
       icon={<Icons.TrendingUp size={20} />}
-      actions={
+      actions={(
         <div className="flex items-center gap-4">
-          {/* Cache Status */}
           {lastUpdate && (
             <div className="text-sm text-muted-foreground flex items-center gap-2">
-              {cacheAge && cacheAge < 60 ? (
+              {cacheAge !== null && cacheAge < 60 ? (
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   Live
                 </span>
               ) : (
-                <span>
-                  Updated {cacheAge ? Math.floor(cacheAge / 60) : 0}m ago
-                </span>
+                <span>Updated {cacheAge ? Math.floor(cacheAge / 60) : 0}m ago</span>
               )}
             </div>
           )}
-          
-          <button 
+          <button
             onClick={loadForecast}
             disabled={isRefreshing}
             className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -389,984 +259,531 @@ export default function Forecasting() {
             <Icons.RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
-          <button 
+          <button
             onClick={() => {
-              if (forecastData?.monthly_forecasts) {
-                exportToCSV(forecastData.monthly_forecasts, [
-                  { header: 'Month', accessor: 'month' },
-                  { header: 'Predicted Revenue', accessor: 'predicted_revenue' },
-                  { header: 'Lower Bound', accessor: 'lower_bound' },
-                  { header: 'Upper Bound', accessor: 'upper_bound' },
-                  { header: 'Confidence', accessor: 'confidence' },
-                ], 'forecast_report');
+              if (monthlyForecasts.length > 0) {
+                exportToCSV(
+                  monthlyForecasts,
+                  [
+                    { header: 'Month', accessor: 'month' },
+                    { header: 'Month Date', accessor: 'month_date' },
+                    { header: 'Pipeline', accessor: 'pipeline' },
+                    { header: 'Base Forecast', accessor: 'base_forecast' },
+                    { header: 'Scenario Forecast', accessor: 'forecast' },
+                    { header: 'Actual', accessor: 'actual' },
+                    { header: 'Quota', accessor: 'quota' },
+                  ],
+                  'forecast-outlook-v2'
+                );
               }
             }}
-            disabled={!forecastData}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
             <Icons.Download size={16} />
-            Export Report
+            Export Forecast
           </button>
         </div>
-      }
+      )}
     >
-      {/* Summary Stats */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 space-y-6">
         {forecastData.degraded_mode && (
-          <AIDegradedNotice
-            className="mb-4"
-            reason={forecastData.degraded_reason}
-          />
+          <AIDegradedNotice reason={forecastData.degraded_reason} />
         )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6">
+          <div className="border border-border rounded-lg p-6 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold">Forecast Controls</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose a forecast scenario and apply a manager adjustment before refreshing the model.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(['COMMIT', 'BEST_CASE', 'UPSIDE'] as ForecastCategory[]).map((category) => {
+                const categoryData = categoryBreakdown.find((item: any) => item.category === category);
+                return (
+                  <button
+                    key={category}
+                    onClick={() => setForecastCategory(category)}
+                    className={categoryCardClasses(forecastCategory === category)}
+                  >
+                    <div className="text-xs text-muted-foreground">{category.replace('_', ' ')}</div>
+                    <div className="text-xl font-semibold mt-1">
+                      {formatCompactCurrency(categoryData?.forecast)}
+                    </div>
+                    <div className="text-xs mt-2 text-muted-foreground">
+                      {formatVariance(categoryData?.variance_to_quota)} vs quota
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-foreground">Manager Adjustment</label>
+                <span className="text-sm text-muted-foreground">{managerAdjustmentPercent}%</span>
+              </div>
+              <input
+                type="range"
+                min={-20}
+                max={20}
+                step={1}
+                value={managerAdjustmentPercent}
+                onChange={(event) => setManagerAdjustmentPercent(Number(event.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          <div className="border border-border rounded-lg p-6 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold">Snapshot Variance</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Compare the current forecast against the previous saved run.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                <div className="text-sm text-muted-foreground">Current Forecast</div>
+                <div className="text-2xl font-bold mt-1">{formatCompactCurrency(finalForecast)}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Base {formatCompactCurrency(baseForecast)} with {managerAdjustmentPercent}% adjustment
+                </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                <div className="text-sm text-muted-foreground">Prior Snapshot</div>
+                {priorVariance ? (
+                  <>
+                    <div className={cn(
+                      'text-2xl font-bold mt-1',
+                      (priorVariance.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                    )}>
+                      {formatVariance(priorVariance.amount)}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {priorVariance.percent >= 0 ? '+' : ''}{priorVariance.percent}% vs {priorVariance.prior_snapshot_label || 'prior snapshot'}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground mt-1">No prior snapshot yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1fr] gap-6">
+          <div className="border border-border rounded-lg p-6 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold">Forecast Review Workflow</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Submit a scenario snapshot for manager review, then track approval or change requests against the saved forecast state.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Submission Title</label>
+                <input
+                  type="text"
+                  value={submissionTitle}
+                  onChange={(event) => setSubmissionTitle(event.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Scenario Summary</label>
+                <div className="px-3 py-2 border border-border rounded-lg bg-muted/30 text-sm text-muted-foreground">
+                  {forecastCategory.replace('_', ' ')} with {managerAdjustmentPercent}% adjustment
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Notes</label>
+              <textarea
+                rows={4}
+                value={submissionNotes}
+                onChange={(event) => setSubmissionNotes(event.target.value)}
+                placeholder="Capture assumptions, risks, or manager context for this submission."
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/20 p-4">
+              <div className="text-sm text-muted-foreground">
+                The submitted snapshot stores the selected forecast, quota variance, prior variance, and current hierarchy rollup.
+              </div>
+              <button
+                onClick={handleSubmitForecast}
+                disabled={submissionSaving}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+              >
+                {submissionSaving ? 'Submitting...' : 'Submit For Review'}
+              </button>
+            </div>
+          </div>
+
+          <div className="border border-border rounded-lg p-6 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Submission Queue</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Review saved forecast submissions and keep an audit trail for approval decisions.
+                </p>
+              </div>
+              <button
+                onClick={() => void loadSubmissions()}
+                className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors text-sm"
+              >
+                Refresh Queue
+              </button>
+            </div>
+            {submissionsLoading ? (
+              <LoadingSkeleton count={3} height={88} />
+            ) : submissions.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                No forecast submissions yet. Submit the current scenario to start the review cycle.
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[560px] overflow-auto pr-1">
+                {submissions.map((submission) => (
+                  <div key={submission.id} className="rounded-lg border border-border p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{submission.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {submission.forecast_category.replace('_', ' ')} • {submission.manager_adjustment_percent}% adjustment • {new Date(submission.submitted_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          'px-2.5 py-1 rounded-full text-xs font-medium',
+                          submission.status === 'APPROVED'
+                            ? 'bg-green-500/10 text-green-700'
+                            : submission.status === 'CHANGES_REQUESTED'
+                              ? 'bg-amber-500/10 text-amber-700'
+                              : 'bg-blue-500/10 text-blue-700'
+                        )}
+                      >
+                        {submission.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-lg bg-muted/30 p-3">
+                        <div className="text-xs text-muted-foreground">Submitted Forecast</div>
+                        <div className="font-semibold mt-1">{formatCompactCurrency(submission.forecast_snapshot?.final_forecast)}</div>
+                      </div>
+                      <div className="rounded-lg bg-muted/30 p-3">
+                        <div className="text-xs text-muted-foreground">Quota Variance</div>
+                        <div className="font-semibold mt-1">{formatVariance(submission.forecast_snapshot?.forecast_vs_quota)}</div>
+                      </div>
+                    </div>
+                    {submission.notes && (
+                      <div className="text-sm text-muted-foreground">{submission.notes}</div>
+                    )}
+                    <textarea
+                      rows={2}
+                      value={submissionReviewNotes[submission.id] ?? submission.review_notes ?? ''}
+                      onChange={(event) =>
+                        setSubmissionReviewNotes((prev) => ({
+                          ...prev,
+                          [submission.id]: event.target.value,
+                        }))
+                      }
+                      placeholder="Add review notes for approval or requested changes"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => void handleReviewSubmission(submission.id, 'CHANGES_REQUESTED')}
+                        disabled={submissionReviewingId === submission.id}
+                        className="px-3 py-2 border border-amber-500/30 text-amber-700 rounded-lg hover:bg-amber-500/10 disabled:opacity-60 transition-colors text-sm"
+                      >
+                        Request Changes
+                      </button>
+                      <button
+                        onClick={() => void handleReviewSubmission(submission.id, 'APPROVED')}
+                        disabled={submissionReviewingId === submission.id}
+                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors text-sm"
+                      >
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="p-4 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Total Quota</p>
-            <p className="text-2xl font-bold">${(totalQuota / 1000).toFixed(0)}K</p>
+            <p className="text-2xl font-bold">{formatCompactCurrency(totalQuota)}</p>
           </div>
           <div className="p-4 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Forecast</p>
-            <p className="text-2xl font-bold text-blue-600">${(totalForecast / 1000).toFixed(0)}K</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {totalQuota > 0 ? Math.round((totalForecast / totalQuota) * 100) : 0}% of quota
-            </p>
+            <p className="text-sm text-muted-foreground mb-1">Selected Forecast</p>
+            <p className="text-2xl font-bold text-blue-600">{formatCompactCurrency(finalForecast)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{formatPercent(forecastSummary.quotaAttainment)} of quota</p>
           </div>
           <div className="p-4 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Closed</p>
-            <p className="text-2xl font-bold text-green-600">${(totalClosed / 1000).toFixed(0)}K</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {totalQuota > 0 ? Math.round((totalClosed / totalQuota) * 100) : 0}% of quota
-            </p>
+            <p className="text-sm text-muted-foreground mb-1">Weighted Pipeline</p>
+            <p className="text-2xl font-bold">{formatCompactCurrency(weightedPipeline)}</p>
           </div>
           <div className="p-4 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Pipeline</p>
-            <p className="text-2xl font-bold">${(totalPipeline / 1000).toFixed(0)}K</p>
+            <p className="text-sm text-muted-foreground mb-1">Closed Revenue</p>
+            <p className="text-2xl font-bold text-green-600">{formatCompactCurrency(totalClosed)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{formatPercent(forecastSummary.closedAttainment)} of quota</p>
           </div>
           <div className="p-4 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Avg Attainment</p>
-            <p className="text-2xl font-bold">{Math.round(revenueOpsSummary?.attainmentPercent ?? avgAttainment)}%</p>
+            <p className="text-2xl font-bold">{formatPercent(avgAttainment)}</p>
           </div>
         </div>
-        {revenueOpsSummary && (
-          <div className="space-y-4 mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
-              <div className="p-4 border border-border rounded-lg bg-muted/20">
-                <p className="text-sm text-muted-foreground mb-1">Active Revenue Owners</p>
-                <p className="text-xl font-semibold">{revenueOpsSummary.activeRepCount}</p>
-              </div>
-              <div className="p-4 border border-border rounded-lg bg-muted/20">
-                <p className="text-sm text-muted-foreground mb-1">Governed Territories</p>
-                <p className="text-xl font-semibold">
-                  {revenueOpsSummary.governedTerritoryCount} / {revenueOpsSummary.territoryCatalogCount}
-                </p>
-              </div>
-              <div className="p-4 border border-border rounded-lg bg-muted/20">
-                <p className="text-sm text-muted-foreground mb-1">Quarter Progress</p>
-                <p className="text-xl font-semibold">{Math.round(revenueOpsSummary.quarterProgressPercent)}%</p>
-              </div>
-              <div className="p-4 border border-border rounded-lg bg-green-500/5">
-                <p className="text-sm text-muted-foreground mb-1">On Track</p>
-                <p className="text-xl font-semibold text-green-600">{revenueOpsSummary.onTrackRepCount}</p>
-              </div>
-              <div className="p-4 border border-border rounded-lg bg-yellow-500/5">
-                <p className="text-sm text-muted-foreground mb-1">Watch</p>
-                <p className="text-xl font-semibold text-yellow-600">{revenueOpsSummary.watchRepCount}</p>
-              </div>
-              <div className="p-4 border border-border rounded-lg bg-red-500/5">
-                <p className="text-sm text-muted-foreground mb-1">At Risk</p>
-                <p className="text-xl font-semibold text-red-600">{revenueOpsSummary.atRiskRepCount}</p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border border-border rounded-lg bg-muted/20">
-                <p className="text-sm text-muted-foreground mb-1">Closed vs Expected Pace</p>
-                <p className="text-xl font-semibold">
-                  {formatCompactCurrency(revenueOpsSummary.closedWonValue)} / {formatCompactCurrency(revenueOpsSummary.expectedClosedValueToDate)}
-                </p>
-              </div>
-              <div className="p-4 border border-border rounded-lg bg-muted/20">
-                <p className="text-sm text-muted-foreground mb-1">Projected Attainment</p>
-                <p className="text-xl font-semibold">{Math.round(revenueOpsSummary.projectedAttainmentPercent)}%</p>
-              </div>
-              <div className="p-4 border border-border rounded-lg bg-muted/20">
-                <p className="text-sm text-muted-foreground mb-1">Pipeline Coverage</p>
-                <p className="text-xl font-semibold">{formatCoverage(revenueOpsSummary.pipelineCoverageRatio)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Target pipeline {formatCompactCurrency(revenueOpsSummary.requiredPipelineValue)}
-                </p>
-              </div>
+        <div className="border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Forecast Trend</h3>
+              <p className="text-sm text-muted-foreground">
+                Scenario-adjusted forecast, actuals, and quota pacing across the next six months.
+              </p>
             </div>
-
-            {(revenueOpsSummary.repsWithoutTerritory > 0 || revenueOpsSummary.outOfCatalogTerritoryCount > 0) && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-                <p className="font-medium">Territory governance needs attention</p>
-                <p className="mt-1">
-                  {revenueOpsSummary.repsWithoutTerritory > 0
-                    ? `${revenueOpsSummary.repsWithoutTerritory} rep${revenueOpsSummary.repsWithoutTerritory === 1 ? '' : 's'} still have no governed territory. `
-                    : ''}
-                  {revenueOpsSummary.outOfCatalogTerritoryCount > 0
-                    ? `${revenueOpsSummary.outOfCatalogTerritoryCount} live territory label${revenueOpsSummary.outOfCatalogTerritoryCount === 1 ? '' : 's'} are outside the workspace catalog.`
-                    : ''}
-                </p>
-              </div>
-            )}
+            <span className="text-xs text-muted-foreground">
+              {monthlyForecasts.length} month{monthlyForecasts.length === 1 ? '' : 's'}
+            </span>
           </div>
-        )}
-      </div>
 
-      {/* Monthly Forecast Chart */}
-      <div className="p-6 border-b border-border">
-        <h3 className="text-lg font-semibold mb-4">6-Month Forecast Trend</h3>
-        {monthlyForecasts.length > 0 ? (
-          <>
-            <div className="space-y-4">
-              {monthlyForecasts.map((data: any) => (
-            <div key={data.month} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium w-12">{data.month}</span>
-                <div className="flex-1 mx-4">
-                  <div className="relative h-8 bg-muted/30 rounded-full overflow-hidden">
-                    {/* Quota line */}
-                    <div 
-                      className="absolute top-0 h-full border-r-2 border-dashed border-gray-400"
-                      style={{ left: `${data.pipeline > 0 ? (data.quota / data.pipeline) * 100 : 0}%` }}
-                    />
-                    {/* Actual */}
-                    {data.actual > 0 && (
-                      <div 
-                        className="absolute top-0 h-full bg-green-500"
-                        style={{ width: `${data.pipeline > 0 ? (data.actual / data.pipeline) * 100 : 0}%` }}
-                      />
-                    )}
-                    {/* Forecast */}
-                    <div 
-                      className="absolute top-0 h-full bg-blue-500/50"
-                      style={{ width: `${data.pipeline > 0 ? (data.forecast / data.pipeline) * 100 : 0}%` }}
-                    />
-                    {/* Pipeline */}
-                    <div 
-                      className="absolute top-0 h-full bg-purple-500/20"
-                      style={{ width: '100%' }}
-                    />
-                  </div>
+          {monthlyForecasts.length > 0 ? (
+            <>
+              <div className="space-y-4">
+                {monthlyForecasts.map((data: any) => {
+                  const maxValue = Math.max(data.pipeline || 0, data.quota || 0, data.forecast || 0, data.actual || 0, 1);
+                  return (
+                    <div key={data.month} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{data.month}</span>
+                        <span className="text-muted-foreground">
+                          Scenario {formatCompactCurrency(data.forecast)} / Base {formatCompactCurrency(data.base_forecast)} / Quota {formatCompactCurrency(data.quota)}
+                        </span>
+                      </div>
+                      <div className="relative h-8 bg-muted/30 rounded-full overflow-hidden">
+                        <div
+                          className="absolute inset-y-0 left-0 bg-purple-500/20"
+                          style={{ width: `${((data.pipeline || 0) / maxValue) * 100}%` }}
+                        />
+                        <div
+                          className="absolute inset-y-0 left-0 bg-slate-400/40"
+                          style={{ width: `${((data.base_forecast || 0) / maxValue) * 100}%` }}
+                        />
+                        <div
+                          className="absolute inset-y-0 left-0 bg-blue-500/45"
+                          style={{ width: `${((data.forecast || 0) / maxValue) * 100}%` }}
+                        />
+                        {data.actual > 0 && (
+                          <div
+                            className="absolute inset-y-0 left-0 bg-green-500"
+                            style={{ width: `${((data.actual || 0) / maxValue) * 100}%` }}
+                          />
+                        )}
+                        <div
+                          className="absolute inset-y-0 border-r-2 border-dashed border-gray-500"
+                          style={{ left: `${((data.quota || 0) / maxValue) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-6 mt-6 text-xs flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500/20 rounded" />
+                  <span>Pipeline</span>
                 </div>
-                <div className="flex gap-4 text-xs">
-                  <span className="text-muted-foreground w-16 text-right">
-                    ${(data.pipeline / 1000).toFixed(0)}K
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-slate-400/40 rounded" />
+                  <span>Base Forecast</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500/45 rounded" />
+                  <span>Scenario Forecast</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded" />
+                  <span>Actual</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-1 border-t-2 border-dashed border-gray-500" />
+                  <span>Quota</span>
                 </div>
               </div>
-            </div>
-          ))}
+            </>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">No monthly forecast data available.</p>
+          )}
         </div>
-        <div className="flex items-center gap-6 mt-6 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-purple-500/20 rounded" />
-            <span>Pipeline</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500/50 rounded" />
-            <span>Forecast</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded" />
-            <span>Actual</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-1 border-t-2 border-dashed border-gray-400" />
-            <span>Quota</span>
-          </div>
-        </div>
-          </>
-        ) : (
-          <p className="text-muted-foreground text-center py-8">No forecast data available</p>
-        )}
-      </div>
 
-      {/* AI Insights & Recommendations */}
-      {(forecastData.insights?.length > 0 || forecastData.recommendations?.length > 0) && (
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <Icons.Sparkles size={20} className="text-blue-600" />
-            <h3 className="text-lg font-semibold">AI-Powered Insights</h3>
-          </div>
-          
+        {(forecastData.insights?.length > 0 || forecastData.recommendations?.length > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Insights */}
-            {forecastData.insights && forecastData.insights.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase">Key Insights</h4>
-                {forecastData.insights.map((insight: string, idx: number) => (
-                  <div key={idx} className="flex gap-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                    <Icons.TrendingUp size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm">{renderMarkdownText(insight)}</p>
-                  </div>
-                ))}
+            {forecastData.insights?.length > 0 && (
+              <div className="border border-border rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Icons.Sparkles size={20} className="text-blue-600" />
+                  Forecast Insights
+                </h3>
+                <div className="space-y-3">
+                  {forecastData.insights.map((insight: string, idx: number) => (
+                    <div key={idx} className="flex gap-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                      <Icons.TrendingUp size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{renderMarkdownText(insight)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            
-            {/* Recommendations */}
-            {forecastData.recommendations && forecastData.recommendations.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase">Recommendations</h4>
-                {forecastData.recommendations.map((rec: string, idx: number) => (
-                  <div key={idx} className="flex gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
-                    <Icons.CheckCircle size={16} className="text-green-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm">{renderMarkdownText(rec)}</p>
-                  </div>
-                ))}
+
+            {forecastData.recommendations?.length > 0 && (
+              <div className="border border-border rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Icons.CheckCircle size={20} className="text-green-600" />
+                  Recommended Actions
+                </h3>
+                <div className="space-y-3">
+                  {forecastData.recommendations.map((recommendation: string, idx: number) => (
+                    <div key={idx} className="flex gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+                      <Icons.ArrowRight size={16} className="text-green-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{renderMarkdownText(recommendation)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+        )}
 
-          {/* Risks & Opportunities */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            {/* Risks */}
-            {forecastData.risks && forecastData.risks.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-red-600 mb-3">⚠️ At-Risk Deals</h4>
-                <div className="space-y-2">
+        {(forecastData.risks?.length > 0 || forecastData.opportunities?.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {forecastData.risks?.length > 0 && (
+              <div className="border border-border rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4 text-red-600">At-Risk Deals</h3>
+                <div className="space-y-3">
                   {forecastData.risks.map((risk: any, idx: number) => (
                     <div key={idx} className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between gap-3">
                         <span className="text-sm font-medium">{risk.title}</span>
-                        <span className="text-sm font-bold text-red-600">${(risk.value / 1000).toFixed(0)}K</span>
+                        <span className="text-sm font-bold text-red-600">{formatCompactCurrency(risk.value)}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">{risk.reason}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{risk.reason}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            
-            {/* Opportunities */}
-            {forecastData.opportunities && forecastData.opportunities.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-green-600 mb-3">🎯 Top Opportunities</h4>
-                <div className="space-y-2">
+
+            {forecastData.opportunities?.length > 0 && (
+              <div className="border border-border rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4 text-green-600">Top Opportunities</h3>
+                <div className="space-y-3">
                   {forecastData.opportunities.map((opp: any, idx: number) => (
                     <div key={idx} className="p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between gap-3">
                         <span className="text-sm font-medium">{opp.title}</span>
-                        <span className="text-sm font-bold text-green-600">${(opp.value / 1000).toFixed(0)}K</span>
+                        <span className="text-sm font-bold text-green-600">{formatCompactCurrency(opp.value)}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">{opp.reason}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{opp.reason}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {showGovernanceInbox && governanceInbox && (
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Governance Inbox</h3>
-              <p className="text-sm text-muted-foreground">
-                A manager view of unresolved territory drift, quota risk, and SLA breaches that still need action.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">
-                {governanceInbox.slaBreachedItems} SLA breached • {governanceInbox.openActionItems} without an open task
-              </div>
-              <button
-                onClick={() => runGovernanceAutomationMutation.mutate()}
-                disabled={runGovernanceAutomationMutation.isPending}
-                className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Icons.RefreshCw size={16} className={runGovernanceAutomationMutation.isPending ? 'animate-spin' : ''} />
-                Run Automation Sweep
-              </button>
-              <button
-                onClick={() => createGovernanceDigestMutation.mutate()}
-                disabled={createGovernanceDigestMutation.isPending || !governanceInbox.totalItems}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Icons.FileText size={16} />
-                {governanceInbox.digestDue ? "Create Today's Digest" : 'Create Digest'}
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-9 gap-4 mb-4">
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Inbox Items</p>
-              <p className="text-xl font-semibold">{governanceInbox.totalItems}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-red-500/5">
-              <p className="text-sm text-muted-foreground mb-1">SLA Breached</p>
-              <p className="text-xl font-semibold text-red-600">{governanceInbox.slaBreachedItems}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Territory Drift</p>
-              <p className="text-xl font-semibold">{governanceInbox.territoryEscalationItems}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Quota Risk</p>
-              <p className="text-xl font-semibold">{governanceInbox.quotaRiskItems}</p>
-            </div>
-            <div className={cn(
-              "p-4 border rounded-lg",
-              governanceInbox.digestDue ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50"
-            )}>
-              <p className="text-sm text-muted-foreground mb-1">Digest Cadence</p>
-              <p className="text-xl font-semibold">{governanceDigestStatusLabel}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {governanceInbox.daysSinceLastDigest != null
-                  ? `Last digest ${governanceInbox.daysSinceLastDigest} day${governanceInbox.daysSinceLastDigest === 1 ? '' : 's'} ago`
-                  : 'No digest has been generated yet'}
-              </p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Open Digests</p>
-              <p className="text-xl font-semibold">{governanceInbox.openDigestCount}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {governanceInbox.lastDigestStatus ? `Latest status: ${governanceInbox.lastDigestStatus}` : 'No digest status yet'}
-              </p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Open Reviews</p>
-              <p className="text-xl font-semibold">{governanceInbox.openReviewTaskCount}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Governance tasks still waiting for acknowledgement
-              </p>
-            </div>
-            <div className={cn(
-              "p-4 border rounded-lg",
-              governanceInbox.reviewSlaStatus === 'CRITICAL'
-                ? "border-red-200 bg-red-50"
-                : governanceInbox.reviewSlaStatus === 'HIGH'
-                  ? "border-amber-200 bg-amber-50"
-                  : governanceInbox.reviewSlaStatus === 'WATCH'
-                    ? "border-yellow-200 bg-yellow-50"
-                    : "border-green-200 bg-green-50"
-            )}>
-              <p className="text-sm text-muted-foreground mb-1">Review SLA</p>
-              <p className="text-xl font-semibold">{governanceInbox.reviewSlaStatus || 'ON_TRACK'}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {governanceInbox.oldestOverdueReviewDays != null
-                  ? `Oldest overdue review: ${governanceInbox.oldestOverdueReviewDays} day${governanceInbox.oldestOverdueReviewDays === 1 ? '' : 's'}`
-                  : 'No overdue governance reviews'}
-              </p>
-            </div>
-            <div className={cn(
-              "p-4 border rounded-lg",
-              governanceInbox.overdueReviewTaskCount > 0 ? "border-red-200 bg-red-50" : "border-border bg-muted/20"
-            )}>
-              <p className="text-sm text-muted-foreground mb-1">Overdue Reviews</p>
-              <p className={cn(
-                "text-xl font-semibold",
-                governanceInbox.overdueReviewTaskCount > 0 ? "text-red-600" : ""
-              )}>
-                {governanceInbox.overdueReviewTaskCount}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Review tasks past due and ready for escalation
-              </p>
-            </div>
-          </div>
-
-          {governanceInbox.overdueReviewTaskCount > 0 && (
-            <div className={cn(
-              "border rounded-lg p-4 mb-4",
-              governanceInbox.reviewSlaStatus === 'CRITICAL'
-                ? "border-red-200 bg-red-50/80"
-                : governanceInbox.reviewSlaStatus === 'HIGH'
-                  ? "border-amber-200 bg-amber-50/80"
-                  : "border-yellow-200 bg-yellow-50/80"
-            )}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h4 className="font-medium">Governance Review SLA Aging</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Overdue reviews are grouped by age so managers can spot persistent operational drift before it becomes forecast damage.
-                  </p>
-                </div>
-                <span className={governanceReviewBadgeClasses(governanceInbox.reviewSlaStatus || undefined)}>
-                  {governanceInbox.reviewSlaStatus || 'ON_TRACK'}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 text-sm">
-                <div className="border border-border rounded-lg p-3 bg-card/70">
-                  <p className="text-xs text-muted-foreground">Watch Reviews</p>
-                  <p className="text-lg font-semibold">{governanceInbox.watchReviewCount}</p>
-                  <p className="text-xs text-muted-foreground mt-1">1-2 days overdue</p>
-                </div>
-                <div className="border border-border rounded-lg p-3 bg-card/70">
-                  <p className="text-xs text-muted-foreground">High Reviews</p>
-                  <p className="text-lg font-semibold">{governanceInbox.highReviewCount}</p>
-                  <p className="text-xs text-muted-foreground mt-1">3-4 days overdue</p>
-                </div>
-                <div className="border border-border rounded-lg p-3 bg-card/70">
-                  <p className="text-xs text-muted-foreground">Critical Reviews</p>
-                  <p className="text-lg font-semibold">{governanceInbox.criticalReviewCount}</p>
-                  <p className="text-xs text-muted-foreground mt-1">5+ days overdue</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {(governanceInbox.recentDigests?.length ?? 0) > 0 && (
-            <div className="border border-border rounded-lg p-4 bg-muted/10 mb-4">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div>
-                  <h4 className="font-medium">Recent Governance Digests</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Latest digest: {formatDateTime(governanceInbox.lastDigestCreatedAt)}
-                  </p>
-                </div>
-                {governanceInbox.digestDue ? (
-                  <span className="text-xs rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-700">
-                    Due today
-                  </span>
-                ) : (
-                  <span className="text-xs rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-green-700">
-                    Up to date
-                  </span>
-                )}
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {governanceInbox.recentDigests.map((digest) => (
-                  <div key={digest.taskId} className="border border-border rounded-lg p-3 bg-card">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{digest.title}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {digest.assignedToName || 'Unassigned'} / {formatDateTime(digest.createdAt)}
-                        </p>
-                      </div>
-                      <span className={pacingBadgeClasses(
-                        digest.status === 'COMPLETED'
-                          ? 'ON_TRACK'
-                          : digest.status === 'IN_PROGRESS'
-                            ? 'WATCH'
-                            : 'AT_RISK'
-                      )}>
-                        {digest.status || 'TODO'}
-                      </span>
-                    </div>
-                    {digest.taskId && digest.status !== 'COMPLETED' ? (
-                      <div className="mt-3">
-                        <button
-                          onClick={() => acknowledgeGovernanceTaskMutation.mutate(digest.taskId)}
-                          disabled={acknowledgeGovernanceTaskMutation.isPending}
-                          className="px-3 py-2 text-xs border border-border rounded-lg hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Acknowledge Digest
-                        </button>
-                      </div>
-                    ) : null}
-                    <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Priority</p>
-                        <p className="font-medium">{digest.priority || 'MEDIUM'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Due</p>
-                        <p className="font-medium">{digest.dueDate || 'Not set'}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {governanceInbox.items.slice(0, 6).map((item) => (
-              <div key={`${item.itemType}-${item.title}`} className="border border-border rounded-lg p-4 bg-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{item.title}</p>
-                      <span className={item.itemType === 'TERRITORY_ESCALATION' ? escalationBadgeClasses(item.severity) : pacingBadgeClasses(item.severity)}>
-                        {item.severity}
-                      </span>
-                      {item.slaBreached ? (
-                        <span className="text-xs rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-red-700">
-                          SLA breached
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {item.itemType === 'TERRITORY_ESCALATION' ? 'Territory escalation' : 'Quota risk'} • {item.territory || 'Unassigned'} • owner {item.ownerName || 'Unknown'}
-                    </p>
-                  </div>
-                  {item.openTaskExists ? (
-                    <span className="text-xs rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-green-700">
-                      Task open
-                    </span>
-                  ) : (
-                    <span className="text-xs rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-700">
-                      Needs action
-                    </span>
-                  )}
-                </div>
-
-                {item.openTaskExists && item.openTaskId ? (
-                  <div className="mt-3">
-                    <button
-                      onClick={() => acknowledgeGovernanceTaskMutation.mutate(item.openTaskId!)}
-                      disabled={acknowledgeGovernanceTaskMutation.isPending}
-                      className="px-3 py-2 text-xs border border-border rounded-lg hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Acknowledge Review
-                    </button>
-                  </div>
-                ) : null}
-
-                <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Age</p>
-                    <p className="font-medium">{item.ageDays ?? 0} day{(item.ageDays ?? 0) === 1 ? '' : 's'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Summary</p>
-                    <p className="font-medium">{item.summary || 'No summary'}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {atRiskReps.length > 0 && (
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Quota Risk Alerts</h3>
-              <p className="text-sm text-muted-foreground">
-                Reps who need manager attention based on quarter pace, weighted forecast, and current coverage.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">
-                {quotaRiskAlerts?.atRiskCount ?? revenueOpsSummary?.atRiskRepCount ?? 0} at risk • {quotaRiskAlerts?.watchCount ?? revenueOpsSummary?.watchRepCount ?? 0} watch
-              </div>
-              {canManageQuotaRisk && (
-                <button
-                  onClick={() => createQuotaRiskTasksMutation.mutate()}
-                  disabled={createQuotaRiskTasksMutation.isPending || !(quotaRiskAlerts?.alerts?.length ?? atRiskReps.length)}
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  <Icons.CheckSquare size={16} />
-                  Create Follow-Up Tasks
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {atRiskReps.slice(0, 6).map((member: any) => (
-              <div key={member.userId || member.name} className="border border-border rounded-lg p-4 bg-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{member.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {member.territory || 'Unassigned'} • {member.role}
-                    </p>
-                  </div>
-                  <span className={pacingBadgeClasses(member.pacingStatus)}>
-                    {pacingLabel(member.pacingStatus)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Quarterly quota</p>
-                    <p className="font-medium">{formatCompactCurrency(member.quarterlyQuota)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Expected by now</p>
-                    <p className="font-medium">{formatCompactCurrency(member.expectedClosedValue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Closed won</p>
-                    <p className="font-medium text-green-600">{formatCompactCurrency(member.closedWonValue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Coverage</p>
-                    <p className="font-medium">{formatCoverage(member.pipelineCoverageRatio)}</p>
-                  </div>
-                </div>
-                <div className="mt-3 text-xs text-muted-foreground">
-                  Projected attainment {Math.round(member.projectedAttainmentPercent ?? member.quarterlyAttainmentPercent ?? 0)}% • Required pipeline {formatCompactCurrency(member.requiredPipelineValue)}
-                </div>
-                {member.openTaskExists ? (
-                  <div className="mt-3 inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs text-green-700">
-                    Follow-up task already open
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showAutomationRuns && automationRuns && (
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Recent Automation Runs</h3>
-              <p className="text-sm text-muted-foreground">
-                The latest tenant workflow executions across quota, governance, rescue, and territory operations.
-              </p>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {automationRuns.filter((run) => run.triggerSource === 'SCHEDULED').length} scheduled • {automationRuns.filter((run) => run.triggerSource === 'MANUAL').length} manual
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {automationRuns.map((run) => (
-              <div key={run.id} className="border border-border rounded-lg p-4 bg-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium">{run.automationName}</p>
-                      <span className={governanceReviewBadgeClasses(run.runStatus === 'SUCCESS' ? 'ON_TRACK' : run.runStatus === 'SKIPPED' ? 'WATCH' : 'CRITICAL')}>
-                        {run.runStatus}
-                      </span>
-                      <span className="text-[10px] px-2 py-1 rounded-full border border-border text-muted-foreground">
-                        {run.triggerSource}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {run.summary || 'No summary recorded'}
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-right">
-                    {formatDateTime(run.createdAt)}
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-3 mt-4 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Reviewed</p>
-                    <p className="font-medium">{run.reviewedCount ?? 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Actions</p>
-                    <p className="font-medium">{run.actionCount ?? 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Covered</p>
-                    <p className="font-medium">{run.alreadyCoveredCount ?? 0}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {canManageQuotaRisk && territoryExceptions && territoryExceptions.totalExceptions > 0 && (
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Territory Exceptions</h3>
-              <p className="text-sm text-muted-foreground">
-                Cross-record territory mismatches across leads, accounts, and deals that need manager review before they create routing drift.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">
-                {territoryExceptions.totalExceptions} total • {territoryExceptions.highSeverityCount} high severity
-              </div>
-              <button
-                onClick={() => createTerritoryExceptionTasksMutation.mutate()}
-                disabled={createTerritoryExceptionTasksMutation.isPending || !territoryExceptions.totalExceptions}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Icons.AlertCircle size={16} />
-                Create Review Tasks
-              </button>
-              <button
-                onClick={() => autoRemediateTerritoryExceptionsMutation.mutate()}
-                disabled={autoRemediateTerritoryExceptionsMutation.isPending || !territoryExceptions.totalExceptions}
-                className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Icons.CheckSquare size={16} />
-                Auto-Remediate
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Lead Exceptions</p>
-              <p className="text-xl font-semibold">{territoryExceptions.leadExceptions}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Account Exceptions</p>
-              <p className="text-xl font-semibold">{territoryExceptions.companyExceptions}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Deal Exceptions</p>
-              <p className="text-xl font-semibold">{territoryExceptions.dealExceptions}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-red-500/5">
-              <p className="text-sm text-muted-foreground mb-1">High Severity</p>
-              <p className="text-xl font-semibold text-red-600">{territoryExceptions.highSeverityCount}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {territoryExceptions.exceptions.slice(0, 6).map((item) => (
-              <div key={`${item.entityType}-${item.entityId}`} className="border border-border rounded-lg p-4 bg-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{item.title}</p>
-                      <span className={pacingBadgeClasses(item.severity === 'HIGH' ? 'AT_RISK' : 'WATCH')}>
-                        {item.severity}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {item.entityType} • {item.territory || 'No territory'} • owner {item.ownerName || 'Unassigned'}
-                    </p>
-                  </div>
-                  {item.openTaskExists ? (
-                    <span className="text-xs rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-green-700">
-                      Task open
-                    </span>
-                  ) : null}
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Owner territory</p>
-                    <p className="font-medium">{item.ownerTerritory || 'Unassigned'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Suggested owner</p>
-                    <p className="font-medium">{item.suggestedOwnerName || 'No better match yet'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Suggested territory</p>
-                    <p className="font-medium">{item.suggestedOwnerTerritory || 'No governed match'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Impact</p>
-                    <p className="font-medium">{formatCompactCurrency(item.impactValue)}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {canManageQuotaRisk && territoryEscalations && territoryEscalations.totalEscalations > 0 && (
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Territory Escalations</h3>
-              <p className="text-sm text-muted-foreground">
-                Grouped mismatch clusters that need manager attention before drift spreads into coverage and forecast problems.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">
-                {territoryEscalations.criticalCount} critical • {territoryEscalations.highCount} high • {territoryEscalations.watchCount} watch
-              </div>
-              <button
-                onClick={() => createTerritoryEscalationTasksMutation.mutate()}
-                disabled={createTerritoryEscalationTasksMutation.isPending || !territoryEscalations.totalEscalations}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Icons.Bell size={16} />
-                Create Manager Alerts
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <div className="p-4 border border-border rounded-lg bg-red-500/5">
-              <p className="text-sm text-muted-foreground mb-1">Critical</p>
-              <p className="text-xl font-semibold text-red-600">{territoryEscalations.criticalCount}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-amber-500/5">
-              <p className="text-sm text-muted-foreground mb-1">High</p>
-              <p className="text-xl font-semibold text-amber-700">{territoryEscalations.highCount}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-blue-500/5">
-              <p className="text-sm text-muted-foreground mb-1">Watch</p>
-              <p className="text-xl font-semibold text-blue-700">{territoryEscalations.watchCount}</p>
-            </div>
-            <div className="p-4 border border-border rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground mb-1">Exposure</p>
-              <p className="text-xl font-semibold">{formatCompactCurrency(territoryEscalations.totalPipelineExposure)}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {territoryEscalations.escalations.slice(0, 6).map((item) => (
-              <div key={`${item.territory}-${item.suggestedOwnerId || 'none'}`} className="border border-border rounded-lg p-4 bg-card">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{item.territory || 'Unassigned territory'}</p>
-                      <span className={escalationBadgeClasses(item.escalationLevel)}>
-                        {item.escalationLevel}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Suggested owner {item.suggestedOwnerName || 'Not resolved yet'} • {item.totalExceptions} exception{item.totalExceptions === 1 ? '' : 's'}
-                    </p>
-                  </div>
-                  {item.openAlertExists ? (
-                    <span className="text-xs rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-green-700">
-                      Alert open
-                    </span>
-                  ) : null}
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Leads / Accounts / Deals</p>
-                    <p className="font-medium">{item.leadExceptions} / {item.companyExceptions} / {item.dealExceptions}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">High severity</p>
-                    <p className="font-medium">{item.highSeverityCount}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Repeated mismatches</p>
-                    <p className="font-medium">{item.repeatedMismatchCount}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Pipeline exposure</p>
-                    <p className="font-medium">{formatCompactCurrency(item.pipelineExposure)}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Team Performance */}
-      <div className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Team Performance</h3>
         <div className="border border-border rounded-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
+            <h3 className="text-lg font-semibold">Forecast Rollup Hierarchy</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Workspace, manager, and owner forecast rollups for the active scenario.
+            </p>
+          </div>
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-3 text-xs font-semibold">Sales Rep</th>
-                <th className="text-left p-3 text-xs font-semibold">Territory</th>
-                <th className="text-left p-3 text-xs font-semibold">Quarterly Quota</th>
-                <th className="text-left p-3 text-xs font-semibold">Weighted Pipeline</th>
+                <th className="text-left p-3 text-xs font-semibold">Level</th>
+                <th className="text-left p-3 text-xs font-semibold">Quota</th>
+                <th className="text-left p-3 text-xs font-semibold">Forecast</th>
                 <th className="text-left p-3 text-xs font-semibold">Closed</th>
-                <th className="text-left p-3 text-xs font-semibold">Coverage</th>
-                <th className="text-left p-3 text-xs font-semibold">Projected</th>
-                <th className="text-left p-3 text-xs font-semibold">Pace</th>
+                <th className="text-left p-3 text-xs font-semibold">Pipeline</th>
+                <th className="text-left p-3 text-xs font-semibold">Attainment</th>
               </tr>
             </thead>
             <tbody>
-              {(revenueOpsTeam.length > 0 ? revenueOpsTeam : teamForecasts).map((member: any) => (
-                <tr key={member.userId || member.name} className="border-t border-border hover:bg-muted/30">
-                  <td className="p-3 text-sm font-medium">{member.name}</td>
-                  <td className="p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span>{member.territory || 'Unassigned'}</span>
-                      {member.governedTerritory === false ? (
-                        <span className="text-[10px] px-2 py-1 rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-200">
-                          Legacy
-                        </span>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="p-3 text-sm">{formatCompactCurrency(member.quarterlyQuota ?? member.quota)}</td>
-                  <td className="p-3 text-sm text-blue-600">{formatCompactCurrency(member.weightedPipelineValue ?? member.forecast)}</td>
-                  <td className="p-3 text-sm text-green-600">{formatCompactCurrency(member.closedWonValue ?? member.closed)}</td>
-                  <td className="p-3">
-                    <span className={cn(
-                      "text-xs px-2 py-1 border rounded-full",
-                      (member.pipelineCoverageRatio ?? 0) >= 1 ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                      (member.pipelineCoverageRatio ?? 0) >= 0.7 ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" :
-                      "bg-red-500/10 text-red-600 border-red-500/20"
-                    )}>
-                      {formatCoverage(member.pipelineCoverageRatio)}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <div className="space-y-1">
-                      <span className="text-sm font-medium">
-                        {Math.round(member.projectedAttainmentPercent ?? member.quarterlyAttainmentPercent ?? member.attainment ?? 0)}%
-                      </span>
-                      {member.expectedClosedValue != null ? (
-                        <p className="text-xs text-muted-foreground">
-                          Expected by now {formatCompactCurrency(member.expectedClosedValue)}
-                        </p>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span className={pacingBadgeClasses(member.pacingStatus)}>
-                      {pacingLabel(member.pacingStatus)}
-                    </span>
+              {rollupHierarchy.length > 0 ? rollupHierarchy.map((node: any) => {
+                const indent = node.level === 'MANAGER' ? 'pl-6' : node.level === 'OWNER' ? 'pl-12' : '';
+                return (
+                  <tr key={node.id} className="border-t border-border hover:bg-muted/20">
+                    <td className={cn('p-3 text-sm font-medium', indent)}>
+                      <div className="flex items-center gap-2">
+                        {node.level === 'TEAM' && <Icons.Building2 size={16} className="text-primary" />}
+                        {node.level === 'MANAGER' && <Icons.Users size={16} className="text-blue-600" />}
+                        {node.level === 'OWNER' && <Icons.User size={16} className="text-muted-foreground" />}
+                        <span>{node.label}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm">{formatCompactCurrency(node.quota)}</td>
+                    <td className="p-3 text-sm text-blue-600">{formatCompactCurrency(node.forecast)}</td>
+                    <td className="p-3 text-sm text-green-600">{formatCompactCurrency(node.closed)}</td>
+                    <td className="p-3 text-sm">{formatCompactCurrency(node.pipeline)}</td>
+                    <td className="p-3 text-sm">{formatPercent(node.attainment)}</td>
+                  </tr>
+                );
+              }) : (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
+                    No forecast hierarchy available.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
-        {territorySummaries.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4">Territory Coverage</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {territorySummaries.map((territory) => (
-                <div key={territory.territory} className="border border-border rounded-lg p-4 bg-card">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium">{territory.territory}</h4>
-                    <div className="flex items-center gap-2">
-                      {!territory.governed ? (
-                        <span className="text-[10px] px-2 py-1 rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-200">
-                          Out of Catalog
-                        </span>
-                      ) : null}
-                      <span className="text-xs text-muted-foreground">{territory.repCount} rep{territory.repCount === 1 ? '' : 's'}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Quota</span>
-                      <span>{formatCompactCurrency(territory.quarterlyQuota)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Weighted pipeline</span>
-                      <span>{formatCompactCurrency(territory.weightedPipelineValue)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Closed</span>
-                      <span>{formatCompactCurrency(territory.closedWonValue)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Coverage</span>
-                      <span>{formatCoverage(territory.pipelineCoverageRatio)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Projected</span>
-                      <span>{Math.round(territory.projectedAttainmentPercent)}%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Pace</span>
-                      <span className={pacingBadgeClasses(territory.pacingStatus)}>
-                        {pacingLabel(territory.pacingStatus)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                      <span>On track {territory.onTrackRepCount}</span>
-                      <span>Watch {territory.watchRepCount}</span>
-                      <span>At risk {territory.atRiskRepCount}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
+            <h3 className="text-lg font-semibold">Snapshot History</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Recent forecast runs for this workspace and user scope.
+            </p>
           </div>
-        )}
+          <table className="w-full">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-3 text-xs font-semibold">Generated</th>
+                <th className="text-left p-3 text-xs font-semibold">Label</th>
+                <th className="text-left p-3 text-xs font-semibold">Category</th>
+                <th className="text-left p-3 text-xs font-semibold">Adjustment</th>
+                <th className="text-left p-3 text-xs font-semibold">Forecast</th>
+                <th className="text-left p-3 text-xs font-semibold">Quota</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshotHistory.length > 0 ? [...snapshotHistory].reverse().map((snapshot: any, idx: number) => (
+                <tr key={`${snapshot.generated_at}-${idx}`} className="border-t border-border hover:bg-muted/20">
+                  <td className="p-3 text-sm">{new Date(snapshot.generated_at).toLocaleString()}</td>
+                  <td className="p-3 text-sm">{snapshot.snapshot_label}</td>
+                  <td className="p-3 text-sm">{snapshot.forecast_category.replace('_', ' ')}</td>
+                  <td className="p-3 text-sm">{snapshot.manager_adjustment_percent}%</td>
+                  <td className="p-3 text-sm text-blue-600">{formatCompactCurrency(snapshot.final_forecast)}</td>
+                  <td className="p-3 text-sm">{formatCompactCurrency(snapshot.quota)}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-sm text-muted-foreground">
+                    No snapshot history available yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </PageLayout>
   );

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { User } from './types';
 
 const AI_API_URL = import.meta.env.VITE_AI_API_URL || 'http://localhost:8000';
 
@@ -32,6 +33,7 @@ aiClient.interceptors.response.use(
       console.warn('AI service authentication failed - token may be expired');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('ai_user_id');
       
       if (window.location.pathname !== '/login') {
         alert('Your session has expired. Please sign in again.');
@@ -42,29 +44,49 @@ aiClient.interceptors.response.use(
   }
 );
 
-// Generate or retrieve user ID for conversation tracking
-// Use authenticated user's email if available, otherwise fallback to localStorage
-function getUserId(): string {
-  // Try to get the authenticated user first
+function getStoredUser(): Partial<User> | null {
   const userStr = localStorage.getItem('user');
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      if (user.email) {
-        return user.email; // Use email as stable user identifier
-      }
-    } catch (e) {
-      console.error('Failed to parse user from localStorage');
-    }
+  if (!userStr) {
+    return null;
   }
-  
-  // Fallback to generated ID (for unauthenticated users)
+
+  try {
+    return JSON.parse(userStr) as Partial<User>;
+  } catch (error) {
+    console.error('Failed to parse user from localStorage', error);
+    return null;
+  }
+}
+
+// Generate or retrieve user ID for conversation tracking
+// Prefer authenticated user id so frontend and AI service agree on conversation ownership.
+function getUserId(): string {
+  const user = getStoredUser();
+  if (user?.id) {
+    return user.id;
+  }
+
+  if (user?.email) {
+    return user.email;
+  }
+
   let userId = localStorage.getItem('ai_user_id');
   if (!userId) {
     userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('ai_user_id', userId);
   }
   return userId;
+}
+
+function getConversationId(context?: Record<string, any>): string {
+  const user = getStoredUser();
+  const workspaceKey = user?.tenantId || user?.tenantSlug || 'workspace';
+  const pageKey =
+    typeof context?.page === 'string' && context.page.trim()
+      ? context.page.trim().toLowerCase()
+      : 'chat';
+
+  return `${workspaceKey}:${pageKey}`;
 }
 
 export interface Message {
@@ -127,6 +149,7 @@ export async function* streamAgenticResponse(
   degraded_reason?: string | null;
 }, void, unknown> {
   const userId = getUserId();
+  const conversationId = getConversationId(context);
   const token = localStorage.getItem('token');
   
   const response = await fetch(`${AI_API_URL}/chat/stream`, {
@@ -140,7 +163,7 @@ export async function* streamAgenticResponse(
       context,
       stream: true,
       user_id: userId,
-      conversation_id: 'default'
+      conversation_id: conversationId
     })
   });
 
@@ -148,6 +171,7 @@ export async function* streamAgenticResponse(
     if (response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('ai_user_id');
       if (window.location.pathname !== '/login') {
         alert('Your session has expired. Please sign in again.');
         window.location.href = '/login';
@@ -188,6 +212,9 @@ export async function* streamAgenticResponse(
               const jsonStr = line.slice(6).trim();
               if (jsonStr) {
                 const data = JSON.parse(jsonStr);
+                if (data.type === 'error') {
+                  throw new Error(data.message || 'AI stream failed.');
+                }
                 yield {
                   ...data,
                   toolCalls: data.toolCalls ?? data.tool_calls,
@@ -218,6 +245,7 @@ export async function getAgenticResponse(
 ): Promise<ChatResponse> {
   try {
     const userId = getUserId();
+    const conversationId = getConversationId(context);
     
     const response = await aiClient.post<ChatResponse>(
       '/chat',
@@ -226,7 +254,7 @@ export async function getAgenticResponse(
         context,
         stream: false,
         user_id: userId,
-        conversation_id: 'default'  // Can be made dynamic for multiple conversations
+        conversation_id: conversationId
       }
     );
 
@@ -330,10 +358,13 @@ export async function getConversationHistory(
 ): Promise<Message[]> {
   try {
     const userId = getUserId();
+    const scopedConversationId = conversationId === 'default'
+      ? getConversationId()
+      : conversationId;
     const response = await aiClient.get('/conversation/history', {
       params: {
         user_id: userId,
-        conversation_id: conversationId,
+        conversation_id: scopedConversationId,
         limit
       }
     });
@@ -350,10 +381,13 @@ export async function getConversationHistory(
 export async function clearConversation(conversationId: string = 'default'): Promise<boolean> {
   try {
     const userId = getUserId();
+    const scopedConversationId = conversationId === 'default'
+      ? getConversationId()
+      : conversationId;
     const response = await aiClient.delete('/conversation/clear', {
       params: {
         user_id: userId,
-        conversation_id: conversationId
+        conversation_id: scopedConversationId
       }
     });
     return response.data.success;

@@ -2,6 +2,7 @@ package com.crm.service;
 
 import com.crm.dto.request.InvoiceFilterDTO;
 import com.crm.dto.request.InvoiceRequestDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.dto.response.InvoiceResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,4 +30,6 @@ public interface InvoiceService {
     InvoiceResponseDTO markAsPaid(UUID id, LocalDate paidDate);
     
     List<InvoiceResponseDTO> findOverdueInvoices();
+
+    IntegrationSyncResultDTO syncToErp(UUID id, String providerKey);
 }
