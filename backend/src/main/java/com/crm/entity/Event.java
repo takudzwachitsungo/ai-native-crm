@@ -45,4 +45,13 @@ public class Event extends AbstractEntity {
 
     @Column(columnDefinition = "TEXT[]")
     private String[] tags;
+
+    @Column(name = "external_provider", length = 100)
+    private String externalProvider;
+
+    @Column(name = "external_event_id", length = 255)
+    private String externalEventId;
+
+    @Column(name = "provider_synced_at")
+    private LocalDateTime providerSyncedAt;
 }

@@ -3,7 +3,10 @@ package com.crm.controller;
 import com.crm.dto.request.EmailFilterDTO;
 import com.crm.dto.request.EmailRequestDTO;
 import com.crm.dto.response.EmailResponseDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.service.EmailService;
+import com.crm.service.WorkspaceGoogleWorkspaceSyncService;
+import com.crm.service.WorkspaceMicrosoft365SyncService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +32,8 @@ import java.util.UUID;
 public class EmailController {
 
     private final EmailService emailService;
+    private final WorkspaceMicrosoft365SyncService workspaceMicrosoft365SyncService;
+    private final WorkspaceGoogleWorkspaceSyncService workspaceGoogleWorkspaceSyncService;
 
     @GetMapping
     @Operation(summary = "Get all emails", description = "Get paginated list of emails with optional filtering")
@@ -104,5 +109,19 @@ public class EmailController {
             @RequestParam String folder
     ) {
         return ResponseEntity.ok(emailService.moveToFolder(id, folder));
+    }
+
+    @PostMapping("/sync/microsoft-365")
+    @Operation(summary = "Sync Microsoft 365 emails", description = "Imports inbox and sent email metadata from the connected Microsoft 365 workspace integration")
+    @PreAuthorize("hasAuthority('WORKSPACE_DATABASE_MANAGE')")
+    public ResponseEntity<IntegrationSyncResultDTO> syncMicrosoft365Emails() {
+        return ResponseEntity.ok(workspaceMicrosoft365SyncService.syncEmails());
+    }
+
+    @PostMapping("/sync/google-workspace")
+    @Operation(summary = "Sync Google Workspace emails", description = "Imports inbox and sent Gmail metadata from the connected Google Workspace integration")
+    @PreAuthorize("hasAuthority('WORKSPACE_DATABASE_MANAGE')")
+    public ResponseEntity<IntegrationSyncResultDTO> syncGoogleWorkspaceEmails() {
+        return ResponseEntity.ok(workspaceGoogleWorkspaceSyncService.syncEmails());
     }
 }

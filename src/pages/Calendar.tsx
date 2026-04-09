@@ -7,6 +7,7 @@ import { EventForm } from "../components/forms";
 import { useToast } from "../components/Toast";
 import { ConfirmModal } from "../components/Modal";
 import { eventsApi } from "../lib/api";
+import { exportToCSV } from "../lib/helpers";
 import type { Event } from "../lib/types";
 
 interface CalendarEvent {
@@ -95,9 +96,31 @@ export default function CalendarPage() {
     },
   });
 
+  const syncMicrosoft365Mutation = useMutation({
+    mutationFn: () => eventsApi.syncMicrosoft365(),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      showToast(result.summary, 'success');
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || 'Failed to sync Microsoft 365 calendar', 'error');
+    },
+  });
+
+  const syncGoogleWorkspaceMutation = useMutation({
+    mutationFn: () => eventsApi.syncGoogleWorkspace(),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      showToast(result.summary, 'success');
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || 'Failed to sync Google Workspace calendar', 'error');
+    },
+  });
+
   // Transform backend events to calendar format
   const events = eventsData?.content || [];
-  const mockEvents: DayEvents = {};
+  const eventsByDate: DayEvents = {};
   
   events.forEach((event) => {
     const dateKey = event.startTime.split('T')[0];
@@ -118,10 +141,10 @@ export default function CalendarPage() {
       endTime: event.endTime,
     };
     
-    if (!mockEvents[dateKey]) {
-      mockEvents[dateKey] = [];
+    if (!eventsByDate[dateKey]) {
+      eventsByDate[dateKey] = [];
     }
-    mockEvents[dateKey].push(calendarEvent);
+    eventsByDate[dateKey].push(calendarEvent);
   });
 
   const getWeekDays = () => {
@@ -165,7 +188,7 @@ export default function CalendarPage() {
     setCurrentDate(new Date());
   };
 
-  const allEvents = Object.values(mockEvents).flat();
+  const allEvents = Object.values(eventsByDate).flat();
   const filteredEvents = searchQuery
     ? allEvents.filter(e => 
         e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -176,7 +199,7 @@ export default function CalendarPage() {
 
   const totalMeetings = filteredEvents.length;
   const todayKey = formatDateKey(new Date());
-  const todayMeetings = mockEvents[todayKey]?.length || 0;
+  const todayMeetings = eventsByDate[todayKey]?.length || 0;
 
   const eventCounts = {
     all: allEvents.length,
@@ -193,7 +216,36 @@ export default function CalendarPage() {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-semibold text-foreground">Calendar</h1>
             <div className="flex items-center gap-2">
-              <button className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2">
+              <button
+                onClick={() => syncGoogleWorkspaceMutation.mutate()}
+                disabled={syncGoogleWorkspaceMutation.isPending}
+                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <Icons.Download size={16} />
+                {syncGoogleWorkspaceMutation.isPending ? 'Syncing Google...' : 'Sync Google'}
+              </button>
+              <button
+                onClick={() => syncMicrosoft365Mutation.mutate()}
+                disabled={syncMicrosoft365Mutation.isPending}
+                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <Icons.Download size={16} />
+                {syncMicrosoft365Mutation.isPending ? 'Syncing Outlook...' : 'Sync Outlook'}
+              </button>
+              <button
+                onClick={() => {
+                  exportToCSV(events, [
+                    { header: 'Title', accessor: 'title' },
+                    { header: 'Type', accessor: 'eventType' },
+                    { header: 'Start', accessor: 'startTime' },
+                    { header: 'End', accessor: 'endTime' },
+                    { header: 'Location', accessor: (item) => item.location || '' },
+                    { header: 'Description', accessor: (item) => item.description || '' },
+                  ], 'calendar-events');
+                  showToast(`Exported ${events.length} events`, 'success');
+                }}
+                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+              >
                 <Icons.Download size={16} />
                 Export
               </button>
@@ -281,7 +333,7 @@ export default function CalendarPage() {
             <div className="grid grid-cols-7">
               {weekDays.map((day, index) => {
                 const dateKey = formatDateKey(day);
-                const dayEvents = mockEvents[dateKey] || [];
+                const dayEvents = eventsByDate[dateKey] || [];
                 const today = isToday(day);
 
                 return (
@@ -374,7 +426,7 @@ export default function CalendarPage() {
             <div className="p-4">
               {/* Month View - Simple List */}
               <div className="space-y-3 max-h-[700px] overflow-y-auto">
-                {Object.entries(mockEvents).map(([date, dayEvents]) => (
+                {Object.entries(eventsByDate).map(([date, dayEvents]) => (
                   <div key={date} className="border-b border-border pb-3 last:border-b-0">
                     <h3 className="text-sm font-semibold mb-2 text-muted-foreground">
                       {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}

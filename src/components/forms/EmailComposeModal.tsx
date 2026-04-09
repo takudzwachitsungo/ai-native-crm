@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Modal } from "../Modal";
+import { Modal } from '../Modal';
 import { emailsApi } from '../../lib/api';
 import { useToast } from '../Toast';
 import type { Email } from '../../lib/types';
@@ -22,23 +22,21 @@ interface EmailComposeModalProps {
 
 export function EmailComposeModal({ isOpen, onClose, initialData }: EmailComposeModalProps) {
   const [formData, setFormData] = useState<EmailComposeData>({
-    to: "",
-    cc: "",
-    bcc: "",
-    subject: "",
-    body: "",
-    template: "",
+    to: '',
+    cc: '',
+    bcc: '',
+    subject: '',
+    body: '',
+    template: '',
   });
   const [showCC, setShowCC] = useState(false);
   const [showBCC, setShowBCC] = useState(false);
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get current user email from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const fromEmail = user.email || 'noreply@crm.com';
 
-  // Create draft mutation
   const saveDraftMutation = useMutation({
     mutationFn: (data: Partial<Email>) => emailsApi.create(data),
     onSuccess: () => {
@@ -51,18 +49,17 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
     },
   });
 
-  // Create and send mutation
   const sendEmailMutation = useMutation({
     mutationFn: async (data: Partial<Email>) => {
       const email = await emailsApi.create(data);
       if (email.id) {
-        return await emailsApi.send(email.id);
+        return emailsApi.send(email.id);
       }
       throw new Error('Failed to create email');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emails'] });
-      showToast('✉️ Email sent! Check Mailpit (http://localhost:8025) to view it.', 'success');
+      showToast('Email sent successfully', 'success');
       onClose();
     },
     onError: (error: any) => {
@@ -75,51 +72,51 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
       setFormData((prev) => ({ ...prev, ...initialData }));
       if (initialData.cc) setShowCC(true);
       if (initialData.bcc) setShowBCC(true);
-    } else {
-      setFormData({
-        to: "",
-        cc: "",
-        bcc: "",
-        subject: "",
-        body: "",
-        template: "",
-      });
-      setShowCC(false);
-      setShowBCC(false);
+      return;
     }
+
+    setFormData({
+      to: '',
+      cc: '',
+      bcc: '',
+      subject: '',
+      body: '',
+      template: '',
+    });
+    setShowCC(false);
+    setShowBCC(false);
   }, [initialData, isOpen]);
 
   const handleTemplateChange = (templateId: string) => {
     setFormData({ ...formData, template: templateId });
-    
-    // Apply template content
-    if (templateId === "intro") {
+
+    if (templateId === 'intro') {
       setFormData({
         ...formData,
         template: templateId,
-        subject: "Introduction to [Your Company]",
-        body: "Hi [Name],\n\nI hope this email finds you well. I wanted to introduce you to [Your Company] and how we can help...\n\nBest regards,\n[Your Name]"
+        subject: 'Introduction to [Your Company]',
+        body: 'Hi [Name],\n\nI hope this email finds you well. I wanted to introduce you to [Your Company] and how we can help...\n\nBest regards,\n[Your Name]',
       });
-    } else if (templateId === "followup") {
+    } else if (templateId === 'followup') {
       setFormData({
         ...formData,
         template: templateId,
-        subject: "Following up on our conversation",
-        body: "Hi [Name],\n\nI wanted to follow up on our recent conversation about...\n\nLooking forward to hearing from you.\n\nBest regards,\n[Your Name]"
+        subject: 'Following up on our conversation',
+        body: 'Hi [Name],\n\nI wanted to follow up on our recent conversation about...\n\nLooking forward to hearing from you.\n\nBest regards,\n[Your Name]',
       });
-    } else if (templateId === "proposal") {
+    } else if (templateId === 'proposal') {
       setFormData({
         ...formData,
         template: templateId,
-        subject: "Proposal for [Project Name]",
-        body: "Hi [Name],\n\nPlease find attached our proposal for [Project Name]. We've outlined...\n\nPlease let me know if you have any questions.\n\nBest regards,\n[Your Name]"
+        subject: 'Proposal for [Project Name]',
+        body: 'Hi [Name],\n\nPlease find attached our proposal for [Project Name]. We have outlined...\n\nPlease let me know if you have any questions.\n\nBest regards,\n[Your Name]',
       });
     }
   };
 
   const handleSaveDraft = () => {
     const emailData: Partial<Email> = {
-      fromEmail: fromEmail,
+      fromEmail,
       toEmail: formData.to,
       ccEmail: formData.cc || undefined,
       bccEmail: formData.bcc || undefined,
@@ -140,7 +137,7 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
     }
 
     const emailData: Partial<Email> = {
-      fromEmail: fromEmail,
+      fromEmail,
       toEmail: formData.to,
       ccEmail: formData.cc || undefined,
       bccEmail: formData.bcc || undefined,
@@ -191,28 +188,6 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
       }
     >
       <div className="space-y-4">
-        {/* Mailpit Info Banner */}
-        <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-          <div className="flex items-start gap-2">
-            <div className="text-primary mt-0.5">ℹ️</div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-primary">Testing Mode - Mailpit</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Emails will be captured locally. View them at{' '}
-                <a 
-                  href="http://localhost:8025" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="underline hover:text-primary"
-                >
-                  localhost:8025
-                </a>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Template Selector */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">Use Template</label>
           <select
@@ -227,7 +202,6 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
           </select>
         </div>
 
-        {/* To Field */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">
             To <span className="text-red-500">*</span>
@@ -263,7 +237,6 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
           </div>
         </div>
 
-        {/* CC Field */}
         {showCC && (
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">CC</label>
@@ -278,7 +251,6 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
           </div>
         )}
 
-        {/* BCC Field */}
         {showBCC && (
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">BCC</label>
@@ -293,7 +265,6 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
           </div>
         )}
 
-        {/* Subject */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">
             Subject <span className="text-red-500">*</span>
@@ -307,7 +278,6 @@ export function EmailComposeModal({ isOpen, onClose, initialData }: EmailCompose
           />
         </div>
 
-        {/* Body */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">
             Message <span className="text-red-500">*</span>

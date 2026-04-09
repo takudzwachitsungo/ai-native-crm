@@ -57,4 +57,13 @@ public class Email extends AbstractEntity {
 
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
+
+    @Column(name = "external_provider", length = 100)
+    private String externalProvider;
+
+    @Column(name = "external_message_id", length = 255)
+    private String externalMessageId;
+
+    @Column(name = "provider_synced_at")
+    private LocalDateTime providerSyncedAt;
 }

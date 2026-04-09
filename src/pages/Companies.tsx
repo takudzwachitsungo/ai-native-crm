@@ -130,6 +130,18 @@ export default function CompaniesPage() {
     },
   });
 
+  const erpSyncMutation = useMutation({
+    mutationFn: ({ id, providerKey }: { id: string; providerKey: "quickbooks" | "xero" }) =>
+      companiesApi.syncToErp(id, providerKey),
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      showToast(result.summary || `Synced account to ${variables.providerKey}`, "success");
+    },
+    onError: (error: any) => {
+      showToast(error.response?.data?.message || "Failed to sync account to ERP", "error");
+    },
+  });
+
   const filteredCompanies = companies.filter((company) => {
     return filter === "all" || company.status?.toLowerCase() === filter;
   });
@@ -432,6 +444,22 @@ export default function CompaniesPage() {
                         >
                           <Icons.Trash size={16} className="text-muted-foreground" />
                         </button>
+                        <button
+                          onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "quickbooks" })}
+                          disabled={!company.id || erpSyncMutation.isPending}
+                          className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                          title="Sync to QuickBooks"
+                        >
+                          QB
+                        </button>
+                        <button
+                          onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "xero" })}
+                          disabled={!company.id || erpSyncMutation.isPending}
+                          className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                          title="Sync to Xero"
+                        >
+                          Xero
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -514,6 +542,22 @@ export default function CompaniesPage() {
                   <Icons.Activity size={16} />
                   View Account Intelligence
                 </button>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "quickbooks" })}
+                    disabled={!company.id || erpSyncMutation.isPending}
+                    className="rounded border border-border px-3 py-2 text-sm hover:bg-secondary transition-colors disabled:opacity-50"
+                  >
+                    Sync QuickBooks
+                  </button>
+                  <button
+                    onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "xero" })}
+                    disabled={!company.id || erpSyncMutation.isPending}
+                    className="rounded border border-border px-3 py-2 text-sm hover:bg-secondary transition-colors disabled:opacity-50"
+                  >
+                    Sync Xero
+                  </button>
+                </div>
               </div>
             ))}
           </div>

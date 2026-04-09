@@ -35,6 +35,8 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     Optional<User> findByIdAndTenantIdAndArchivedFalse(UUID id, UUID tenantId);
 
     long countByTenantIdAndTerritoryAndArchivedFalse(UUID tenantId, String territory);
+
+    long countByTenantIdAndIsActiveTrueAndArchivedFalse(UUID tenantId);
     
     boolean existsByTenantIdAndEmail(UUID tenantId, String email);
 

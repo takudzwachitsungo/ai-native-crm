@@ -1,6 +1,7 @@
 package com.crm.service.impl;
 
 import com.crm.exception.BadRequestException;
+import com.crm.service.SecretValueResolver;
 import com.crm.service.TenantCredentialCipher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,9 +27,10 @@ public class TenantCredentialCipherImpl implements TenantCredentialCipher {
     private final SecureRandom secureRandom = new SecureRandom();
 
     public TenantCredentialCipherImpl(
-            @Value("${tenancy.security.database-credentials-key}") String rawKeyMaterial
+            @Value("${tenancy.security.database-credentials-key}") String rawKeyMaterial,
+            SecretValueResolver secretValueResolver
     ) {
-        this.secretKeySpec = new SecretKeySpec(deriveKey(rawKeyMaterial), "AES");
+        this.secretKeySpec = new SecretKeySpec(deriveKey(secretValueResolver.resolve(rawKeyMaterial)), "AES");
     }
 
     @Override

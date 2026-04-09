@@ -23,12 +23,13 @@ async function requestJson(url, options = {}) {
   const { signal, dispose } = createTimeoutSignal(timeoutMs);
   try {
     const isFormDataBody = typeof FormData !== "undefined" && options.body instanceof FormData;
+    const hasExplicitBody = options.body !== undefined && options.body !== null;
     const response = await fetch(url, {
       ...options,
       signal,
       headers: {
         ...(options.headers || {}),
-        ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
+        ...(!isFormDataBody && hasExplicitBody ? { "Content-Type": "application/json" } : {}),
       },
     });
 
@@ -132,6 +133,12 @@ async function main() {
   let createdAssignmentTaskId = null;
   let createdCaseAssignmentWorkflowCaseId = null;
   let createdCaseAssignmentWorkflowTaskId = null;
+  let createdWorkspaceOpsWorkOrderId = null;
+  let createdWorkspaceOpsCaseId = null;
+  let createdFieldServiceWorkOrderId = null;
+  let createdFieldServiceCaseId = null;
+  let createdFieldServiceCompanyId = null;
+  let createdFieldServiceContactId = null;
   let createdDealWorkflowDealId = null;
   let createdDealWorkflowTaskId = null;
   let createdTerritoryLeadId = null;
@@ -903,6 +910,123 @@ async function main() {
     return `Dashboard showed ${tierTwoSummary.activeCases} TIER_2 cases and ${currentOwnerWorkload.assignedActiveCases} active cases for the current owner`;
   });
 
+  await runCheck("Field service work order lifecycle", async () => {
+    const uniqueSuffix = Date.now();
+
+    const { response: companyResponse, data: companyData } = await requestJson(`${backendUrl}/api/v1/companies`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        name: `Field Service Co ${uniqueSuffix}`,
+        email: `field.service.${uniqueSuffix}@example.com`,
+        industry: "TECHNOLOGY",
+        website: `https://field-${uniqueSuffix}.example.com`,
+        ownerId: userId,
+        territory: "Zimbabwe",
+      }),
+    });
+    assert(companyResponse.status === 201, `Expected 201 Created for field service company, got ${companyResponse.status}`);
+    createdFieldServiceCompanyId = companyData.id;
+
+    const { response: contactResponse, data: contactData } = await requestJson(`${backendUrl}/api/v1/contacts`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        firstName: "Field",
+        lastName: `Contact${uniqueSuffix}`,
+        email: `field.contact.${uniqueSuffix}@example.com`,
+        phone: "+263771444444",
+        companyId: createdFieldServiceCompanyId,
+        ownerId: userId,
+      }),
+    });
+    assert(contactResponse.status === 201, `Expected 201 Created for field service contact, got ${contactResponse.status}`);
+    createdFieldServiceContactId = contactData.id;
+
+    const { response: caseResponse, data: caseData } = await requestJson(`${backendUrl}/api/v1/cases`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        title: `Field dispatch case ${uniqueSuffix}`,
+        status: "OPEN",
+        priority: "HIGH",
+        source: "PHONE",
+        customerTier: "STANDARD",
+        companyId: createdFieldServiceCompanyId,
+        contactId: createdFieldServiceContactId,
+        description: "Customer needs an on-site technician visit",
+        customerImpact: "Device installation blocked",
+      }),
+    });
+    assert(caseResponse.status === 201, `Expected 201 Created for field service case, got ${caseResponse.status}`);
+    createdFieldServiceCaseId = caseData.id;
+
+    const scheduledStartAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const scheduledEndAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+
+    const { response: workOrderResponse, data: workOrderData } = await requestJson(`${backendUrl}/api/v1/field-service/work-orders`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        title: `Install hardware ${uniqueSuffix}`,
+        priority: "HIGH",
+        workType: "INSTALLATION",
+        companyId: createdFieldServiceCompanyId,
+        contactId: createdFieldServiceContactId,
+        supportCaseId: createdFieldServiceCaseId,
+        territory: "Zimbabwe",
+        serviceAddress: "1 Samora Machel Ave, Harare",
+        scheduledStartAt,
+        scheduledEndAt,
+        description: "Install and validate the new field hardware",
+      }),
+    });
+    assert(workOrderResponse.status === 201, `Expected 201 Created for work order, got ${workOrderResponse.status}`);
+    assert(typeof workOrderData?.id === "string" && workOrderData.id.length > 0, "Expected work order id");
+    assert(typeof workOrderData?.orderNumber === "string" && workOrderData.orderNumber.length > 0, "Expected generated work order number");
+    assert(workOrderData.status === "SCHEDULED", `Expected SCHEDULED work order, got ${workOrderData.status}`);
+    assert(workOrderData.supportCaseId === createdFieldServiceCaseId, `Expected support case linkage, got ${workOrderData.supportCaseId}`);
+    createdFieldServiceWorkOrderId = workOrderData.id;
+
+    const { response: dispatchResponse, data: dispatchedData } = await requestJson(`${backendUrl}/api/v1/field-service/work-orders/${createdFieldServiceWorkOrderId}/dispatch`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({}),
+    });
+    assert(dispatchResponse.ok, `Expected 200 OK for work order dispatch, got ${dispatchResponse.status}`);
+    assert(dispatchedData.status === "DISPATCHED", `Expected DISPATCHED status, got ${dispatchedData.status}`);
+    assert(typeof dispatchedData.assignedTechnicianId === "string" && dispatchedData.assignedTechnicianId.length > 0, "Expected assigned technician after dispatch");
+
+    const { response: startResponse, data: startedData } = await requestJson(`${backendUrl}/api/v1/field-service/work-orders/${createdFieldServiceWorkOrderId}/start`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({}),
+    });
+    assert(startResponse.ok, `Expected 200 OK for work order start, got ${startResponse.status}`);
+    assert(startedData.status === "IN_PROGRESS", `Expected IN_PROGRESS status, got ${startedData.status}`);
+
+    const { response: completeResponse, data: completedData } = await requestJson(`${backendUrl}/api/v1/field-service/work-orders/${createdFieldServiceWorkOrderId}/complete`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        completionNotes: "Installed successfully and customer signed off",
+      }),
+    });
+    assert(completeResponse.ok, `Expected 200 OK for work order completion, got ${completeResponse.status}`);
+    assert(completedData.status === "COMPLETED", `Expected COMPLETED status, got ${completedData.status}`);
+    assert(completedData.completionNotes?.includes("Installed successfully"), `Expected completion notes, got ${completedData.completionNotes}`);
+
+    const { response: statsResponse, data: statsData } = await requestJson(`${backendUrl}/api/v1/field-service/work-orders/statistics`, {
+      method: "GET",
+      headers: authHeaders,
+    });
+    assert(statsResponse.ok, `Expected 200 OK for work order stats, got ${statsResponse.status}`);
+    assert(typeof statsData?.totalWorkOrders === "number" && statsData.totalWorkOrders >= 1, "Expected work order totals in field service stats");
+    assert(typeof statsData?.workOrdersByStatus?.COMPLETED === "number" && statsData.workOrdersByStatus.COMPLETED >= 1, "Expected completed work order count in field service stats");
+
+    return `Created work order ${workOrderData.orderNumber}, dispatched it, completed it, and verified field service stats`;
+  });
+
   await runCheck("Lead routing and nurture", async () => {
     const uniqueSuffix = Date.now();
     const { response, data } = await requestJson(`${backendUrl}/api/v1/leads`, {
@@ -1662,6 +1786,23 @@ async function main() {
       assert(data && typeof data.tenantSlug === "string" && data.tenantSlug.length > 0, "Expected tenantSlug");
       assert(data && typeof data.routingMode === "string" && data.routingMode.length > 0, "Expected routingMode");
       return `Workspace routing mode is ${data.routingMode}`;
+    });
+
+    await runCheck("Workspace operations summary", async () => {
+      const { response, data } = await requestJson(`${backendUrl}/api/v1/workspace/operations`, {
+        method: "GET",
+        headers: authHeaders,
+      });
+      assert(response.ok, `Expected 200 OK, got ${response.status}`);
+      assert(data && typeof data.routingMode === "string" && data.routingMode.length > 0, "Expected operations routing mode");
+      assert(typeof data.uptimeSeconds === "number" && data.uptimeSeconds >= 0, "Expected uptimeSeconds");
+      assert(typeof data.activeUsers === "number" && data.activeUsers >= 1, "Expected activeUsers");
+      assert(typeof data.activeWorkflowRules === "number", "Expected activeWorkflowRules");
+      assert(typeof data.activeAutomationRules === "number", "Expected activeAutomationRules");
+      assert(typeof data.automationRunsLast24Hours === "number", "Expected automationRunsLast24Hours");
+      assert(typeof data.failedAutomationRunsLast24Hours === "number", "Expected failedAutomationRunsLast24Hours");
+      assert(Array.isArray(data.recentAutomationRuns), "Expected recent automation runs list");
+      return `Workspace ops summary reports ${data.activeUsers} active users and ${data.automationRunsLast24Hours} automation runs in the last 24h`;
     });
 
     await runCheck("Lead workflow settings", async () => {
@@ -4115,6 +4256,58 @@ async function main() {
       });
     } finally {
       cleanupAssignmentCase.dispose();
+    }
+  }
+
+  if (createdFieldServiceWorkOrderId && userRole === "ADMIN") {
+    const cleanupFieldServiceWorkOrder = createTimeoutSignal(timeoutMs);
+    try {
+      await fetch(`${backendUrl}/api/v1/field-service/work-orders/${createdFieldServiceWorkOrderId}`, {
+        method: "DELETE",
+        signal: cleanupFieldServiceWorkOrder.signal,
+        headers: authHeaders,
+      });
+    } finally {
+      cleanupFieldServiceWorkOrder.dispose();
+    }
+  }
+
+  if (createdFieldServiceCaseId && userRole === "ADMIN") {
+    const cleanupFieldServiceCase = createTimeoutSignal(timeoutMs);
+    try {
+      await fetch(`${backendUrl}/api/v1/cases/${createdFieldServiceCaseId}`, {
+        method: "DELETE",
+        signal: cleanupFieldServiceCase.signal,
+        headers: authHeaders,
+      });
+    } finally {
+      cleanupFieldServiceCase.dispose();
+    }
+  }
+
+  if (createdFieldServiceContactId && userRole === "ADMIN") {
+    const cleanupFieldServiceContact = createTimeoutSignal(timeoutMs);
+    try {
+      await fetch(`${backendUrl}/api/v1/contacts/${createdFieldServiceContactId}`, {
+        method: "DELETE",
+        signal: cleanupFieldServiceContact.signal,
+        headers: authHeaders,
+      });
+    } finally {
+      cleanupFieldServiceContact.dispose();
+    }
+  }
+
+  if (createdFieldServiceCompanyId && userRole === "ADMIN") {
+    const cleanupFieldServiceCompany = createTimeoutSignal(timeoutMs);
+    try {
+      await fetch(`${backendUrl}/api/v1/companies/${createdFieldServiceCompanyId}`, {
+        method: "DELETE",
+        signal: cleanupFieldServiceCompany.signal,
+        headers: authHeaders,
+      });
+    } finally {
+      cleanupFieldServiceCompany.dispose();
     }
   }
 

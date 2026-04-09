@@ -2,6 +2,7 @@ package com.crm.controller;
 
 import com.crm.dto.request.TenantDatabaseSettingsUpdateRequestDTO;
 import com.crm.dto.response.TenantDatabaseSettingsResponseDTO;
+import com.crm.dto.response.WorkspaceOperationsSummaryDTO;
 import com.crm.service.TenantAdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -31,6 +32,12 @@ public class TenantAdminController {
     @Operation(summary = "Get workspace database settings", description = "Get dedicated database routing settings for the authenticated workspace")
     public ResponseEntity<TenantDatabaseSettingsResponseDTO> getDatabaseSettings() {
         return ResponseEntity.ok(tenantAdminService.getCurrentTenantDatabaseSettings());
+    }
+
+    @GetMapping("/operations")
+    @Operation(summary = "Get workspace operations summary", description = "Get current tenant operational readiness, automation activity, and support load summary")
+    public ResponseEntity<WorkspaceOperationsSummaryDTO> getOperationsSummary() {
+        return ResponseEntity.ok(tenantAdminService.getWorkspaceOperationsSummary());
     }
 
     @PutMapping("/database")

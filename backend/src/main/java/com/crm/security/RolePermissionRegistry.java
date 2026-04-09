@@ -40,6 +40,9 @@ public final class RolePermissionRegistry {
                 Permission.SUPPORT_VIEW,
                 Permission.SUPPORT_WRITE,
                 Permission.SUPPORT_MANAGE,
+                Permission.FIELD_SERVICE_VIEW,
+                Permission.FIELD_SERVICE_WRITE,
+                Permission.FIELD_SERVICE_MANAGE,
                 Permission.TERRITORY_VIEW,
                 Permission.TERRITORY_MANAGE
         ));
@@ -57,12 +60,15 @@ public final class RolePermissionRegistry {
                 Permission.MARKETING_VIEW,
                 Permission.SUPPORT_VIEW,
                 Permission.SUPPORT_WRITE,
+                Permission.FIELD_SERVICE_VIEW,
+                Permission.FIELD_SERVICE_WRITE,
                 Permission.TERRITORY_VIEW
         ));
         ROLE_PERMISSIONS.put(UserRole.USER, immutableSet(
                 Permission.DASHBOARD_VIEW,
                 Permission.SUPPORT_VIEW,
-                Permission.SUPPORT_WRITE
+                Permission.SUPPORT_WRITE,
+                Permission.FIELD_SERVICE_VIEW
         ));
 
         ROLE_DATA_SCOPES.put(UserRole.ADMIN, immutableSet(DataAccessScope.values()));

@@ -10,6 +10,7 @@ import com.crm.dto.response.CompanyResponseDTO;
 import com.crm.dto.response.CompanyTerritoryQueueItemDTO;
 import com.crm.dto.response.CompanyTerritoryQueueSummaryDTO;
 import com.crm.dto.response.CompanyTerritoryReassignmentResultDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.entity.Company;
 import com.crm.entity.Contact;
 import com.crm.entity.Deal;
@@ -33,6 +34,7 @@ import com.crm.repository.UserRepository;
 import com.crm.security.RecordAccessService;
 import com.crm.service.CompanyService;
 import com.crm.service.CustomerDataGovernancePolicy;
+import com.crm.service.WorkspaceErpSyncService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +72,7 @@ public class CompanyServiceImpl implements CompanyService {
     private final UserRepository userRepository;
     private final CustomerDataGovernancePolicy customerDataGovernancePolicy;
     private final RecordAccessService recordAccessService;
+    private final WorkspaceErpSyncService workspaceErpSyncService;
 
     private static final EnumSet<TaskStatus> OPEN_TASK_STATUSES = EnumSet.of(
             TaskStatus.PENDING,
@@ -503,6 +506,17 @@ public class CompanyServiceImpl implements CompanyService {
                 .filter(recordAccessService::canViewCompany)
                 .map(companyMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"companies", "dashboard-metrics"}, allEntries = true)
+    public IntegrationSyncResultDTO syncToErp(UUID id, String providerKey) {
+        Company company = companyRepository.findById(id)
+                .filter(item -> TenantContext.getTenantId().equals(item.getTenantId()) && !item.getArchived())
+                .orElseThrow(() -> new ResourceNotFoundException("Company", id));
+        recordAccessService.assertCanWriteCompany(company);
+        return workspaceErpSyncService.exportCompany(id, providerKey);
     }
 
     private List<Company> resolveCompaniesForReassignment(UUID tenantId, CompanyTerritoryReassignmentRequestDTO request) {

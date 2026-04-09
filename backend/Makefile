@@ -1,13 +1,13 @@
-.PHONY: help dev dev-stop build test clean docker-up docker-down logs
+.PHONY: help dev dev-stop build run test clean docker-up docker-down logs
 
 help:
 	@echo "CRM Backend - Make Commands"
 	@echo ""
 	@echo "  make dev          - Start development environment (infrastructure only)"
 	@echo "  make dev-stop     - Stop development environment"
-	@echo "  make build        - Build application"
-	@echo "  make run          - Run application locally"
-	@echo "  make test         - Run tests"
+	@echo "  make build        - Build application with mvn"
+	@echo "  make run          - Run application locally with mvn"
+	@echo "  make test         - Run backend tests with mvn"
 	@echo "  make clean        - Clean build artifacts"
 	@echo "  make docker-up    - Start full stack with Docker"
 	@echo "  make docker-down  - Stop Docker containers"
@@ -30,16 +30,16 @@ dev-stop:
 	docker-compose -f docker-compose.dev.yml down
 
 build:
-	./mvnw clean package -DskipTests
+	mvn clean package -DskipTests
 
 run:
-	./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+	mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 test:
-	./mvnw clean test
+	mvn clean test
 
 clean:
-	./mvnw clean
+	mvn clean
 	rm -rf target/
 	rm -rf logs/
 

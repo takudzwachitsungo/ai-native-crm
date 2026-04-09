@@ -35,6 +35,7 @@ class ForecastingState(TypedDict, total=False):
     deals: List[Dict[str, Any]]
     leads: List[Dict[str, Any]]
     historical_deals: List[Dict[str, Any]]
+    users: List[Dict[str, Any]]
     
     # Analysis
     stage_conversion_rates: Dict[str, float]
@@ -47,6 +48,7 @@ class ForecastingState(TypedDict, total=False):
     weighted_pipeline: float
     total_quota: float
     forecast_vs_quota: float
+    rollup_hierarchy: List[Dict[str, Any]]
     
     # Insights
     insights: List[str]
@@ -151,6 +153,7 @@ class ForecastingAgent:
                 "weighted_pipeline": result.get("weighted_pipeline", 0),
                 "total_quota": result.get("total_quota", 0),
                 "forecast_vs_quota": result.get("forecast_vs_quota", 0),
+                "rollup_hierarchy": result.get("rollup_hierarchy", []),
                 "insights": result.get("insights", []),
                 "risks": result.get("risks", []),
                 "opportunities": result.get("opportunities", []),
@@ -220,6 +223,20 @@ class ForecastingAgent:
                 except Exception as e:
                     logger.warning(f"Could not fetch leads: {str(e)}")
                     state["leads"] = []
+
+                try:
+                    users_response = await client.get(
+                        f"{self.backend_url}/api/v1/users",
+                        headers=headers,
+                        params={"size": 250, "sort": "createdAt,desc"},
+                    )
+                    users_response.raise_for_status()
+                    users_data = users_response.json()
+                    state["users"] = users_data.get("content", users_data) if isinstance(users_data, dict) else users_data
+                    logger.info(f"Collected {len(state['users'])} tenant users")
+                except Exception as e:
+                    logger.warning(f"Could not fetch users for forecast hierarchy: {str(e)}")
+                    state["users"] = []
                 
         except Exception as e:
             logger.error(f"Error collecting data: {str(e)}")
@@ -227,6 +244,7 @@ class ForecastingAgent:
             state["deals"] = []
             state["leads"] = []
             state["historical_deals"] = []
+            state["users"] = []
         
         return state
     
@@ -287,6 +305,7 @@ class ForecastingAgent:
         deals = state.get("deals", [])
         stage_rates = state.get("stage_conversion_rates", self.DEFAULT_STAGE_PROBABILITIES)
         avg_cycle = state.get("average_deal_cycle", 60)
+        users = state.get("users", [])
         
         if not deals:
             state["deal_probabilities"] = {}
@@ -384,6 +403,7 @@ Provide probability adjustment multipliers for each deal."""
         probabilities = state.get("deal_probabilities", {})
         forecast_months = state.get("forecast_months", 6)
         avg_cycle = state.get("average_deal_cycle", 60)
+        users = state.get("users", [])
         
         if not deals:
             state["monthly_forecasts"] = []
@@ -391,6 +411,7 @@ Provide probability adjustment multipliers for each deal."""
             state["weighted_pipeline"] = 0
             state["total_quota"] = 0
             state["forecast_vs_quota"] = 0
+            state["rollup_hierarchy"] = []
             return state
         
         # Calculate weighted pipeline
@@ -462,7 +483,13 @@ Provide probability adjustment multipliers for each deal."""
         state["monthly_forecasts"] = monthly_forecasts
         
         # Calculate team-level forecasts (grouped by owner if available)
+        user_map = {str(user.get("id")): user for user in users if user.get("id")}
+
         team_data = defaultdict(lambda: {
+            "owner_id": None,
+            "owner_name": None,
+            "manager_id": None,
+            "manager_name": None,
             "quota": 0,
             "forecast": 0,
             "closed": 0,
@@ -477,6 +504,18 @@ Provide probability adjustment multipliers for each deal."""
             owner = deal.get("ownerId") or "unassigned"
             deal_value = deal.get("value", 0)
             probability = probabilities.get(deal["id"], 0.5)
+            owner_record = user_map.get(str(owner)) if owner != "unassigned" else None
+
+            team_data[owner]["owner_id"] = owner if owner != "unassigned" else None
+            team_data[owner]["owner_name"] = deal.get("ownerName") or (
+                f"{owner_record.get('firstName', '')} {owner_record.get('lastName', '')}".strip() if owner_record else None
+            )
+            team_data[owner]["manager_id"] = owner_record.get("managerId") if owner_record else None
+            manager_record = user_map.get(str(owner_record.get("managerId"))) if owner_record and owner_record.get("managerId") else None
+            team_data[owner]["manager_name"] = (
+                f"{manager_record.get('firstName', '')} {manager_record.get('lastName', '')}".strip()
+                if manager_record else None
+            )
             
             if deal.get("stage") == "CLOSED_WON":
                 team_data[owner]["closed"] += deal_value
@@ -504,15 +543,86 @@ Provide probability adjustment multipliers for each deal."""
                 owner_label = f"Rep {str(owner_id)[:8]}"
             
             team_forecasts.append({
+                "owner_id": owner_id if owner_id != "unassigned" else None,
                 "name": owner_name or owner_label,
+                "manager_id": data["manager_id"],
+                "manager_name": data["manager_name"],
                 "quota": round(data["quota"]),
                 "forecast": round(data["forecast"]),
                 "closed": round(data["closed"]),
                 "pipeline": round(data["pipeline"]),
                 "attainment": attainment
             })
-        
+
         state["team_forecasts"] = team_forecasts
+
+        manager_rollups = defaultdict(lambda: {
+            "quota": 0,
+            "forecast": 0,
+            "closed": 0,
+            "pipeline": 0,
+            "owners": [],
+        })
+
+        for member in team_forecasts:
+            manager_key = member.get("manager_id") or "unassigned-manager"
+            manager_rollups[manager_key]["quota"] += member["quota"]
+            manager_rollups[manager_key]["forecast"] += member["forecast"]
+            manager_rollups[manager_key]["closed"] += member["closed"]
+            manager_rollups[manager_key]["pipeline"] += member["pipeline"]
+            manager_rollups[manager_key]["owners"].append(member.get("owner_id"))
+
+        rollup_hierarchy = [{
+            "id": "workspace-total",
+            "parent_id": None,
+            "level": "TEAM",
+            "label": "Workspace Total",
+            "quota": round(sum(member["quota"] for member in team_forecasts)),
+            "forecast": round(sum(member["forecast"] for member in team_forecasts)),
+            "closed": round(sum(member["closed"] for member in team_forecasts)),
+            "pipeline": round(sum(member["pipeline"] for member in team_forecasts)),
+            "attainment": round(sum(member["closed"] for member in team_forecasts) / sum(member["quota"] for member in team_forecasts) * 100) if sum(member["quota"] for member in team_forecasts) > 0 else 0,
+        }]
+
+        for manager_id, data in manager_rollups.items():
+            if manager_id == "unassigned-manager":
+                label = "Direct / Unmanaged"
+                node_id = "manager-direct"
+            else:
+                manager_record = user_map.get(str(manager_id))
+                label = (
+                    f"{manager_record.get('firstName', '')} {manager_record.get('lastName', '')}".strip()
+                    if manager_record else f"Manager {str(manager_id)[:8]}"
+                )
+                node_id = f"manager-{manager_id}"
+
+            rollup_hierarchy.append({
+                "id": node_id,
+                "parent_id": "workspace-total",
+                "level": "MANAGER",
+                "label": label,
+                "quota": round(data["quota"]),
+                "forecast": round(data["forecast"]),
+                "closed": round(data["closed"]),
+                "pipeline": round(data["pipeline"]),
+                "attainment": round((data["closed"] / data["quota"]) * 100) if data["quota"] > 0 else 0,
+            })
+
+        for member in team_forecasts:
+            manager_parent = f"manager-{member['manager_id']}" if member.get("manager_id") else "manager-direct"
+            rollup_hierarchy.append({
+                "id": f"owner-{member.get('owner_id') or member['name']}",
+                "parent_id": manager_parent,
+                "level": "OWNER",
+                "label": member["name"],
+                "quota": member["quota"],
+                "forecast": member["forecast"],
+                "closed": member["closed"],
+                "pipeline": member["pipeline"],
+                "attainment": member["attainment"],
+            })
+
+        state["rollup_hierarchy"] = rollup_hierarchy
         
         # Calculate totals
         total_quota = sum(t["quota"] for t in team_forecasts)

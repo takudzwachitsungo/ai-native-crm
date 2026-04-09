@@ -35,10 +35,17 @@ public class JwtTokenProvider {
      * Generate access token with custom claims
      */
     public String generateAccessToken(UserDetails userDetails, UUID tenantId, UUID userId) {
+        return generateAccessToken(userDetails, tenantId, userId, null);
+    }
+
+    public String generateAccessToken(UserDetails userDetails, UUID tenantId, UUID userId, UUID sessionId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("tenantId", tenantId.toString());
         claims.put("userId", userId.toString());
         claims.put("role", userDetails.getAuthorities().iterator().next().getAuthority());
+        if (sessionId != null) {
+            claims.put("sessionId", sessionId.toString());
+        }
         
         return buildToken(claims, userDetails.getUsername(), accessTokenExpiration);
     }
@@ -47,10 +54,17 @@ public class JwtTokenProvider {
      * Generate refresh token
      */
     public String generateRefreshToken(UserDetails userDetails, UUID userId, UUID tenantId) {
+        return generateRefreshToken(userDetails, userId, tenantId, null);
+    }
+
+    public String generateRefreshToken(UserDetails userDetails, UUID userId, UUID tenantId, UUID sessionId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId.toString());
         claims.put("tenantId", tenantId.toString());
         claims.put("type", "refresh");
+        if (sessionId != null) {
+            claims.put("sessionId", sessionId.toString());
+        }
         
         return buildToken(claims, userDetails.getUsername(), refreshTokenExpiration);
     }
@@ -89,6 +103,11 @@ public class JwtTokenProvider {
     public UUID extractUserId(String token) {
         String userId = extractClaim(token, claims -> claims.get("userId", String.class));
         return userId != null ? UUID.fromString(userId) : null;
+    }
+
+    public UUID extractSessionId(String token) {
+        String sessionId = extractClaim(token, claims -> claims.get("sessionId", String.class));
+        return sessionId != null ? UUID.fromString(sessionId) : null;
     }
 
     /**

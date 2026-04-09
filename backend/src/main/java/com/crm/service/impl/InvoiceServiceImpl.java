@@ -4,6 +4,7 @@ import com.crm.config.TenantContext;
 import com.crm.dto.request.InvoiceFilterDTO;
 import com.crm.dto.request.InvoiceLineItemRequestDTO;
 import com.crm.dto.request.InvoiceRequestDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.dto.response.InvoiceResponseDTO;
 import com.crm.entity.*;
 import com.crm.entity.enums.InvoiceStatus;
@@ -13,6 +14,7 @@ import com.crm.mapper.InvoiceLineItemMapper;
 import com.crm.mapper.InvoiceMapper;
 import com.crm.repository.*;
 import com.crm.service.InvoiceService;
+import com.crm.service.WorkspaceErpSyncService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +45,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final UserRepository userRepository;
     private final InvoiceMapper invoiceMapper;
     private final InvoiceLineItemMapper lineItemMapper;
+    private final WorkspaceErpSyncService workspaceErpSyncService;
 
     @Override
     @Transactional(readOnly = true)
@@ -313,6 +316,17 @@ public class InvoiceServiceImpl implements InvoiceService {
         return invoices.stream()
                 .map(invoiceMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "invoices", allEntries = true)
+    public IntegrationSyncResultDTO syncToErp(UUID id, String providerKey) {
+        UUID tenantId = TenantContext.getTenantId();
+        Invoice invoice = invoiceRepository.findById(id)
+                .filter(item -> tenantId.equals(item.getTenantId()) && !item.getArchived())
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice", id));
+        return workspaceErpSyncService.exportInvoice(invoice.getId(), providerKey);
     }
 
     private List<InvoiceLineItem> createLineItems(Invoice invoice, List<InvoiceLineItemRequestDTO> lineItemDTOs) {

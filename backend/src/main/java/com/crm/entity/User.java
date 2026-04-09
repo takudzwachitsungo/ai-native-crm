@@ -56,6 +56,16 @@ public class User extends AbstractEntity implements UserDetails {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "two_factor_enabled", nullable = false)
+    @Builder.Default
+    private Boolean twoFactorEnabled = false;
+
+    @Column(name = "two_factor_secret", length = 128)
+    private String twoFactorSecret;
+
+    @Column(name = "two_factor_enabled_at")
+    private LocalDateTime twoFactorEnabledAt;
+
     @Column(length = 120)
     private String territory;
 

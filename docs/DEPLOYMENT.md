@@ -259,7 +259,6 @@ docker-compose ps
 # crm-redis           redis:7-alpine                    Up (healthy)
 # crm-rabbitmq        rabbitmq:3-management-alpine      Up (healthy)
 # crm-jaeger          jaegertracing/all-in-one:latest   Up
-# crm-mailpit         axllent/mailpit:latest            Up (healthy)
 ```
 
 ---
@@ -908,7 +907,7 @@ docker-compose logs > logs_$(date +%Y%m%d_%H%M%S).txt
 | **AI Service Health** | http://localhost:8000/health | Health check |
 | **AI Service Docs** | http://localhost:8000/docs | API documentation |
 | **RabbitMQ UI** | http://localhost:15672 | Queue management (guest/guest) |
-| **Mailpit UI** | http://localhost:8025 | Email testing |
+| **SMTP Provider** | Configured via `MAIL_*` env vars | Outbound email delivery |
 | **Jaeger UI** | http://localhost:16686 | Distributed tracing |
 
 ---

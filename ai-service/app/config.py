@@ -18,6 +18,17 @@ class Settings(BaseSettings):
     
     # Redis
     REDIS_URL: str = "redis://redis:6379/1"
+
+    # Report persistence and delivery
+    REPORT_DEFINITIONS_PATH: str = "./data/report_definitions.json"
+    FORECAST_SUBMISSIONS_PATH: str = "./data/forecast_submissions.json"
+    REPORT_SCHEDULER_INTERVAL_SECONDS: int = 60
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
+    SMTP_STARTTLS: bool = True
     
     # Model Configuration
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"

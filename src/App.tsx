@@ -17,14 +17,18 @@ import Pipeline from './pages/Pipeline';
 import Products from './pages/Products';
 import Quotes from './pages/Quotes';
 import Invoices from './pages/Invoices';
+import Contracts from './pages/Contracts';
 import Documents from './pages/Documents';
 import Tasks from './pages/Tasks';
 import Calendar from './pages/Calendar';
 import Email from './pages/Email';
 import Reports from './pages/Reports';
 import Forecasting from './pages/Forecasting';
+import RevenueOps from './pages/RevenueOps';
+import FieldService from './pages/FieldService';
 import Settings from './pages/Settings';
 import Chat from './pages/Chat';
+import IntegrationOAuthCallback from './pages/IntegrationOAuthCallback';
 import Login from './pages/Login';
 import './index.css';
 
@@ -88,6 +92,7 @@ function App() {
                         <Route path="/pipeline" element={<Pipeline />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/quotes" element={<Quotes />} />
+                        <Route path="/contracts" element={<Contracts />} />
                         <Route path="/invoices" element={<Invoices />} />
                         <Route path="/documents" element={<Documents />} />
                         <Route path="/tasks" element={<Tasks />} />
@@ -95,7 +100,10 @@ function App() {
                         <Route path="/email" element={<Email />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/forecasting" element={<Forecasting />} />
+                        <Route path="/revenue-ops" element={<RevenueOps />} />
+                        <Route path="/field-service" element={<FieldService />} />
                         <Route path="/settings" element={<Settings />} />
+                        <Route path="/settings/integrations/:provider/callback" element={<IntegrationOAuthCallback />} />
                         <Route path="/chat" element={<Chat />} />
                       </Routes>
                     </main>

@@ -25,4 +25,6 @@ public interface AutomationRuleRepository extends JpaRepository<AutomationRule, 
     );
 
     Optional<AutomationRule> findByIdAndTenantIdAndArchivedFalse(UUID id, UUID tenantId);
+
+    long countByTenantIdAndIsActiveTrueAndArchivedFalse(UUID tenantId);
 }

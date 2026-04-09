@@ -2,6 +2,7 @@ package com.crm.controller;
 
 import com.crm.dto.request.InvoiceFilterDTO;
 import com.crm.dto.request.InvoiceRequestDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.dto.response.InvoiceResponseDTO;
 import com.crm.service.InvoiceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -107,5 +108,15 @@ public class InvoiceController {
     @PreAuthorize("hasAuthority('REVENUE_VIEW')")
     public ResponseEntity<List<InvoiceResponseDTO>> getOverdueInvoices() {
         return ResponseEntity.ok(invoiceService.findOverdueInvoices());
+    }
+
+    @PostMapping("/{id}/sync/{providerKey}")
+    @Operation(summary = "Sync invoice to ERP", description = "Export an invoice to a configured ERP provider such as QuickBooks or Xero")
+    @PreAuthorize("hasAuthority('REVENUE_WRITE')")
+    public ResponseEntity<IntegrationSyncResultDTO> syncInvoiceToErp(
+            @PathVariable UUID id,
+            @PathVariable String providerKey
+    ) {
+        return ResponseEntity.ok(invoiceService.syncToErp(id, providerKey));
     }
 }

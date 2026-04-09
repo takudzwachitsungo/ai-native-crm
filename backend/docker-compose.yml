@@ -111,24 +111,6 @@ services:
       start_period: 40s
     restart: unless-stopped
 
-  # Mailpit - Email Testing Server
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: crm-mailpit
-    ports:
-      - "1025:1025"  # SMTP server
-      - "8025:8025"  # Web UI
-    environment:
-      MP_MAX_MESSAGES: 5000
-      MP_DATABASE: /data/mailpit.db
-      MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_AUTH_ALLOW_INSECURE: 1
-    volumes:
-      - mailpit_data:/data
-    networks:
-      - crm-network
-    restart: unless-stopped
-
   # Spring Boot Application
   crm-backend:
     build:
@@ -142,8 +124,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      mailpit:
-        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DATABASE_URL: jdbc:postgresql://postgres:5432/crm_db
@@ -158,10 +138,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dGhpc2lzYXZlcnlzZWNyZXRqd3RrZXlmb3J0aGVjcm1hcHBsaWNhdGlvbnRoYXRzaG91bGRiZWNoYW5nZWRpbnByb2R1Y3Rpb24=}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
-      MAIL_HOST: mailpit
-      MAIL_PORT: 1025
-      MAIL_USERNAME: test@crm.local
-      MAIL_PASSWORD: any-password-works
+      MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_SMTP_STARTTLS_ENABLE: ${MAIL_SMTP_STARTTLS_ENABLE:-true}
+      MAIL_DEBUG: ${MAIL_DEBUG:-false}
     ports:
       - "8080:8080"
     volumes:
@@ -176,8 +159,6 @@ volumes:
   redis_data:
     driver: local
   rabbitmq_data:
-    driver: local
-  mailpit_data:
     driver: local
 
 networks:

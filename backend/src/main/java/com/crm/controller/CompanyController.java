@@ -7,6 +7,7 @@ import com.crm.dto.response.CompanyInsightsResponseDTO;
 import com.crm.dto.response.CompanyResponseDTO;
 import com.crm.dto.response.CompanyTerritoryQueueSummaryDTO;
 import com.crm.dto.response.CompanyTerritoryReassignmentResultDTO;
+import com.crm.dto.response.IntegrationSyncResultDTO;
 import com.crm.service.CompanyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -112,5 +113,15 @@ public class CompanyController {
     @PreAuthorize("hasAuthority('ACCOUNTS_VIEW')")
     public ResponseEntity<List<CompanyResponseDTO>> searchCompanies(@RequestParam String name) {
         return ResponseEntity.ok(companyService.searchByName(name));
+    }
+
+    @PostMapping("/{id}/sync/{providerKey}")
+    @Operation(summary = "Sync company to ERP", description = "Export a company to a configured ERP provider such as QuickBooks or Xero")
+    @PreAuthorize("hasAuthority('ACCOUNTS_WRITE')")
+    public ResponseEntity<IntegrationSyncResultDTO> syncCompanyToErp(
+            @PathVariable UUID id,
+            @PathVariable String providerKey
+    ) {
+        return ResponseEntity.ok(companyService.syncToErp(id, providerKey));
     }
 }

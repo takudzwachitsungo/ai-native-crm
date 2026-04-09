@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,7 +77,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setToken(response.accessToken);
       setUser(user);
+      localStorage.removeItem('ai_user_id');
       localStorage.setItem('token', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
     } catch (error) {
       console.error('Login failed:', error);
@@ -106,7 +109,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setToken(response.accessToken);
       setUser(user);
+      localStorage.removeItem('ai_user_id');
       localStorage.setItem('token', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
     } catch (error) {
       console.error('Registration failed:', error);
@@ -116,8 +121,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     authApi.logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('ai_user_id');
     setToken(null);
     setUser(null);
+  };
+
+  const updateUser = (updates: Partial<User>) => {
+    setUser((current) => {
+      if (!current) return current;
+      const nextUser: User = {
+        ...current,
+        ...updates,
+        tenant: {
+          ...current.tenant,
+          id: updates.tenant?.id || updates.tenantId || current.tenant.id,
+          name: updates.tenant?.name || updates.tenantName || current.tenant.name,
+          slug: updates.tenant?.slug || updates.tenantSlug || current.tenant.slug,
+          tier: updates.tenant?.tier || updates.tenantTier || current.tenant.tier,
+        },
+      };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return nextUser;
+    });
   };
 
   return (
@@ -130,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        updateUser,
       }}
     >
       {children}

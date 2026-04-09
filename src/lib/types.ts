@@ -17,6 +17,7 @@ export interface LoginRequest {
   email: string;
   password: string;
   workspaceSlug?: string;
+  otpCode?: string;
 }
 
 export interface RegisterRequest {
@@ -43,6 +44,8 @@ export interface AuthResponse {
   firstName: string;
   lastName: string;
   role: UserRole;
+  permissions?: string[];
+  dataScopes?: string[];
 }
 
 export type TenantTier = 'FREE' | 'PRO' | 'ENTERPRISE';
@@ -112,6 +115,212 @@ export interface TenantDatabaseSettings {
   lastValidatedAt?: string | null;
   lastValidationSucceeded?: boolean | null;
   lastValidationMessage?: string | null;
+}
+
+export type IntegrationCapabilityStatus =
+  | 'ACTIVE'
+  | 'CONFIGURED'
+  | 'SETUP_REQUIRED'
+  | 'AVAILABLE'
+  | 'PREVIEW';
+
+export interface IntegrationCapability {
+  key: string;
+  name: string;
+  category: string;
+  providerType: 'NATIVE' | 'THIRD_PARTY';
+  status: IntegrationCapabilityStatus;
+  description: string;
+  detail: string;
+}
+
+export interface SettingsCapabilityOverview {
+  profileEditingEnabled: boolean;
+  notificationSyncEnabled: boolean;
+  billingPortalEnabled: boolean;
+  passwordSelfServiceEnabled: boolean;
+  twoFactorEnabled: boolean;
+  sessionManagementEnabled: boolean;
+  jwtAuthenticationEnabled: boolean;
+  permissionBasedAccessEnabled: boolean;
+  dedicatedDatabaseSupported: boolean;
+  smtpConfigured: boolean;
+  integrations: IntegrationCapability[];
+}
+
+export interface AccountProfile {
+  userId: string;
+  tenantId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string | null;
+  role: UserRole;
+  tenantName: string;
+  tenantSlug: string;
+  tenantTier: TenantTier;
+  lastLoginAt?: string | null;
+}
+
+export interface AccountProfileUpdateRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string;
+}
+
+export interface NotificationPreferences {
+  emailNotificationsEnabled: boolean;
+  pushNotificationsEnabled: boolean;
+  leadAssignmentEnabled: boolean;
+  dealStageChangesEnabled: boolean;
+  taskRemindersEnabled: boolean;
+  teamMentionsEnabled: boolean;
+  weeklyReportsEnabled: boolean;
+}
+
+export interface NotificationPreferenceUpdateRequest {
+  emailNotificationsEnabled?: boolean;
+  pushNotificationsEnabled?: boolean;
+  leadAssignmentEnabled?: boolean;
+  dealStageChangesEnabled?: boolean;
+  taskRemindersEnabled?: boolean;
+  teamMentionsEnabled?: boolean;
+  weeklyReportsEnabled?: boolean;
+}
+
+export interface UserSessionSummary {
+  sessionId: string;
+  currentSession: boolean;
+  active: boolean;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+  createdAt?: string | null;
+  lastUsedAt?: string | null;
+  expiresAt?: string | null;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
+}
+
+export interface BillingPortalSummary {
+  tenantName: string;
+  tenantSlug: string;
+  tenantTier: TenantTier;
+  portalEnabled: boolean;
+  portalUrl?: string | null;
+  detail: string;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  pendingVerification: boolean;
+  issuer: string;
+  enabledAt?: string | null;
+}
+
+export interface TwoFactorSetup {
+  enabled: boolean;
+  pendingVerification: boolean;
+  issuer: string;
+  manualEntryKey: string;
+  otpauthUri: string;
+}
+
+export type ForecastSubmissionStatus = 'SUBMITTED' | 'APPROVED' | 'CHANGES_REQUESTED';
+
+export interface ForecastSubmissionSummary {
+  id: string;
+  title: string;
+  forecast_category: 'COMMIT' | 'BEST_CASE' | 'UPSIDE';
+  manager_adjustment_percent: number;
+  snapshot_label?: string | null;
+  notes?: string | null;
+  status: ForecastSubmissionStatus;
+  submitted_at: string;
+  submitted_by_user_id: string;
+  reviewed_at?: string | null;
+  reviewed_by_user_id?: string | null;
+  review_notes?: string | null;
+  forecast_snapshot: {
+    generated_at?: string;
+    final_forecast?: number;
+    base_forecast?: number;
+    total_quota?: number;
+    forecast_vs_quota?: number;
+    forecast_category?: 'COMMIT' | 'BEST_CASE' | 'UPSIDE';
+    manager_adjustment_percent?: number;
+    variance_to_prior?: Record<string, any> | null;
+    snapshot_history?: Array<any>;
+    rollup_hierarchy?: Array<any>;
+  };
+}
+
+export interface WorkspaceIntegration {
+  id?: string;
+  key: string;
+  name: string;
+  category: string;
+  providerType: 'NATIVE' | 'THIRD_PARTY';
+  status: IntegrationCapabilityStatus;
+  description: string;
+  detail: string;
+  editable: boolean;
+  authType?: string | null;
+  baseUrl?: string | null;
+  clientId?: string | null;
+  clientIdConfigured: boolean;
+  clientSecretConfigured: boolean;
+  accountIdentifier?: string | null;
+  redirectUri?: string | null;
+  scopes?: string | null;
+  syncEnabled: boolean;
+  active: boolean;
+  lastValidatedAt?: string | null;
+  lastValidationSucceeded?: boolean | null;
+  lastValidationMessage?: string | null;
+  connected?: boolean;
+  connectedAt?: string | null;
+  tokenExpiresAt?: string | null;
+  oauthReady?: boolean;
+  lastSyncStartedAt?: string | null;
+  lastSyncedAt?: string | null;
+  lastSyncSucceeded?: boolean | null;
+  lastSyncMessage?: string | null;
+}
+
+export interface WorkspaceIntegrationUpdateRequest {
+  authType?: string;
+  baseUrl?: string;
+  clientId?: string;
+  clientSecret?: string;
+  accountIdentifier?: string;
+  redirectUri?: string;
+  scopes?: string;
+  syncEnabled?: boolean;
+  active?: boolean;
+}
+
+export interface WorkspaceIntegrationOAuthStart {
+  providerKey: string;
+  authorizationUrl: string;
+  state: string;
+  expiresAt: string;
+}
+
+export interface WorkspaceIntegrationOAuthExchangeRequest {
+  code: string;
+  state: string;
+}
+
+export interface IntegrationSyncResult {
+  providerKey: string;
+  entityType: string;
+  fetchedCount: number;
+  importedCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  summary: string;
+  syncedAt: string;
 }
 
 export interface WorkspaceTerritory {
@@ -947,6 +1156,39 @@ export interface Quote {
   updatedAt?: string;
 }
 
+export interface Contract {
+  id?: string;
+  tenantId?: string;
+  contractNumber: string;
+  title?: string;
+  companyId: string;
+  companyName?: string;
+  contactId?: string;
+  contactName?: string;
+  quoteId?: string;
+  quoteNumber?: string;
+  ownerId?: string;
+  ownerName?: string;
+  territory?: string;
+  status?: 'DRAFT' | 'ACTIVE' | 'RENEWAL_DUE' | 'TERMINATED' | 'EXPIRED';
+  startDate: string;
+  endDate: string;
+  renewalDate?: string;
+  autoRenew?: boolean;
+  renewalNoticeDays?: number;
+  contractValue?: number;
+  renewalInvoiceId?: string;
+  renewalInvoiceGeneratedAt?: string;
+  renewedFromContractId?: string;
+  renewedToContractId?: string;
+  activatedAt?: string;
+  terminatedAt?: string;
+  terminationReason?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Campaign {
   id?: string;
   name: string;
@@ -1143,6 +1385,55 @@ export interface InvoiceLineItem {
   unitPrice: number;
   taxRate?: number;
   total?: number;
+}
+
+export interface WorkOrder {
+  id?: string;
+  orderNumber?: string;
+  title: string;
+  status?: 'OPEN' | 'SCHEDULED' | 'DISPATCHED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  workType?: 'INSTALLATION' | 'MAINTENANCE' | 'REPAIR' | 'INSPECTION' | 'DELIVERY' | 'OTHER';
+  companyId?: string;
+  companyName?: string;
+  contactId?: string;
+  contactName?: string;
+  supportCaseId?: string;
+  supportCaseNumber?: string;
+  assignedTechnicianId?: string;
+  assignedTechnicianName?: string;
+  territory?: string;
+  serviceAddress?: string;
+  scheduledStartAt?: string;
+  scheduledEndAt?: string;
+  dispatchedAt?: string;
+  startedAt?: string;
+  completedAt?: string;
+  description?: string;
+  completionNotes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FieldTechnicianWorkload {
+  technicianId?: string;
+  technicianName?: string;
+  territory?: string;
+  activeWorkOrders?: number;
+  scheduledWorkOrders?: number;
+  urgentWorkOrders?: number;
+}
+
+export interface WorkOrderStats {
+  totalWorkOrders: number;
+  activeWorkOrders: number;
+  scheduledWorkOrders: number;
+  dispatchedWorkOrders: number;
+  completedWorkOrders: number;
+  overdueScheduledWorkOrders: number;
+  workOrdersByStatus: Record<string, number>;
+  workOrdersByPriority: Record<string, number>;
+  technicianWorkloads: FieldTechnicianWorkload[];
 }
 
 export interface Document {
