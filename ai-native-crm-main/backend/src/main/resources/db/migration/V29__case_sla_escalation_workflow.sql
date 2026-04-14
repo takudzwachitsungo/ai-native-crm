@@ -1,0 +1,6 @@
+ALTER TABLE workflow_rules
+    ADD COLUMN IF NOT EXISTS auto_escalate_breached_cases BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS escalate_on_response_breach BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS escalate_on_resolution_breach BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS escalation_task_due_days INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS escalation_task_priority VARCHAR(20) NOT NULL DEFAULT 'HIGH';

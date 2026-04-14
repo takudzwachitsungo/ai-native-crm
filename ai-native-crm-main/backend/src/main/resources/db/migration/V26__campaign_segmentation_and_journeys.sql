@@ -1,0 +1,10 @@
+ALTER TABLE campaigns
+    ADD COLUMN IF NOT EXISTS segment_type VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS segment_name VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS primary_persona VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS territory_focus VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS journey_stage VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS auto_enroll_new_leads BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS nurture_cadence_days INTEGER,
+    ADD COLUMN IF NOT EXISTS nurture_touch_count INTEGER,
+    ADD COLUMN IF NOT EXISTS primary_call_to_action VARCHAR(255);

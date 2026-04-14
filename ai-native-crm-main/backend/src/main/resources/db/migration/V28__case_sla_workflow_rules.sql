@@ -1,0 +1,16 @@
+ALTER TABLE workflow_rules
+    ADD COLUMN auto_response_targets_enabled BOOLEAN NOT NULL DEFAULT true,
+    ADD COLUMN auto_resolution_targets_enabled BOOLEAN NOT NULL DEFAULT true,
+    ADD COLUMN urgent_response_hours INTEGER NOT NULL DEFAULT 1,
+    ADD COLUMN high_response_hours INTEGER NOT NULL DEFAULT 4,
+    ADD COLUMN medium_response_hours INTEGER NOT NULL DEFAULT 8,
+    ADD COLUMN low_response_hours INTEGER NOT NULL DEFAULT 24,
+    ADD COLUMN urgent_resolution_hours INTEGER NOT NULL DEFAULT 8,
+    ADD COLUMN high_resolution_hours INTEGER NOT NULL DEFAULT 24,
+    ADD COLUMN medium_resolution_hours INTEGER NOT NULL DEFAULT 48,
+    ADD COLUMN low_resolution_hours INTEGER NOT NULL DEFAULT 120,
+    ADD COLUMN create_breach_tasks BOOLEAN NOT NULL DEFAULT true,
+    ADD COLUMN response_breach_task_due_days INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN resolution_breach_task_due_days INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN response_breach_task_priority VARCHAR(20) NOT NULL DEFAULT 'HIGH',
+    ADD COLUMN resolution_breach_task_priority VARCHAR(20) NOT NULL DEFAULT 'HIGH';

@@ -1,0 +1,166 @@
+services:
+  # PostgreSQL Database with pgvector
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: crm-postgres
+    environment:
+      POSTGRES_DB: crm_db
+      POSTGRES_USER: crm_user
+      POSTGRES_PASSWORD: crm_pass
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm_user -d crm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crm-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: crm-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - crm-network
+
+  # RabbitMQ Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: crm-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crm-network
+
+  # Jaeger Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: crm-jaeger
+    ports:
+      - "6831:6831/udp" # Jaeger agent
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    networks:
+      - crm-network
+
+  # AI Service - LangGraph + MCP + RAG
+  ai-service:
+    build:
+      context: ../ai-service
+      dockerfile: Dockerfile
+    container_name: crm-ai-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      crm-backend:
+        condition: service_started
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      CRM_API_URL: http://crm-backend:8080
+      CRM_API_USERNAME: ${CRM_API_USERNAME:-admin@crm.com}
+      CRM_API_PASSWORD: ${CRM_API_PASSWORD:-admin123}
+      DATABASE_URL: postgresql://crm_user:crm_pass@postgres:5432/crm_db
+      REDIS_URL: redis://redis:6379/1
+      EMBEDDING_MODEL: all-MiniLM-L6-v2
+      CHAT_MODEL: llama-3.3-70b-versatile
+      TEMPERATURE: 0.7
+      MAX_TOKENS: 2048
+      EMBEDDING_DIMENSIONS: 384
+      SIMILARITY_THRESHOLD: 0.7
+      TOP_K_RESULTS: 5
+    ports:
+      - "8000:8000"
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Spring Boot Application
+  crm-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crm-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/crm_db
+      DATABASE_USERNAME: crm_user
+      DATABASE_PASSWORD: crm_pass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      JWT_SECRET: ${JWT_SECRET:-dGhpc2lzYXZlcnlzZWNyZXRqd3RrZXlmb3J0aGVjcm1hcHBsaWNhdGlvbnRoYXRzaG91bGRiZWNoYW5nZWRpbnByb2R1Y3Rpb24=}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_SMTP_STARTTLS_ENABLE: ${MAIL_SMTP_STARTTLS_ENABLE:-true}
+      MAIL_DEBUG: ${MAIL_DEBUG:-false}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - crm-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  crm-network:
+    driver: bridge
