@@ -1,25 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import type { TenantTier } from '../lib/types';
-import { tenantTierLabels } from '../lib/authz';
+import { useOnboarding } from '../contexts/OnboardingContext';
+import { AuthLayout } from '../components/auth/AuthLayout';
+import { FormField, PasswordField, PrimaryButton } from '../components/auth/FormFields';
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    otpCode: '',
-    firstName: '',
-    lastName: '',
-    companyName: '',
-    workspaceSlug: '',
-    tier: 'FREE' as TenantTier,
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [workspaceSlug, setWorkspaceSlug] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, register } = useAuth();
+  const { login } = useAuth();
+  const { completeOnboarding } = useOnboarding();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,37 +24,21 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      if (isLogin) {
-        await login({
-          email: formData.email,
-          password: formData.password,
-          workspaceSlug: formData.workspaceSlug || undefined,
-          otpCode: formData.otpCode || undefined,
-        });
-        navigate('/');
-      } else {
-        // Registration creates a NEW account and tenant
-        await register({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          companyName: formData.companyName,
-          workspaceSlug: formData.workspaceSlug || undefined,
-          tier: formData.tier,
-        });
-        navigate('/');
-      }
+      await login({
+        email,
+        password,
+        workspaceSlug: workspaceSlug || undefined,
+        otpCode: otpCode || undefined,
+      });
+      // Existing users skip onboarding — go straight to dashboard
+      completeOnboarding();
+      navigate('/');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Authentication failed. Please try again.';
-      
-      // Provide helpful error messages
-      if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
-        setError('This email is already registered. Please sign in instead or use a different email.');
-      } else if (err.response?.status === 401) {
-        setError('Invalid email or password. Please check your credentials and try again.');
+      const msg = err.response?.data?.message || 'Authentication failed. Please try again.';
+      if (err.response?.status === 401) {
+        setError('Invalid email or password. Please check your credentials.');
       } else {
-        setError(errorMessage);
+        setError(msg);
       }
     } finally {
       setIsLoading(false);
@@ -66,202 +46,108 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-        <div>
-          <p className="text-center text-sm font-medium uppercase tracking-[0.2em] text-blue-600">
-            Multi-tenant CRM workspace
-          </p>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
-          </h2>
-          <p className="mt-3 text-center text-sm text-gray-600">
-            {isLogin
-              ? 'Access your tenant workspace with role-based permissions. Add the workspace slug if your email exists in more than one tenant.'
-              : 'Create a dedicated tenant workspace with you as the initial admin.'}
-          </p>
-          {!isLogin && (
-            <div className="mt-3 rounded-md bg-blue-50 p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Registration creates a new isolated workspace and assigns you the Admin role for that tenant.
-              </p>
-            </div>
-          )}
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
+    <AuthLayout
+      activeTab="login"
+      headline="Welcome back to your sales command center."
+      subheadline="Sign in to access your pipeline, insights, and AI-powered workflows — right where you left off."
+      testimonial={{
+        quote: "We closed 40% more deals in the first quarter. The AI insights changed how our team prioritizes leads.",
+        author: "Sarah Chen",
+        role: "VP of Sales",
+        company: "Meridian Technologies",
+      }}
+    >
+      <div>
+        {/* Header */}
+        <h2 className="text-[1.2rem] font-semibold text-gray-900 tracking-tight">
+          Sign in
+        </h2>
+        <p className="mt-1 text-[0.8125rem] text-gray-500">
+          Enter your credentials to access your workspace.
+        </p>
 
-          <div className="space-y-4">
-            {!isLogin && (
-              <>
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                    First Name
-                  </label>
-                  <input
-                    id="firstName"
-                    type="text"
-                    required={!isLogin}
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                    Last Name
-                  </label>
-                  <input
-                    id="lastName"
-                    type="text"
-                    required={!isLogin}
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
-                    Workspace / Company Name
-                  </label>
-                  <input
-                    id="companyName"
-                    type="text"
-                    required={!isLogin}
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="workspaceSlugSignUp" className="block text-sm font-medium text-gray-700">
-                    Workspace Slug
-                  </label>
-                  <input
-                    id="workspaceSlugSignUp"
-                    type="text"
-                    value={formData.workspaceSlug}
-                    onChange={(e) => setFormData({ ...formData, workspaceSlug: e.target.value.toLowerCase() })}
-                    placeholder="acme-holdings"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Optional. We will generate one from the workspace name if left blank.
-                  </p>
-                </div>
-                <div>
-                  <label htmlFor="tier" className="block text-sm font-medium text-gray-700">
-                    Workspace Tier
-                  </label>
-                  <select
-                    id="tier"
-                    value={formData.tier}
-                    onChange={(e) => setFormData({ ...formData, tier: e.target.value as TenantTier })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {Object.entries(tenantTierLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Tier is stored on the tenant workspace. Billing workflows are still preview-only.
-                  </p>
-                </div>
-              </>
-            )}
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {isLogin && (
-              <div>
-                <label htmlFor="workspaceSlug" className="block text-sm font-medium text-gray-700">
-                  Workspace Slug
-                </label>
-                <input
-                  id="workspaceSlug"
-                  type="text"
-                  value={formData.workspaceSlug}
-                  onChange={(e) => setFormData({ ...formData, workspaceSlug: e.target.value.toLowerCase() })}
-                  placeholder="Optional unless your email is used in multiple workspaces"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {isLogin && (
-              <div>
-                <label htmlFor="otpCode" className="block text-sm font-medium text-gray-700">
-                  Authentication Code
-                </label>
-                <input
-                  id="otpCode"
-                  type="text"
-                  inputMode="numeric"
-                  value={formData.otpCode}
-                  onChange={(e) => setFormData({ ...formData, otpCode: e.target.value })}
-                  placeholder="Only required if 2FA is enabled"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            )}
+        {/* Error */}
+        {error && (
+          <div className="mt-3 rounded-md bg-red-50 border border-red-100 px-3 py-2">
+            <p className="text-[0.75rem] text-red-700">{error}</p>
           </div>
+        )}
 
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+          <FormField
+            id="login-email"
+            label="Work email"
+            type="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={setEmail}
+            required
+            autoComplete="email"
+          />
+
+          <PasswordField
+            id="login-password"
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={setPassword}
+            required
+            autoComplete="current-password"
+          />
+
+          {/* Advanced options toggle */}
           <div>
             <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-[0.75rem] text-gray-400 hover:text-gray-600 transition-colors"
             >
-              {isLoading ? 'Loading...' : isLogin ? 'Sign in' : 'Sign up'}
+              {showAdvanced ? 'Hide' : 'Show'} advanced options
             </button>
           </div>
 
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-              }}
-              className="text-sm text-blue-600 hover:text-blue-500"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
+          {showAdvanced && (
+            <div className="space-y-3">
+              <FormField
+                id="login-workspace"
+                label="Workspace slug"
+                placeholder="my-workspace"
+                value={workspaceSlug}
+                onChange={(v) => setWorkspaceSlug(v.toLowerCase())}
+                hint="Only needed if your email belongs to multiple workspaces."
+              />
+
+              <FormField
+                id="login-otp"
+                label="Authentication code"
+                placeholder="6-digit code"
+                value={otpCode}
+                onChange={setOtpCode}
+                inputMode="numeric"
+                hint="Only required if two-factor authentication is enabled."
+              />
+            </div>
+          )}
+
+          <div className="pt-1">
+            <PrimaryButton type="submit" loading={isLoading}>
+              {isLoading ? 'Signing in…' : 'Sign in'}
+            </PrimaryButton>
           </div>
         </form>
+
+        {/* Footer */}
+        <p className="mt-4 text-center text-[0.75rem] text-gray-500">
+          Don't have an account?{' '}
+          <Link
+            to="/signup"
+            className="font-medium text-teal-700 hover:text-teal-800 transition-colors"
+          >
+            Create one
+          </Link>
+        </p>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

@@ -1,9 +1,0 @@
-ALTER TABLE deals
-    ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'NONE',
-    ADD COLUMN IF NOT EXISTS approval_requested_at TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS approval_requested_by UUID,
-    ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS approved_by UUID,
-    ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS rejected_by UUID,
-    ADD COLUMN IF NOT EXISTS approval_notes TEXT;

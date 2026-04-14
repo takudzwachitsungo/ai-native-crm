@@ -1,5 +1,0 @@
-ALTER TABLE workflow_rules
-    ADD COLUMN IF NOT EXISTS require_approval_for_high_risk BOOLEAN NOT NULL DEFAULT TRUE,
-    ADD COLUMN IF NOT EXISTS value_approval_threshold NUMERIC(19,2) NOT NULL DEFAULT 100000.00,
-    ADD COLUMN IF NOT EXISTS approval_task_due_days INTEGER NOT NULL DEFAULT 1,
-    ADD COLUMN IF NOT EXISTS approval_task_priority VARCHAR(20) NOT NULL DEFAULT 'HIGH';

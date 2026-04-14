@@ -1,4 +1,0 @@
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS territory VARCHAR(120),
-    ADD COLUMN IF NOT EXISTS quarterly_quota DECIMAL(19, 2),
-    ADD COLUMN IF NOT EXISTS annual_quota DECIMAL(19, 2);

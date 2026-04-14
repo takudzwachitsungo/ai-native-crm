@@ -1,7 +1,0 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
-.env
-.env.local
-logs/
-*.log
-.DS_Store

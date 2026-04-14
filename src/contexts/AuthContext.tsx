@@ -125,6 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('ai_user_id');
+    // Clear onboarding state so next signup gets fresh onboarding
+    localStorage.removeItem('crm_onboarding');
+    localStorage.removeItem('crm_onboarding_step');
+    localStorage.removeItem('crm_onboarding_complete');
     setToken(null);
     setUser(null);
   };

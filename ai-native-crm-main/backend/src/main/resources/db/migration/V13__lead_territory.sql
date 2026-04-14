@@ -1,2 +1,0 @@
-ALTER TABLE leads
-    ADD COLUMN IF NOT EXISTS territory VARCHAR(120);
