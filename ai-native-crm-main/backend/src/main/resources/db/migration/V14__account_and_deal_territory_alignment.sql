@@ -1,0 +1,5 @@
+ALTER TABLE companies
+    ADD COLUMN IF NOT EXISTS territory VARCHAR(120);
+
+ALTER TABLE deals
+    ADD COLUMN IF NOT EXISTS territory VARCHAR(120);

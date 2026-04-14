@@ -1,0 +1,224 @@
+spring:
+  application:
+    name: crm-backend
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/crm_db}
+    username: ${DATABASE_USERNAME:crm_user}
+    password: ${DATABASE_PASSWORD:crm_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        globally_quoted_identifiers: true
+        default_schema: public
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+  
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 3000
+          max-attempts: 3
+          multiplier: 2.0
+  
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+        debug: ${MAIL_DEBUG:false}
+  
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+  
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# Security Configuration
+security:
+  jwt:
+    secret: ${JWT_SECRET:your-secret-key-change-this-in-production-min-256-bits}
+    access-token-expiration: 86400000  # 24 hours (24 * 60 * 60 * 1000)
+    refresh-token-expiration: 604800000  # 7 days
+  two-factor:
+    issuer: ${TWO_FACTOR_ISSUER:Cicosy CRM}
+
+# AI Configuration
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  embedding-model: text-embedding-3-small
+  embedding-dimensions: 512
+  chat-model: gpt-4-turbo-preview
+  max-tokens: 2000
+
+# Rate Limiting
+rate-limit:
+  free-tier: 100
+  pro-tier: 1000
+  enterprise-tier: 10000
+  refill-interval-seconds: 60
+
+# File Storage
+file-storage:
+  type: ${FILE_STORAGE_TYPE:local}  # local or s3
+  local:
+    upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+  s3:
+    bucket: ${AWS_S3_BUCKET:}
+    region: ${AWS_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY:}
+    secret-key: ${AWS_SECRET_KEY:}
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      openai:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+  retry:
+    instances:
+      openai:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.crm: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  shutdown: graceful
+
+tenancy:
+  provisioning:
+    enabled: ${TENANCY_PROVISIONING_ENABLED:true}
+    database-name-prefix: ${TENANCY_DATABASE_NAME_PREFIX:crm_tenant}
+    admin-database-name: ${TENANCY_ADMIN_DATABASE_NAME:postgres}
+  security:
+    # Supports plain values plus env:/file:/base64: references.
+    database-credentials-key: ${TENANCY_DATABASE_CREDENTIALS_KEY:${JWT_SECRET:change-this-tenant-db-key}}
+
+governance:
+  automation:
+    enabled: ${GOVERNANCE_AUTOMATION_ENABLED:true}
+    interval-ms: ${GOVERNANCE_AUTOMATION_INTERVAL_MS:3600000}
+    initial-delay-ms: ${GOVERNANCE_AUTOMATION_INITIAL_DELAY_MS:300000}
+
+integrations:
+  automation:
+    enabled: ${INTEGRATIONS_AUTOMATION_ENABLED:true}
+    interval-ms: ${INTEGRATIONS_AUTOMATION_INTERVAL_MS:900000}
+    initial-delay-ms: ${INTEGRATIONS_AUTOMATION_INITIAL_DELAY_MS:180000}
+
+billing:
+  portal-base-url: ${BILLING_PORTAL_BASE_URL:}
