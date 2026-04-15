@@ -128,7 +128,7 @@ export default function Onboarding() {
                   onClick={handleFinish}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium text-[0.875rem] text-white bg-gradient-to-b from-[#0f766e] to-[#0d6b64] hover:from-[#0d6b64] hover:to-[#0b5f59] shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:ring-offset-2 transition-all duration-150"
                 >
-                  <Rocket size={15} /> Launch workspace
+                   Launch workspace
                 </button>
               ) : (
                 <button

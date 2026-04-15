@@ -1,8 +1,9 @@
 import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
-const INDUSTRIES = ['Technology', 'Financial Services', 'Healthcare', 'Manufacturing', 'Retail & E-commerce', 'Professional Services', 'Real Estate', 'Education', 'Media & Entertainment', 'Other'];
-const BUSINESS_SIZES = ['1–10 employees', '11–50', '51–200', '201–1000', '1000+'];
+const INDUSTRIES = ['SaaS & Cloud Software', 'Financial Services & Fintech', 'Agency & Consulting', 'E-commerce & DTC', 'Healthcare & Life Sciences', 'Construction & Real Estate', 'Manufacturing & Supply Chain', 'Education & EdTech', 'Media & Publishing', 'Other'];
+const REVENUE_MODELS = ['Subscriptions / Recurring', 'One-time sales', 'Project-based / Retainers', 'Usage-based / Metered', 'Mixed / Marketplace'];
+const COMPANY_STAGES = ['Pre-revenue / Just starting', 'Early traction (< $1M ARR)', 'Growth stage ($1M–$10M)', 'Scaling ($10M–$50M)', 'Enterprise ($50M+)'];
 
 export function StepCompany() {
   const { data, updateData } = useOnboarding();
@@ -22,7 +23,7 @@ export function StepCompany() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-[0.75rem] font-medium text-gray-700">Industry</label>
+        <label className="block text-[0.75rem] font-medium text-gray-700">What industry are you in?</label>
         <div className="flex flex-wrap gap-1.5">
           {INDUSTRIES.map((opt) => (
             <button
@@ -42,15 +43,15 @@ export function StepCompany() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-[0.75rem] font-medium text-gray-700">Business size</label>
+        <label className="block text-[0.75rem] font-medium text-gray-700">How do you generate revenue?</label>
         <div className="flex flex-wrap gap-1.5">
-          {BUSINESS_SIZES.map((opt) => (
+          {REVENUE_MODELS.map((opt) => (
             <button
               key={opt}
               type="button"
-              onClick={() => updateData({ businessSize: opt })}
+              onClick={() => updateData({ revenueModel: opt })}
               className={`px-3 py-1 rounded-full border text-[0.75rem] transition-all duration-150
-                ${data.businessSize === opt
+                ${data.revenueModel === opt
                   ? 'border-teal-500 bg-teal-50 text-teal-800 ring-1 ring-teal-500/30'
                   : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                 }`}
@@ -61,16 +62,24 @@ export function StepCompany() {
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="ob-country" className="block text-[0.75rem] font-medium text-gray-700">Country / Region</label>
-        <input
-          id="ob-country"
-          type="text"
-          value={data.country}
-          onChange={(e) => updateData({ country: e.target.value })}
-          placeholder="e.g. United States"
-          className="w-full h-9 px-3 rounded-xl border border-gray-200 bg-white text-[0.8125rem] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 hover:border-gray-300 transition-all duration-150"
-        />
+      <div className="space-y-1.5">
+        <label className="block text-[0.75rem] font-medium text-gray-700">Where is your company right now?</label>
+        <div className="flex flex-wrap gap-1.5">
+          {COMPANY_STAGES.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => updateData({ companyStage: opt })}
+              className={`px-3 py-1 rounded-full border text-[0.75rem] transition-all duration-150
+                ${data.companyStage === opt
+                  ? 'border-teal-500 bg-teal-50 text-teal-800 ring-1 ring-teal-500/30'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

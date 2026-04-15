@@ -38,8 +38,8 @@ export function StepReview() {
         onEdit={() => goToStep(0)}
         items={[
           { label: 'Role', value: data.role },
-          { label: 'Team size', value: data.teamSize },
-          { label: 'Job title', value: data.jobTitle },
+          { label: 'CRM experience', value: data.crmExperience },
+          { label: 'Biggest challenge', value: data.biggestChallenge },
         ]}
       />
 
@@ -49,8 +49,8 @@ export function StepReview() {
         items={[
           { label: 'Company', value: data.companyName },
           { label: 'Industry', value: data.industry },
-          { label: 'Size', value: data.businessSize },
-          { label: 'Country', value: data.country },
+          { label: 'Revenue model', value: data.revenueModel },
+          { label: 'Stage', value: data.companyStage },
         ]}
       />
 
@@ -58,9 +58,9 @@ export function StepReview() {
         title="Sales process"
         onEdit={() => goToStep(2)}
         items={[
-          { label: 'Pipeline', value: data.pipelinePreference },
-          { label: 'Customers', value: data.customerType },
-          { label: 'Deal volume', value: data.expectedDealFlow },
+          { label: 'Sales motion', value: data.salesMotion },
+          { label: 'Deal cycle', value: data.avgDealCycle },
+          { label: 'Deal size', value: data.avgDealSize },
         ]}
       />
 
@@ -69,7 +69,7 @@ export function StepReview() {
         onEdit={() => goToStep(3)}
         items={[
           { label: 'CRM goals', value: data.crmGoals.join(', ') },
-          { label: 'Priorities', value: data.topPriorities.join(', ') },
+          { label: 'Bottleneck', value: data.biggestBottleneck },
         ]}
       />
 
@@ -78,6 +78,7 @@ export function StepReview() {
         onEdit={() => goToStep(4)}
         items={[
           { label: 'Expected users', value: data.expectedUsers },
+          { label: 'Structure', value: data.teamStructure },
           { label: 'Invited', value: data.inviteEmails },
         ]}
       />
@@ -88,6 +89,8 @@ export function StepReview() {
         items={[
           { label: 'Import', value: data.importData },
           { label: 'Current tool', value: data.currentTool },
+          { label: 'Volume', value: data.dataVolume },
+          { label: 'Data quality', value: data.dataQuality },
         ]}
       />
 

@@ -51,14 +51,13 @@ function buildInitialForm(order?: WorkOrder | null): WorkOrderFormState {
   };
 }
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-sm font-medium mb-1">{label}</span>
-      {children}
-    </label>
-  );
-}
+type WOTab = 'details' | 'schedule' | 'notes';
+const woTabs: WOTab[] = ['details', 'schedule', 'notes'];
+const woTabHeaders: Record<WOTab, { create: string; edit: string }> = {
+  details: { create: 'Define the work order basics and assign resources.', edit: 'Update work order details and assignments.' },
+  schedule: { create: 'Set the service location and schedule window.', edit: 'Adjust location and timing for this work order.' },
+  notes: { create: 'Add a description or special instructions.', edit: 'Update work order description and notes.' },
+};
 
 export default function FieldServicePage() {
   const [searchParams] = useSearchParams();
@@ -71,6 +70,7 @@ export default function FieldServicePage() {
   const [isFormOpen, setIsFormOpen] = useState(createRequested);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [formState, setFormState] = useState<WorkOrderFormState>(buildInitialForm());
+  const [woActiveTab, setWoActiveTab] = useState<WOTab>('details');
 
   const { data: workOrdersData, isLoading } = useQuery({ queryKey: ['work-orders'], queryFn: () => workOrdersApi.getAll({ page: 0, size: 1000 }) });
   const { data: workOrderStats } = useQuery({ queryKey: ['work-orders', 'stats'], queryFn: () => workOrdersApi.getStatistics() });
@@ -283,20 +283,107 @@ export default function FieldServicePage() {
         </div>
       </div>
 
-      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedOrder(null); }} title={selectedOrder ? 'Edit Work Order' : 'Create Work Order'} size="lg" footer={<><button onClick={() => { setIsFormOpen(false); setSelectedOrder(null); }} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary">Cancel</button><button onClick={handleSaveWorkOrder} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">{selectedOrder ? 'Save Changes' : 'Create Work Order'}</button></>}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Title"><input value={formState.title} onChange={(e) => setFormState((c) => ({ ...c, title: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <FormField label="Priority"><select value={formState.priority} onChange={(e) => setFormState((c) => ({ ...c, priority: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></FormField>
-          <FormField label="Work Type"><select value={formState.workType} onChange={(e) => setFormState((c) => ({ ...c, workType: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="INSTALLATION">Installation</option><option value="MAINTENANCE">Maintenance</option><option value="REPAIR">Repair</option><option value="INSPECTION">Inspection</option><option value="DELIVERY">Delivery</option><option value="OTHER">Other</option></select></FormField>
-          <FormField label="Technician"><select value={formState.assignedTechnicianId} onChange={(e) => setFormState((c) => ({ ...c, assignedTechnicianId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">Unassigned</option>{users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}</select></FormField>
-          <FormField label="Company"><select value={formState.companyId} onChange={(e) => setFormState((c) => ({ ...c, companyId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">No company</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></FormField>
-          <FormField label="Contact"><select value={formState.contactId} onChange={(e) => setFormState((c) => ({ ...c, contactId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">No contact</option>{contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}</select></FormField>
-          <FormField label="Support Case"><select value={formState.supportCaseId} onChange={(e) => setFormState((c) => ({ ...c, supportCaseId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">No support case</option>{supportCases.map((supportCase: SupportCase) => <option key={supportCase.id} value={supportCase.id}>{supportCase.caseNumber} · {supportCase.title}</option>)}</select></FormField>
-          <FormField label="Territory"><input value={formState.territory} onChange={(e) => setFormState((c) => ({ ...c, territory: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <FormField label="Scheduled Start"><input type="datetime-local" value={formState.scheduledStartAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledStartAt: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <FormField label="Scheduled End"><input type="datetime-local" value={formState.scheduledEndAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledEndAt: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <div className="md:col-span-2"><FormField label="Service Address"><input value={formState.serviceAddress} onChange={(e) => setFormState((c) => ({ ...c, serviceAddress: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField></div>
-          <div className="md:col-span-2"><FormField label="Description"><textarea value={formState.description} onChange={(e) => setFormState((c) => ({ ...c, description: e.target.value }))} rows={4} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField></div>
+      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedOrder(null); }} title={selectedOrder ? 'Edit Work Order' : 'Create Work Order'} size="xl" footer={
+        <div className="flex justify-end gap-3">
+          <button onClick={() => { setIsFormOpen(false); setSelectedOrder(null); }} className="px-4 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[0.8125rem] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150">Cancel</button>
+          <button onClick={handleSaveWorkOrder} className="px-5 py-1.5 rounded-lg bg-teal-600 text-white text-[0.8125rem] font-medium hover:bg-teal-700 focus:ring-2 focus:ring-teal-500/30 focus:ring-offset-1 transition-all duration-150 shadow-sm">{selectedOrder ? 'Save Changes' : 'Create Work Order'}</button>
+        </div>
+      }>
+        <div className="space-y-5">
+          {/* Segment Control */}
+          <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 gap-0.5">
+            {woTabs.map((tab) => (
+              <button key={tab} type="button" onClick={() => setWoActiveTab(tab)} className={`px-4 py-1 text-[0.75rem] font-medium rounded-md transition-all duration-150 capitalize ${woActiveTab === tab ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>{tab}</button>
+            ))}
+          </div>
+
+          {/* Tab Header */}
+          <div className="flex items-center gap-2">
+            <div className="h-1 w-1 rounded-full bg-teal-500" />
+            <p className="text-[0.8rem] text-gray-500 dark:text-gray-400">{woTabHeaders[woActiveTab][selectedOrder ? 'edit' : 'create']}</p>
+          </div>
+
+          {/* Tab Content */}
+          <div className="min-h-[20rem]">
+            {woActiveTab === 'details' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Title *</label>
+                    <input value={formState.title} onChange={(e) => setFormState((c) => ({ ...c, title: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Priority</label>
+                    <select value={formState.priority} onChange={(e) => setFormState((c) => ({ ...c, priority: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Work Type</label>
+                    <select value={formState.workType} onChange={(e) => setFormState((c) => ({ ...c, workType: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="INSTALLATION">Installation</option><option value="MAINTENANCE">Maintenance</option><option value="REPAIR">Repair</option><option value="INSPECTION">Inspection</option><option value="DELIVERY">Delivery</option><option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Technician</label>
+                    <select value={formState.assignedTechnicianId} onChange={(e) => setFormState((c) => ({ ...c, assignedTechnicianId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">Unassigned</option>{users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Company</label>
+                    <select value={formState.companyId} onChange={(e) => setFormState((c) => ({ ...c, companyId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">No company</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Contact</label>
+                    <select value={formState.contactId} onChange={(e) => setFormState((c) => ({ ...c, contactId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">No contact</option>{contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Support Case</label>
+                    <select value={formState.supportCaseId} onChange={(e) => setFormState((c) => ({ ...c, supportCaseId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">No support case</option>{supportCases.map((supportCase: SupportCase) => <option key={supportCase.id} value={supportCase.id}>{supportCase.caseNumber} · {supportCase.title}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {woActiveTab === 'schedule' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Territory</label>
+                    <input value={formState.territory} onChange={(e) => setFormState((c) => ({ ...c, territory: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Service Address</label>
+                    <input value={formState.serviceAddress} onChange={(e) => setFormState((c) => ({ ...c, serviceAddress: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Scheduled Start</label>
+                    <input type="datetime-local" value={formState.scheduledStartAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledStartAt: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Scheduled End</label>
+                    <input type="datetime-local" value={formState.scheduledEndAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledEndAt: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {woActiveTab === 'notes' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
+                  <textarea value={formState.description} onChange={(e) => setFormState((c) => ({ ...c, description: e.target.value }))} rows={6} className="w-full px-2.5 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150 resize-none" placeholder="Work order details, special instructions..." />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 

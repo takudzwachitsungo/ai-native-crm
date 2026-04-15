@@ -1,9 +1,9 @@
 import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
-const NOTIFICATION_OPTIONS = ['All notifications', 'Important only', 'Minimal — just assignments', 'None for now'];
-const AUTOMATION_OPTIONS = ['Lead scoring', 'Auto follow-up reminders', 'Deal stage progression alerts', 'SLA escalation', 'Email sequences', 'Territory-based routing'];
-const DASHBOARD_OPTIONS = ['Pipeline overview', 'Revenue forecast', 'Team leaderboard', 'Activity feed', 'AI insights panel', 'Campaign metrics'];
+const NOTIFICATION_OPTIONS = ['Real-time — notify me about everything', 'Smart digest — important stuff only', 'Minimal — just my assignments & mentions', 'Quiet — I\'ll check manually'];
+const AUTOMATION_OPTIONS = ['Auto-score & prioritise leads', 'Follow-up reminders when deals go cold', 'Deal stage progression alerts', 'SLA escalation for support tickets', 'Email sequences & drip campaigns', 'Round-robin lead assignment'];
+const DASHBOARD_OPTIONS = ['Live pipeline overview', 'Revenue forecast & trends', 'Team activity leaderboard', 'Win/loss analysis', 'AI-powered deal insights', 'Campaign ROI metrics'];
 
 function ToggleChips({ options, selected, onChange }: { options: string[]; selected: string[]; onChange: (v: string[]) => void }) {
   const toggle = (opt: string) => {
@@ -36,7 +36,7 @@ export function StepPreferences() {
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <label className="block text-[0.75rem] font-medium text-gray-700">Notification preference</label>
+        <label className="block text-[0.75rem] font-medium text-gray-700">How do you want to be notified?</label>
         <div className="flex flex-wrap gap-1.5">
           {NOTIFICATION_OPTIONS.map((opt) => (
             <button
@@ -56,12 +56,12 @@ export function StepPreferences() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-[0.75rem] font-medium text-gray-700">Automations you're interested in</label>
+        <label className="block text-[0.75rem] font-medium text-gray-700">Which automations would save you the most time?</label>
         <ToggleChips options={AUTOMATION_OPTIONS} selected={data.automationInterests} onChange={(v) => updateData({ automationInterests: v })} />
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-[0.75rem] font-medium text-gray-700">Dashboard widgets you'd like</label>
+        <label className="block text-[0.75rem] font-medium text-gray-700">What do you want to see first when you open the dashboard?</label>
         <ToggleChips options={DASHBOARD_OPTIONS} selected={data.dashboardPrefs} onChange={(v) => updateData({ dashboardPrefs: v })} />
       </div>
     </div>

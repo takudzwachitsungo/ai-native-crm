@@ -196,253 +196,290 @@ export function InvoiceForm({ isOpen, onClose, onSubmit, initialData }: InvoiceF
   const totalTax = formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice * item.tax / 100), 0);
   const total = subtotal + totalTax;
 
+  const isEdit = !!initialData;
+  const [activeTab, setActiveTab] = useState<'details' | 'items' | 'notes'>('details');
+
+  const tabs: ('details' | 'items' | 'notes')[] = ['details', 'items', 'notes'];
+  const tabHeaders: Record<string, string> = {
+    details: isEdit ? 'Update invoice details and billing info.' : 'Set up the invoice basics and billing party.',
+    items: isEdit ? 'Adjust products, quantities, and pricing.' : 'Add products and services to this invoice.',
+    notes: 'Include payment instructions or additional terms.',
+  };
+
+  const inputClass = "w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150";
+  const selectClass = "w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150";
+  const labelClass = "block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5";
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? "Edit Invoice" : "Create Invoice"}
+      title={isEdit ? "Edit Invoice" : "Create Invoice"}
       size="xl"
       footer={
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors"
+            className="px-4 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[0.8125rem] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150"
           >
             Cancel
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
-            className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+            className="px-5 py-1.5 rounded-lg bg-teal-600 text-white text-[0.8125rem] font-medium hover:bg-teal-700 focus:ring-2 focus:ring-teal-500/30 focus:ring-offset-1 transition-all duration-150 shadow-sm"
           >
-            {initialData ? "Update" : "Create"}
+            {isEdit ? "Update" : "Create"}
           </button>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <div>
-          <h3 className="text-sm font-medium text-foreground mb-3">Invoice Details</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Invoice Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.invoiceNumber}
-                onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-                placeholder="INV-2024-001"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Company <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Segment Control */}
+        <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 gap-0.5">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-1 text-[0.75rem] font-medium rounded-md transition-all duration-150 capitalize ${
+                  activeTab === tab
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
               >
-                <option value="">Select a company</option>
-                {companies.map((company: any) => (
-                  <option key={company.id} value={company.id}>{company.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Contact</label>
-              <select
-                value={formData.contact}
-                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="">Select a contact (optional)</option>
-                {contacts.map((contact: any) => (
-                  <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="paid">Paid</option>
-                <option value="overdue">Overdue</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Issue Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.issueDate}
-                onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Due Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-1">Payment Terms</label>
-              <select
-                value={formData.paymentTerms}
-                onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="Due on Receipt">Due on Receipt</option>
-                <option value="Net 15">Net 15</option>
-                <option value="Net 30">Net 30</option>
-                <option value="Net 60">Net 60</option>
-                <option value="Net 90">Net 90</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Line Items */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-foreground">Line Items</h3>
-            <button
-              type="button"
-              onClick={addLineItem}
-              className="text-sm text-primary hover:underline flex items-center gap-1"
-            >
-              <Icons.Plus size={14} />
-              Add Item
-            </button>
-          </div>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {formData.lineItems.map((item) => (
-              <div key={item.id} className="grid grid-cols-12 gap-2 p-3 bg-secondary/30 rounded border border-border">
-                <div className="col-span-3">
-                  <select
-                    value={item.product}
-                    onChange={(e) => {
-                      const selectedProduct = products.find((p: any) => p.id === e.target.value);
-                      updateLineItem(item.id, { 
-                        product: e.target.value,
-                        unitPrice: selectedProduct?.unitPrice || item.unitPrice,
-                        description: selectedProduct?.description || item.description
-                      });
-                    }}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                  >
-                    <option value="">Select product</option>
-                    {products.map((product: any) => (
-                      <option key={product.id} value={product.id}>{product.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-3">
-                  <input
-                    type="text"
-                    placeholder="Description"
-                    value={item.description}
-                    onChange={(e) => updateLineItem(item.id, { description: e.target.value })}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="col-span-1">
-                  <input
-                    type="number"
-                    placeholder="Qty"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => updateLineItem(item.id, { quantity: parseInt(e.target.value) || 1 })}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <input
-                    type="number"
-                    placeholder="Price"
-                    step="0.01"
-                    value={item.unitPrice}
-                    onChange={(e) => updateLineItem(item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="col-span-1">
-                  <input
-                    type="number"
-                    placeholder="Tax%"
-                    min="0"
-                    max="100"
-                    value={item.tax}
-                    onChange={(e) => updateLineItem(item.id, { tax: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="col-span-1 flex items-center justify-end">
-                  <span className="text-xs font-medium">${(item.total ?? 0).toFixed(2)}</span>
-                </div>
-                <div className="col-span-1 flex items-center justify-end">
-                  {formData.lineItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeLineItem(item.id)}
-                      className="p-1 hover:bg-red-50 rounded text-muted-foreground hover:text-red-600"
-                    >
-                      <Icons.Trash size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
+                {tab}
+              </button>
             ))}
           </div>
 
-          {/* Totals */}
-          <div className="mt-4 pt-4 border-t border-border space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal:</span>
-              <span className="font-medium">${subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total Tax:</span>
-              <span className="font-medium">${totalTax.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-base font-semibold pt-2 border-t border-border">
-              <span>Amount Due:</span>
-              <span>${total.toFixed(2)}</span>
-            </div>
-          </div>
+        {/* Tab Header */}
+        <div className="flex items-center gap-2">
+          <div className="h-1 w-1 rounded-full bg-teal-500" />
+          <p className="text-[0.8rem] text-gray-500 dark:text-gray-400">{tabHeaders[activeTab]}</p>
         </div>
 
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Notes</label>
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-            placeholder="Payment instructions, additional terms..."
-          />
+        {/* Tab Content */}
+        <div className="min-h-[20rem]">
+          {activeTab === 'details' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                <div>
+                  <label className={labelClass}>Invoice Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.invoiceNumber}
+                    onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                    className={inputClass}
+                    placeholder="INV-2024-001"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Company *</label>
+                  <select
+                    required
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Select a company</option>
+                    {companies.map((company: any) => (
+                      <option key={company.id} value={company.id}>{company.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Contact</label>
+                  <select
+                    value={formData.contact}
+                    onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="">Select a contact (optional)</option>
+                    {contacts.map((contact: any) => (
+                      <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="sent">Sent</option>
+                    <option value="paid">Paid</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Issue Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.issueDate}
+                    onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Due Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>Payment Terms</label>
+                  <select
+                    value={formData.paymentTerms}
+                    onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
+                    className={selectClass}
+                  >
+                    <option value="Due on Receipt">Due on Receipt</option>
+                    <option value="Net 15">Net 15</option>
+                    <option value="Net 30">Net 30</option>
+                    <option value="Net 60">Net 60</option>
+                    <option value="Net 90">Net 90</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'items' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[0.75rem] font-medium text-gray-700 dark:text-gray-300">Line Items</span>
+                <button
+                  type="button"
+                  onClick={addLineItem}
+                  className="text-[0.75rem] text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+                >
+                  <Icons.Plus size={13} />
+                  Add Item
+                </button>
+              </div>
+              <div className="space-y-2.5 max-h-52 overflow-y-auto">
+                {formData.lineItems.map((item) => (
+                  <div key={item.id} className="grid grid-cols-12 gap-2 p-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                    <div className="col-span-3">
+                      <select
+                        value={item.product}
+                        onChange={(e) => {
+                          const selectedProduct = products.find((p: any) => p.id === e.target.value);
+                          updateLineItem(item.id, {
+                            product: e.target.value,
+                            unitPrice: selectedProduct?.unitPrice || item.unitPrice,
+                            description: selectedProduct?.description || item.description
+                          });
+                        }}
+                        className="w-full h-8 px-2 text-[0.75rem] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+                      >
+                        <option value="">Select product</option>
+                        {products.map((product: any) => (
+                          <option key={product.id} value={product.id}>{product.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-3">
+                      <input
+                        type="text"
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(item.id, { description: e.target.value })}
+                        className="w-full h-8 px-2 text-[0.75rem] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <input
+                        type="number"
+                        placeholder="Qty"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(item.id, { quantity: parseInt(e.target.value) || 1 })}
+                        className="w-full h-8 px-2 text-[0.75rem] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <input
+                        type="number"
+                        placeholder="Price"
+                        step="0.01"
+                        value={item.unitPrice}
+                        onChange={(e) => updateLineItem(item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full h-8 px-2 text-[0.75rem] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <input
+                        type="number"
+                        placeholder="Tax%"
+                        min="0"
+                        max="100"
+                        value={item.tax}
+                        onChange={(e) => updateLineItem(item.id, { tax: parseFloat(e.target.value) || 0 })}
+                        className="w-full h-8 px-2 text-[0.75rem] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+                      />
+                    </div>
+                    <div className="col-span-1 flex items-center justify-end">
+                      <span className="text-[0.75rem] font-medium text-gray-900 dark:text-gray-100">${(item.total ?? 0).toFixed(2)}</span>
+                    </div>
+                    <div className="col-span-1 flex items-center justify-end">
+                      {formData.lineItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeLineItem(item.id)}
+                          className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600"
+                        >
+                          <Icons.Trash size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Totals */}
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-1.5">
+                <div className="flex justify-between text-[0.8125rem]">
+                  <span className="text-gray-500 dark:text-gray-400">Subtotal:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[0.8125rem]">
+                  <span className="text-gray-500 dark:text-gray-400">Total Tax:</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">${totalTax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[0.875rem] font-semibold pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <span className="text-gray-900 dark:text-gray-100">Amount Due:</span>
+                  <span className="text-teal-600">${total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notes' && (
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={6}
+                  className="w-full px-2.5 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150 resize-none"
+                  placeholder="Payment instructions, additional terms..."
+                />
+              </div>
+            </div>
+          )}
         </div>
       </form>
     </Modal>

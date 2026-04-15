@@ -9,12 +9,12 @@ export interface OnboardingStepConfig {
 
 export const ONBOARDING_STEPS: OnboardingStepConfig[] = [
   { id: 'about-you',       title: 'Tell us about you',      description: 'Help us personalise your experience.' },
-  { id: 'company',         title: 'Company details',         description: 'A bit about your organisation.' },
-  { id: 'sales-process',   title: 'Sales process',           description: 'How does your team sell?' },
-  { id: 'goals',           title: 'Goals & use case',        description: 'What should the CRM help with?' },
-  { id: 'team',            title: 'Team setup',              description: 'Plan your workspace team.' },
+  { id: 'company',         title: 'Company details',         description: 'So we can tailor your workspace.' },
+  { id: 'sales-process',   title: 'Sales process',           description: 'How your team wins business.' },
+  { id: 'goals',           title: 'Goals & use case',        description: 'What success looks like for you.' },
+  { id: 'team',            title: 'Team setup',              description: 'Who will be working with you?' },
   { id: 'data',            title: 'Data & imports',          description: 'Bring your existing data along.' },
-  { id: 'preferences',     title: 'Preferences',             description: 'Tailor notifications and automations.' },
+  { id: 'preferences',     title: 'Preferences',             description: 'Fine-tune your dashboard and alerts.' },
   { id: 'review',          title: 'Review & launch',         description: 'Confirm your setup and get started.' },
 ];
 
@@ -22,26 +22,29 @@ export const ONBOARDING_STEPS: OnboardingStepConfig[] = [
 export interface OnboardingData {
   // Step 1 — about you
   role: string;
-  teamSize: string;
-  jobTitle: string;
+  crmExperience: string;
+  biggestChallenge: string;
   // Step 2 — company
   companyName: string;
   industry: string;
-  businessSize: string;
-  country: string;
+  revenueModel: string;
+  companyStage: string;
   // Step 3 — sales process
-  pipelinePreference: string;
-  customerType: string;
-  expectedDealFlow: string;
+  salesMotion: string;
+  avgDealCycle: string;
+  avgDealSize: string;
   // Step 4 — goals
   crmGoals: string[];
-  topPriorities: string[];
+  biggestBottleneck: string;
   // Step 5 — team
-  inviteEmails: string;
   expectedUsers: string;
+  teamStructure: string;
+  inviteEmails: string;
   // Step 6 — data
   importData: string;
   currentTool: string;
+  dataVolume: string;
+  dataQuality: string;
   // Step 7 — preferences
   notificationPref: string;
   automationInterests: string[];
@@ -50,21 +53,24 @@ export interface OnboardingData {
 
 const DEFAULT_DATA: OnboardingData = {
   role: '',
-  teamSize: '',
-  jobTitle: '',
+  crmExperience: '',
+  biggestChallenge: '',
   companyName: '',
   industry: '',
-  businessSize: '',
-  country: '',
-  pipelinePreference: '',
-  customerType: '',
-  expectedDealFlow: '',
+  revenueModel: '',
+  companyStage: '',
+  salesMotion: '',
+  avgDealCycle: '',
+  avgDealSize: '',
   crmGoals: [],
-  topPriorities: [],
-  inviteEmails: '',
+  biggestBottleneck: '',
   expectedUsers: '',
+  teamStructure: '',
+  inviteEmails: '',
   importData: '',
   currentTool: '',
+  dataVolume: '',
+  dataQuality: '',
   notificationPref: '',
   automationInterests: [],
   dashboardPrefs: [],

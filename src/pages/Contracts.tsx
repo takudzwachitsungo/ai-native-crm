@@ -102,6 +102,7 @@ function ContractForm({
   contacts,
   quotes,
   users,
+  isEdit,
 }: {
   formState: ContractFormState;
   onChange: React.Dispatch<React.SetStateAction<ContractFormState>>;
@@ -109,61 +110,147 @@ function ContractForm({
   contacts: Contact[];
   quotes: Quote[];
   users: TenantUser[];
+  isEdit?: boolean;
 }) {
+  const [activeTab, setActiveTab] = useState<'details' | 'terms' | 'notes'>('details');
+
+  const inputClass = "w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150";
+  const selectClass = `${inputClass} bg-white dark:bg-gray-800/50`;
+  const labelClass = "block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5";
+
+  const tabHeaders: Record<string, string> = {
+    details: isEdit ? 'Update contract details below.' : 'Create a new contract — set the account, value, and owner.',
+    terms: 'Define the contract timeline and renewal settings.',
+    notes: 'Anything else worth remembering? Jot it down here.',
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField label="Contract Number">
-        <input value={formState.contractNumber} onChange={(e) => onChange((c) => ({ ...c, contractNumber: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Owner">
-        <select value={formState.ownerId} onChange={(e) => onChange((c) => ({ ...c, ownerId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">Unassigned</option>
-          {users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Title">
-        <input value={formState.title} onChange={(e) => onChange((c) => ({ ...c, title: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Contract Value">
-        <input type="number" min="0" step="0.01" value={formState.contractValue} onChange={(e) => onChange((c) => ({ ...c, contractValue: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Company">
-        <select value={formState.companyId} onChange={(e) => onChange((c) => ({ ...c, companyId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">Select company</option>
-          {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Contact">
-        <select value={formState.contactId} onChange={(e) => onChange((c) => ({ ...c, contactId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">No contact</option>
-          {contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Source Quote">
-        <select value={formState.quoteId} onChange={(e) => onChange((c) => ({ ...c, quoteId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">No quote</option>
-          {quotes.map((quote) => <option key={quote.id} value={quote.id}>{quote.quoteNumber} · {quote.companyName || quote.contactName || 'Unknown'}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Renewal Notice Days">
-        <input type="number" min="0" value={formState.renewalNoticeDays} onChange={(e) => onChange((c) => ({ ...c, renewalNoticeDays: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Start Date">
-        <input type="date" value={formState.startDate} onChange={(e) => onChange((c) => ({ ...c, startDate: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="End Date">
-        <input type="date" value={formState.endDate} onChange={(e) => onChange((c) => ({ ...c, endDate: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <div className="md:col-span-2">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={formState.autoRenew} onChange={(e) => onChange((c) => ({ ...c, autoRenew: e.target.checked }))} />
-          Enable auto-renewal
-        </label>
+    <div className="space-y-5">
+      {/* Conversational header per tab */}
+      <div className="flex items-center gap-2">
+        <div className="h-1 w-1 rounded-full bg-teal-500" />
+        <p className="text-[0.8rem] text-gray-500 dark:text-gray-400">{tabHeaders[activeTab]}</p>
       </div>
-      <div className="md:col-span-2">
-        <FormField label="Notes">
-          <textarea value={formState.notes} onChange={(e) => onChange((c) => ({ ...c, notes: e.target.value }))} rows={4} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-        </FormField>
+
+      {/* Segment Control */}
+      <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 gap-0.5">
+        {(['details', 'terms', 'notes'] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-1 text-[0.75rem] font-medium rounded-md transition-all duration-150 capitalize
+              ${activeTab === tab
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content — fixed height so modal doesn't resize */}
+      <div className="min-h-[20rem]">
+        {/* Details Tab */}
+        {activeTab === 'details' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Contract Number</label>
+                <input value={formState.contractNumber} onChange={(e) => onChange((c) => ({ ...c, contractNumber: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Title</label>
+                <input value={formState.title} onChange={(e) => onChange((c) => ({ ...c, title: e.target.value }))} className={inputClass} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Company</label>
+                <select value={formState.companyId} onChange={(e) => onChange((c) => ({ ...c, companyId: e.target.value }))} className={selectClass}>
+                  <option value="">Select company</option>
+                  {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Contact</label>
+                <select value={formState.contactId} onChange={(e) => onChange((c) => ({ ...c, contactId: e.target.value }))} className={selectClass}>
+                  <option value="">No contact</option>
+                  {contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Contract Value</label>
+                <input type="number" min="0" step="0.01" value={formState.contractValue} onChange={(e) => onChange((c) => ({ ...c, contractValue: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Owner</label>
+                <select value={formState.ownerId} onChange={(e) => onChange((c) => ({ ...c, ownerId: e.target.value }))} className={selectClass}>
+                  <option value="">Unassigned</option>
+                  {users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Source Quote</label>
+                <select value={formState.quoteId} onChange={(e) => onChange((c) => ({ ...c, quoteId: e.target.value }))} className={selectClass}>
+                  <option value="">No quote</option>
+                  {quotes.map((quote) => <option key={quote.id} value={quote.id}>{quote.quoteNumber} · {quote.companyName || quote.contactName || 'Unknown'}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Terms Tab */}
+        {activeTab === 'terms' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Start Date</label>
+                <input type="date" value={formState.startDate} onChange={(e) => onChange((c) => ({ ...c, startDate: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>End Date</label>
+                <input type="date" value={formState.endDate} onChange={(e) => onChange((c) => ({ ...c, endDate: e.target.value }))} className={inputClass} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Renewal Notice Days</label>
+                <input type="number" min="0" value={formState.renewalNoticeDays} onChange={(e) => onChange((c) => ({ ...c, renewalNoticeDays: e.target.value }))} className={inputClass} />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formState.autoRenew}
+                    onChange={(e) => onChange((c) => ({ ...c, autoRenew: e.target.checked }))}
+                    className="rounded border-gray-300 text-teal-600 focus:ring-teal-500/20"
+                  />
+                  <span className="text-[0.8125rem] text-gray-700 dark:text-gray-300">Enable auto-renewal</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notes Tab */}
+        {activeTab === 'notes' && (
+          <div>
+            <label className={labelClass}>Notes</label>
+            <textarea
+              value={formState.notes}
+              onChange={(e) => onChange((c) => ({ ...c, notes: e.target.value }))}
+              rows={6}
+              className="w-full px-2.5 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150 resize-none"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -436,8 +523,8 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedContract(null); }} title={selectedContract ? 'Edit Contract' : 'Create Contract'} size="lg" footer={<><button onClick={() => { setIsFormOpen(false); setSelectedContract(null); }} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary">Cancel</button><button onClick={handleSaveContract} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">{selectedContract ? 'Save Changes' : 'Create Contract'}</button></>}>
-        <ContractForm formState={formState} onChange={setFormState} companies={companies} contacts={contacts} quotes={quotes} users={users} />
+      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedContract(null); }} title={selectedContract ? 'Edit Contract' : 'Create Contract'} size="xl" footer={<><button onClick={() => { setIsFormOpen(false); setSelectedContract(null); }} className="px-4 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[0.8125rem] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150">Cancel</button><button onClick={handleSaveContract} className="px-5 py-1.5 rounded-lg bg-teal-600 text-white text-[0.8125rem] font-medium hover:bg-teal-700 focus:ring-2 focus:ring-teal-500/30 focus:ring-offset-1 transition-all duration-150 shadow-sm">{selectedContract ? 'Save Changes' : 'Create Contract'}</button></>}>
+        <ContractForm formState={formState} onChange={setFormState} companies={companies} contacts={contacts} quotes={quotes} users={users} isEdit={!!selectedContract} />
       </Modal>
 
       <Modal isOpen={isConversionOpen} onClose={() => { setIsConversionOpen(false); setConversionState(buildInitialConversion()); setSearchParams((params) => { params.delete('convertQuoteId'); return params; }); }} title="Convert Accepted Quote" size="lg" footer={<><button onClick={() => setIsConversionOpen(false)} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary">Cancel</button><button onClick={() => convertMutation.mutate(conversionState)} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">Convert Quote</button></>}>
