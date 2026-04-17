@@ -13,6 +13,7 @@ import { EmptyState } from "../components/EmptyState";
 import { BulkActionsBar } from "../components/BulkActionsBar";
 import { DetailSidebar, DetailSection, DetailField } from "../components/DetailSidebar";
 import { exportToCSV } from "../lib/helpers";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function LeadsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,8 +29,26 @@ export default function LeadsPage() {
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(10); // Show 10 leads per page
+  const [dateFilter, setDateFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
+
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    const handleClick = () => { setDateDropdownOpen(false); setSourceDropdownOpen(false); };
+    if (dateDropdownOpen || sourceDropdownOpen) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [dateDropdownOpen, sourceDropdownOpen]);
   const { showToast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? "Good morning" : currentHour < 18 ? "Good afternoon" : "Good evening";
+  const ownerName = user?.firstName || user?.lastName ? [user?.firstName, user?.lastName].filter(Boolean).join(" ") : "there";
 
   React.useEffect(() => {
     if (searchParams.get("create") === "1") {
@@ -151,13 +170,26 @@ export default function LeadsPage() {
       fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (lead.company?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (lead.email?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+    
+    // Date filter
+    let matchesDate = true;
+    if (dateFilter !== "all" && lead.createdAt) {
+      const daysAgo = parseInt(dateFilter);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - daysAgo);
+      matchesDate = new Date(lead.createdAt) >= cutoff;
+    }
+
+    // Source filter
+    const matchesSource = sourceFilter === "all" || (lead.source?.toUpperCase() === sourceFilter.toUpperCase());
+
+    return matchesFilter && matchesSearch && matchesDate && matchesSource;
   });
 
   // Reset page to 0 when filter or search changes
   React.useEffect(() => {
     setCurrentPage(0);
-  }, [filter, searchQuery]);
+  }, [filter, searchQuery, dateFilter, sourceFilter]);
 
   const statusCounts = {
     all: totalElements,
@@ -193,7 +225,10 @@ export default function LeadsPage() {
       <div className="border-b border-border bg-card">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-foreground">Leads</h1>
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">{greeting}, {ownerName}</h1>
+              <p className="text-sm text-muted-foreground">Here is a friendly view of your leads pipeline.</p>
+            </div>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => {
@@ -229,24 +264,115 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Total Leads</p>
-              <p className="text-xl font-semibold text-foreground">{leadStats?.totalLeads ?? totalElements}</p>
+          <div className="flex items-center gap-4 mb-4">
+            {/* Stats Cards - Left */}
+            <div className="flex items-center gap-3 flex-1">
+              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+                <p className="text-[10px] text-muted-foreground">Total Leads</p>
+                <p className="text-lg font-semibold text-foreground">{leadStats?.totalLeads ?? totalElements}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+                <p className="text-[10px] text-muted-foreground">Avg Score</p>
+                <p className="text-lg font-semibold text-foreground">{Math.round(leadStats?.averageScore ?? 0)}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+                <p className="text-[10px] text-muted-foreground">Conversion</p>
+                <p className="text-lg font-semibold text-foreground">{Math.round(leadStats?.conversionRate ?? 0)}%</p>
+              </div>
+              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+                <p className="text-[10px] text-muted-foreground">Lead Value</p>
+                <p className="text-lg font-semibold text-foreground">
+                  ${(Number(leadStats?.totalEstimatedValue ?? 0)).toLocaleString()}
+                </p>
+              </div>
             </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Avg Score</p>
-              <p className="text-xl font-semibold text-foreground">{Math.round(leadStats?.averageScore ?? 0)}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Conversion Rate</p>
-              <p className="text-xl font-semibold text-foreground">{Math.round(leadStats?.conversionRate ?? 0)}%</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Lead Value</p>
-              <p className="text-xl font-semibold text-foreground">
-                ${(Number(leadStats?.totalEstimatedValue ?? 0)).toLocaleString()}
-              </p>
+
+            {/* Filter Dropdowns - Right */}
+            <div className="flex items-center gap-2">
+              {/* Date Range Filter */}
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDateDropdownOpen(!dateDropdownOpen); setSourceDropdownOpen(false); }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors",
+                    dateFilter !== "all" ? "border-primary bg-primary/5 text-primary" : "border-border bg-background hover:bg-secondary"
+                  )}
+                >
+                  <Icons.Calendar size={14} className={dateFilter !== "all" ? "text-primary" : "text-muted-foreground"} />
+                  <span>{{
+                    all: "All time",
+                    "7": "Last 7 days",
+                    "30": "Last 30 days",
+                    "90": "Last 90 days",
+                    "180": "Last 6 months",
+                    "365": "Last year",
+                  }[dateFilter]}</span>
+                  <Icons.ChevronDown size={14} className={cn("transition-transform", dateDropdownOpen && "rotate-180")} />
+                </button>
+                {dateDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-border rounded-lg shadow-lg z-50 py-1">
+                    {[
+                      { value: "all", label: "All time" },
+                      { value: "7", label: "Last 7 days" },
+                      { value: "30", label: "Last 30 days" },
+                      { value: "90", label: "Last 90 days" },
+                      { value: "180", label: "Last 6 months" },
+                      { value: "365", label: "Last year" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setDateFilter(opt.value); setDateDropdownOpen(false); setCurrentPage(0); }}
+                        className={cn(
+                          "w-full text-left px-3 py-1.5 text-sm hover:bg-secondary transition-colors",
+                          dateFilter === opt.value && "text-primary font-medium bg-primary/5"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Source Filter */}
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSourceDropdownOpen(!sourceDropdownOpen); setDateDropdownOpen(false); }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors",
+                    sourceFilter !== "all" ? "border-primary bg-primary/5 text-primary" : "border-border bg-background hover:bg-secondary"
+                  )}
+                >
+                  <Icons.TrendingUp size={14} className={sourceFilter !== "all" ? "text-primary" : "text-muted-foreground"} />
+                  <span>{sourceFilter === "all" ? "All Sources" : sourceFilter}</span>
+                  <Icons.ChevronDown size={14} className={cn("transition-transform", sourceDropdownOpen && "rotate-180")} />
+                </button>
+                {sourceDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-border rounded-lg shadow-lg z-50 py-1">
+                    {[
+                      { value: "all", label: "All Sources" },
+                      { value: "WEBSITE", label: "Website" },
+                      { value: "REFERRAL", label: "Referral" },
+                      { value: "COLD_CALL", label: "Cold Call" },
+                      { value: "EMAIL", label: "Email" },
+                      { value: "SOCIAL", label: "Social Media" },
+                      { value: "EVENT", label: "Event" },
+                      { value: "OTHER", label: "Other" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setSourceFilter(opt.value); setSourceDropdownOpen(false); setCurrentPage(0); }}
+                        className={cn(
+                          "w-full text-left px-3 py-1.5 text-sm hover:bg-secondary transition-colors",
+                          sourceFilter === opt.value && "text-primary font-medium bg-primary/5"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -259,7 +385,7 @@ export default function LeadsPage() {
                 placeholder="Search leads..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -286,35 +412,84 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1 border-b border-border -mb-px">
-            {[
-              { value: "all", label: "All Leads" },
-              { value: "new", label: "New" },
-              { value: "contacted", label: "Contacted" },
-              { value: "qualified", label: "Qualified" },
-              { value: "unqualified", label: "Unqualified" },
-              { value: "lost", label: "Lost" },
-            ].map((tab) => (
+          {/* Status Pipeline Bar */}
+          <div className="rounded-2xl border border-border bg-background p-3 mt-2 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center flex-1" style={{ gap: '2px' }}>
+                {[
+                  { value: "all", label: "All Leads" },
+                  { value: "new", label: "New" },
+                  { value: "contacted", label: "Contacted" },
+                  { value: "qualified", label: "Qualified" },
+                  { value: "unqualified", label: "Unqualified" },
+                  { value: "lost", label: "Lost" },
+                ].map((tab, index, arr) => {
+                  const isActive = filter === tab.value;
+                  const activeIndex = arr.findIndex(t => t.value === filter);
+                  const isPast = activeIndex > -1 && index < activeIndex;
+                  return (
+                    <button
+                      key={tab.value}
+                      onClick={() => setFilter(tab.value)}
+                      className="relative flex-1 focus:outline-none"
+                      style={{ zIndex: arr.length - index }}
+                    >
+                      <svg
+                        viewBox="0 0 200 32"
+                        preserveAspectRatio="none"
+                        className="w-full"
+                        style={{ height: '30px', marginLeft: index > 0 ? '-4px' : '0' }}
+                      >
+                        <path
+                          d={
+                            index === 0
+                              ? 'M6,1 L184,1 L199,16 L184,31 L6,31 Q1,31 1,26 L1,6 Q1,1 6,1 Z'
+                              : index === arr.length - 1
+                              ? 'M1,1 L15,16 L1,31 L194,31 Q199,31 199,26 L199,6 Q199,1 194,1 Z'
+                              : 'M1,1 L15,16 L1,31 L184,31 L199,16 L184,1 Z'
+                          }
+                          className={cn(
+                            "transition-all duration-200",
+                            isActive
+                              ? "fill-primary stroke-primary"
+                              : isPast
+                              ? "fill-primary/10 stroke-primary/25"
+                              : "fill-[#f3f4f6] dark:fill-[#1f2937] stroke-[#cbd5e1] dark:stroke-[#4b5563]"
+                          )}
+                          strokeWidth="0.75"
+                        />
+                        <text
+                          x="100"
+                          y="17"
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          className={cn(
+                            "select-none pointer-events-none",
+                            isActive
+                              ? "fill-primary-foreground"
+                              : isPast
+                              ? "fill-primary"
+                              : "fill-muted-foreground"
+                          )}
+                          style={{ fontSize: '11px', fontWeight: 500 }}
+                        >
+                          {tab.label}
+                        </text>
+                      </svg>
+                    </button>
+                  );
+                })}
+              </div>
               <button
-                key={tab.value}
-                onClick={() => setFilter(tab.value)}
-                className={cn(
-                  "px-4 py-2.5 text-sm font-medium transition-colors relative",
-                  filter === tab.value
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+                onClick={() => {
+                  /* Mark status as complete */
+                }}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors whitespace-nowrap shadow-sm"
               >
-                {tab.label}
-                <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-secondary">
-                  {statusCounts[tab.value as keyof typeof statusCounts]}
-                </span>
-                {filter === tab.value && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
+                <Icons.CheckCircle size={14} />
+                Mark Status as Complete
               </button>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -343,11 +518,12 @@ export default function LeadsPage() {
           }}
         />
       ) : viewMode === "table" ? (
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <tr className="bg-secondary/50">
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   <input 
                     type="checkbox" 
                     className="rounded" 
@@ -356,21 +532,21 @@ export default function LeadsPage() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Lead Name</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Company</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Lead Score</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Value</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Lead Name</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Lead Score</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Value</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="bg-card">
               {filteredLeads.map((lead) => (
                 <tr 
                   key={lead.id} 
-                  className="hover:bg-secondary/50 transition-colors cursor-pointer"
+                  className="cursor-pointer transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
                   onClick={(e) => {
                     // Don't open sidebar if clicking checkbox or action buttons
                     if ((e.target as HTMLElement).closest('input, button')) return;
@@ -378,7 +554,7 @@ export default function LeadsPage() {
                     setDetailSidebarOpen(true);
                   }}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <input 
                       type="checkbox" 
                       className="rounded" 
@@ -387,14 +563,14 @@ export default function LeadsPage() {
                       onChange={() => toggleSelect(lead.id)}
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
                     {lead.firstName?.charAt(0) || '?'}
                   </div>
                   <div>
-                    <div className="font-medium text-foreground">{lead.firstName} {lead.lastName}</div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                    <div className="text-sm font-medium text-foreground">{lead.firstName} {lead.lastName}</div>
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
                       {lead.ownerName && <span>Owner: {lead.ownerName}</span>}
                       {lead.territory && <span>Territory: {lead.territory}</span>}
                       {lead.territoryMismatch && (
@@ -406,11 +582,11 @@ export default function LeadsPage() {
                   </div>
                 </div>
               </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{lead.company}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{lead.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{lead.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">{lead.company}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">{lead.email}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">{lead.phone}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
                       <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden w-16">
                         <div
                           className={cn(
@@ -420,12 +596,12 @@ export default function LeadsPage() {
                           style={{ width: `${lead.score ?? 0}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-foreground w-8">{lead.score ?? 0}</span>
+                      <span className="text-sm font-medium text-foreground w-7">{lead.score ?? 0}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span className={cn(
-                      "px-2.5 py-1 text-xs font-medium rounded-full",
+                      "px-2 py-0.5 text-[11px] font-medium rounded-full",
                       lead.status === "QUALIFIED" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
                       lead.status === "UNQUALIFIED" && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
                       lead.status === "CONTACTED" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -435,30 +611,30 @@ export default function LeadsPage() {
                       {lead.status.charAt(0) + lead.status.slice(1).toLowerCase()}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground">
                     {lead.estimatedValue ? `$${lead.estimatedValue.toLocaleString()}` : "-"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    <div className="flex items-center gap-1">
                       <button 
                         onClick={() => {
                           setSelectedLead(lead);
                           setIsFormOpen(true);
                         }}
-                        className="p-1.5 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors" 
+                        className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors" 
                         aria-label="Edit lead"
                       >
-                        <Icons.Edit size={16} />
+                        <Icons.Edit size={15} />
                       </button>
                       <button 
                         onClick={() => {
                           setSelectedLead(lead);
                           setIsDeleteModalOpen(true);
                         }}
-                        className="p-1.5 hover:bg-red-50 rounded text-muted-foreground hover:text-red-600 transition-colors" 
+                        className="p-1 hover:bg-red-50 rounded text-muted-foreground hover:text-red-600 transition-colors" 
                         aria-label="Delete lead"
                       >
-                        <Icons.Trash size={16} />
+                        <Icons.Trash size={15} />
                       </button>
                     </div>
                   </td>
@@ -466,6 +642,7 @@ export default function LeadsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ) : (
         /* Grid View */
@@ -677,6 +854,21 @@ export default function LeadsPage() {
             },
           ]}
         >
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-1 text-sm">
+            <div>
+              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Status</span>
+              <div className="font-medium text-foreground">{viewingLead.status}</div>
+            </div>
+            <div>
+              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Lead Score</span>
+              <div className="font-medium text-foreground">{viewingLead.score ?? 0}/100</div>
+            </div>
+            <div>
+              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Potential Value</span>
+              <div className="font-medium text-foreground">{viewingLead.estimatedValue ? `$${viewingLead.estimatedValue.toLocaleString()}` : "Not set"}</div>
+            </div>
+          </div>
+
           <DetailSection title="Contact Information">
             <DetailField label="Email" value={viewingLead.email} icon={<Icons.Mail size={16} />} />
             <DetailField label="Phone" value={viewingLead.phone} icon={<Icons.Phone size={16} />} />
@@ -697,9 +889,9 @@ export default function LeadsPage() {
 
           {viewingLead.tags && viewingLead.tags.length > 0 && (
             <DetailSection title="Tags">
-              <div className="flex flex-wrap gap-2">
+              <div className="md:col-span-2 flex flex-wrap gap-2">
                 {viewingLead.tags.map((tag) => (
-                  <span key={tag} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                  <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
                     {tag}
                   </span>
                 ))}
