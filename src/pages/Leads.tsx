@@ -854,50 +854,188 @@ export default function LeadsPage() {
             },
           ]}
         >
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-1 text-sm">
-            <div>
-              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Status</span>
-              <div className="font-medium text-foreground">{viewingLead.status}</div>
-            </div>
-            <div>
-              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Lead Score</span>
-              <div className="font-medium text-foreground">{viewingLead.score ?? 0}/100</div>
-            </div>
-            <div>
-              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Potential Value</span>
-              <div className="font-medium text-foreground">{viewingLead.estimatedValue ? `$${viewingLead.estimatedValue.toLocaleString()}` : "Not set"}</div>
+          {/* ── Profile Header ── */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div className="h-14 w-14 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0 select-none">
+                {viewingLead.firstName?.[0]?.toUpperCase()}{viewingLead.lastName?.[0]?.toUpperCase()}
+              </div>
+              {/* Name + quick-action icons */}
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-semibold text-foreground leading-tight">
+                  {viewingLead.firstName} {viewingLead.lastName}
+                </p>
+                {viewingLead.title && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{viewingLead.title}</p>
+                )}
+                <div className="flex gap-2 mt-2.5">
+                  {viewingLead.phone && (
+                    <a href={`tel:${viewingLead.phone}`}
+                      className="p-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                      title="Call">
+                      <Icons.Phone size={14} />
+                    </a>
+                  )}
+                  {viewingLead.email && (
+                    <a href={`mailto:${viewingLead.email}`}
+                      className="p-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                      title="Send email">
+                      <Icons.Mail size={14} />
+                    </a>
+                  )}
+                </div>
+              </div>
+              {/* Company / value pill */}
+              {(viewingLead.company || viewingLead.estimatedValue) && (
+                <div className="text-right flex-shrink-0">
+                  {viewingLead.company && (
+                    <>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Company</p>
+                      <p className="text-sm font-medium text-foreground">{viewingLead.company}</p>
+                    </>
+                  )}
+                  {viewingLead.estimatedValue && (
+                    <p className="text-xs text-primary font-semibold mt-1">
+                      ${viewingLead.estimatedValue.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <DetailSection title="Contact Information">
-            <DetailField label="Email" value={viewingLead.email} icon={<Icons.Mail size={16} />} />
-            <DetailField label="Phone" value={viewingLead.phone} icon={<Icons.Phone size={16} />} />
-            <DetailField label="Company" value={viewingLead.company} icon={<Icons.Building2 size={16} />} />
-            <DetailField label="Territory" value={viewingLead.territory || "Unassigned"} icon={<Icons.Target size={16} />} />
-            <DetailField label="Owner Territory" value={viewingLead.ownerTerritory || "Unassigned"} icon={<Icons.Target size={16} />} />
-          </DetailSection>
+          {/* ── Lead Details Card ── */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-primary mb-4">Lead Details</h3>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Owner</p>
+                <p className="text-sm font-medium text-foreground">
+                  {viewingLead.ownerName || "Unassigned"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Created on</p>
+                <p className="text-sm font-medium text-foreground">
+                  {viewingLead.createdAt
+                    ? new Date(viewingLead.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+                    : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-1">Lead Stage</p>
+                <span className={cn(
+                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold",
+                  viewingLead.status === "NEW" && "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+                  viewingLead.status === "CONTACTED" && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+                  viewingLead.status === "QUALIFIED" && "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+                  viewingLead.status === "UNQUALIFIED" && "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+                  viewingLead.status === "CONVERTED" && "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+                  viewingLead.status === "LOST" && "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+                )}>
+                  {viewingLead.status}
+                </span>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Modified on</p>
+                <p className="text-sm font-medium text-foreground">
+                  {viewingLead.updatedAt
+                    ? new Date(viewingLead.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+                    : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Lead Source</p>
+                <p className="text-sm font-medium text-foreground">{viewingLead.source || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Campaign</p>
+                <p className="text-sm font-medium text-foreground">{viewingLead.campaignName || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Lead Score</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${viewingLead.score ?? 0}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground tabular-nums">
+                    {viewingLead.score ?? 0}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Last Contact</p>
+                <p className="text-sm font-medium text-foreground">
+                  {viewingLead.lastContactDate || viewingLead.lastContact || "—"}
+                </p>
+              </div>
+            </div>
 
-          <DetailSection title="Lead Details">
-            <DetailField label="Status" value={viewingLead.status} />
-            <DetailField label="Lead Score" value={`${viewingLead.score ?? 0}/100`} />
-            <DetailField label="Owner" value={viewingLead.ownerName || (viewingLead.territory ? "Auto-routed by territory and workload" : "Auto-routed by workload")} />
-            <DetailField label="Territory Coverage" value={viewingLead.territoryMismatch ? "Needs reassignment review" : "Aligned"} />
-            <DetailField label="Source" value={viewingLead.source} />
-            <DetailField label="Potential Value" value={viewingLead.estimatedValue ? `$${viewingLead.estimatedValue.toLocaleString()}` : "Not set"} />
-            <DetailField label="Last Contact" value={viewingLead.lastContactDate || viewingLead.lastContact} />
-          </DetailSection>
+            {/* Follow-up comment */}
+            {viewingLead.notes && (
+              <div className="mt-4 pt-4 border-t border-border/70">
+                <p className="text-[11px] text-muted-foreground mb-1">Follow-up comment</p>
+                <p className="text-sm text-foreground leading-relaxed">{viewingLead.notes}</p>
+              </div>
+            )}
+          </div>
 
+          {/* ── Tags ── */}
           {viewingLead.tags && viewingLead.tags.length > 0 && (
-            <DetailSection title="Tags">
-              <div className="md:col-span-2 flex flex-wrap gap-2">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <h3 className="text-sm font-semibold text-primary mb-3">Tags</h3>
+              <div className="flex flex-wrap gap-2">
                 {viewingLead.tags.map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                  <span key={tag} className="px-2.5 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
                     {tag}
                   </span>
                 ))}
               </div>
-            </DetailSection>
+            </div>
           )}
+
+          {/* ── Contact Information Card ── */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-primary mb-4">Contact Information</h3>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Phone</p>
+                <p className="text-sm font-medium text-foreground">{viewingLead.phone || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Email</p>
+                <p className="text-sm font-medium text-foreground break-all">{viewingLead.email || "—"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[11px] text-muted-foreground mb-0.5">Company</p>
+                <p className="text-sm font-medium text-foreground">{viewingLead.company || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Territory</p>
+                <p className="text-sm font-medium text-foreground">{viewingLead.territory || "Unassigned"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground mb-0.5">Owner Territory</p>
+                <p className="text-sm font-medium text-foreground">{viewingLead.ownerTerritory || "Unassigned"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[11px] text-muted-foreground mb-0.5">Territory Coverage</p>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    "inline-block h-2 w-2 rounded-full flex-shrink-0",
+                    viewingLead.territoryMismatch ? "bg-red-500" : "bg-green-500"
+                  )} />
+                  <p className="text-sm font-medium text-foreground">
+                    {viewingLead.territoryMismatch ? "Needs reassignment review" : "Aligned"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </DetailSidebar>
       )}
     </PageLayout>

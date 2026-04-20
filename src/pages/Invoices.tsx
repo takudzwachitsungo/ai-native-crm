@@ -217,36 +217,40 @@ export default function Invoices() {
 
       {/* Invoice List */}
       <div className="p-6">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/50">
+        <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
               <tr>
-                <th className="text-left p-3 text-xs font-semibold">Invoice #</th>
-                <th className="text-left p-3 text-xs font-semibold">Customer</th>
-                <th className="text-left p-3 text-xs font-semibold">Amount</th>
-                <th className="text-left p-3 text-xs font-semibold">Issued</th>
-                <th className="text-left p-3 text-xs font-semibold">Due Date</th>
-                <th className="text-left p-3 text-xs font-semibold">Status</th>
-                <th className="text-left p-3 text-xs font-semibold">Items</th>
-                <th className="text-right p-3 text-xs font-semibold">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Invoice #</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Customer</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Issued</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Due Date</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Items</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-right px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-card">
               {filteredInvoices.map((invoice: any) => (
-                <tr key={invoice.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="p-3">
+                <tr
+                  key={invoice.id}
+                  className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                >
+                  <td className="px-4 py-3">
                     <span className="text-sm font-medium text-primary">{invoice.invoiceNumber || 'N/A'}</span>
                   </td>
-                  <td className="p-3">
+                  <td className="px-4 py-3">
                     <div>
                       <p className="text-sm font-medium">{invoice.contactName || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">{invoice.companyName || 'N/A'}</p>
                     </div>
                   </td>
-                  <td className="p-3 text-sm font-semibold">${(invoice.total || 0).toLocaleString()}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A'}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td>
-                  <td className="p-3">
+                  <td className="px-4 py-3 text-sm font-semibold">${(invoice.total || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-4 py-3">
                     <span className={cn(
                       "text-xs px-2 py-1 border rounded-full capitalize",
                       getStatusColor(invoice.status?.toLowerCase())
@@ -254,8 +258,8 @@ export default function Invoices() {
                       {invoice.status || 'N/A'}
                     </span>
                   </td>
-                  <td className="p-3 text-sm text-muted-foreground">{invoice.lineItems?.length || 0} items</td>
-                  <td className="p-3">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.lineItems?.length || 0} items</td>
+                  <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => {
@@ -313,6 +317,7 @@ export default function Invoices() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {!isLoading && invoices.length === 0 && (
             <div className="text-center py-8">

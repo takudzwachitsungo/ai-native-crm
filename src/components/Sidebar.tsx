@@ -27,7 +27,7 @@ export function Sidebar() {
     >
       <div
         className={cn(
-          "absolute top-0 left-0 h-[70px] flex items-center justify-center bg-background border-b border-border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          "absolute top-0 left-0 h-[50px] flex items-center justify-center bg-background border-b border-border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
           isExpanded ? "w-full" : "w-[69px]"
         )}
       >
@@ -36,7 +36,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <div className="flex flex-col w-full pt-[70px] flex-1 border-b border-border mb-3">
+      <div className="flex flex-col w-full pt-[50px] flex-1 border-b border-border mb-3">
         <MainMenu isExpanded={isExpanded} />
       </div>
 

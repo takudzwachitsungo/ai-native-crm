@@ -482,27 +482,31 @@ export default function ContractsPage() {
       </div>
 
       <div className="p-6">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/40 border-b border-border">
+        <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Contract</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Account</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Term</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Value</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Contract</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Account</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Term</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Value</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="bg-card">
               {filteredContracts.map((contract) => (
-                <tr key={contract.id} className="hover:bg-muted/20">
-                  <td className="px-4 py-4"><div><p className="font-semibold text-primary">{contract.contractNumber}</p><p className="text-xs text-muted-foreground">{contract.title || 'Untitled contract'}</p></div></td>
-                  <td className="px-4 py-4"><div><p className="font-medium">{contract.companyName || 'Unassigned company'}</p><p className="text-xs text-muted-foreground">{contract.contactName || 'No contact'}{contract.quoteNumber ? ` · ${contract.quoteNumber}` : ''}</p></div></td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground"><div>{contract.startDate} → {contract.endDate}</div><div className="text-xs">Renewal {contract.autoRenew ? 'auto' : 'manual'}</div></td>
-                  <td className="px-4 py-4"><div className="font-semibold">{formatCurrency(contract.contractValue)}</div><div className="text-xs text-muted-foreground">{contract.ownerName || 'No owner'}</div></td>
-                  <td className="px-4 py-4"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[contract.status || 'DRAFT'])}>{(contract.status || 'DRAFT').replace('_', ' ')}</span></td>
-                  <td className="px-4 py-4">
+                <tr
+                  key={contract.id}
+                  className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                >
+                  <td className="px-4 py-3"><div><p className="font-semibold text-primary">{contract.contractNumber}</p><p className="text-xs text-muted-foreground">{contract.title || 'Untitled contract'}</p></div></td>
+                  <td className="px-4 py-3"><div><p className="font-medium">{contract.companyName || 'Unassigned company'}</p><p className="text-xs text-muted-foreground">{contract.contactName || 'No contact'}{contract.quoteNumber ? ` · ${contract.quoteNumber}` : ''}</p></div></td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground"><div>{contract.startDate} → {contract.endDate}</div><div className="text-xs">Renewal {contract.autoRenew ? 'auto' : 'manual'}</div></td>
+                  <td className="px-4 py-3"><div className="font-semibold">{formatCurrency(contract.contractValue)}</div><div className="text-xs text-muted-foreground">{contract.ownerName || 'No owner'}</div></td>
+                  <td className="px-4 py-3"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[contract.status || 'DRAFT'])}>{(contract.status || 'DRAFT').replace('_', ' ')}</span></td>
+                  <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <button onClick={() => { setSelectedContract(contract); setFormState(buildInitialForm(contract)); setIsFormOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Edit</button>
                       {(contract.status === 'DRAFT' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'activate', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Activate</button>}
@@ -519,6 +523,7 @@ export default function ContractsPage() {
               ))}
             </tbody>
           </table>
+          </div>
           {!isLoading && filteredContracts.length === 0 && <div className="py-10 text-center text-muted-foreground">No contracts found yet.</div>}
         </div>
       </div>

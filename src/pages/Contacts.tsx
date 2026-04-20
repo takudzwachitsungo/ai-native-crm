@@ -256,25 +256,29 @@ export default function ContactsPage() {
       </div>
 
       {viewMode === "table" ? (
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Contact Name</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Company</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Position</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+              <tr className="bg-secondary/50">
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Contact Name</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Position</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="bg-card">
               {filteredContacts.map((contact) => (
-                <tr key={contact.id} className="hover:bg-secondary/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+                <tr
+                  key={contact.id}
+                  className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
                         {(contact.firstName?.charAt(0) || contact.email?.charAt(0) || "?").toUpperCase()}
                       </div>
                       <div>
@@ -295,14 +299,14 @@ export default function ContactsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{contact.companyName || "N/A"}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">{contact.companyName || "N/A"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
                     <div>{contact.title || "N/A"}</div>
                     <div className="text-xs text-muted-foreground">{contact.department || stakeholderLabel(contact)}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{contact.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{contact.phone || contact.mobile || "N/A"}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">{contact.email}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">{contact.phone || contact.mobile || "N/A"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span
                       className={cn(
                         "px-2.5 py-1 text-xs font-medium rounded-full",
@@ -312,7 +316,7 @@ export default function ContactsPage() {
                       {contact.status ? `${contact.status.charAt(0)}${contact.status.slice(1).toLowerCase()}` : "N/A"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
@@ -340,6 +344,7 @@ export default function ContactsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ) : (
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

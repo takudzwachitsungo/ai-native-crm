@@ -352,26 +352,30 @@ export default function CompaniesPage() {
         )}
 
         {viewMode === "table" ? (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Company</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Industry</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Territory</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Contacts</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Hierarchy</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+          <div className="overflow-hidden rounded-2xl bg-card">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-secondary/50">
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Industry</th>
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Location</th>
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Territory</th>
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Contacts</th>
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Hierarchy</th>
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="border-b border-border/60 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="bg-card">
                 {filteredCompanies.map((company) => (
-                  <tr key={company.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
+                  <tr
+                    key={company.id}
+                    className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded bg-primary/10 flex items-center justify-center">
                           <Icons.Building2 size={18} className="text-primary" />
                         </div>
                         <div>
@@ -382,11 +386,11 @@ export default function CompaniesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm">{company.industry || "N/A"}</td>
-                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                    <td className="px-4 py-3 text-sm">{company.industry || "N/A"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
                       {company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || "N/A"}
                     </td>
-                    <td className="px-4 py-4 text-sm">
+                    <td className="px-4 py-3 text-sm">
                       <div className="text-foreground">{company.territory || company.country || "N/A"}</div>
                       <div className="text-xs text-muted-foreground">
                         {company.ownerTerritory ? `Owner ${company.ownerTerritory}` : "Owner territory unavailable"}
@@ -397,12 +401,12 @@ export default function CompaniesPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-sm">{company.contactCount || 0}</td>
-                    <td className="px-4 py-4 text-sm">
+                    <td className="px-4 py-3 text-sm">{company.contactCount || 0}</td>
+                    <td className="px-4 py-3 text-sm">
                       <div>{company.dealCount || 0} deals</div>
                       <div className="text-xs text-muted-foreground">{company.childCompanyCount || 0} subsidiaries</div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <span
                         className={cn(
                           "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
@@ -412,7 +416,7 @@ export default function CompaniesPage() {
                         {company.status ? `${company.status.charAt(0)}${company.status.slice(1).toLowerCase()}` : "N/A"}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -466,6 +470,7 @@ export default function CompaniesPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

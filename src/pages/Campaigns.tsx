@@ -228,24 +228,28 @@ export default function CampaignsPage() {
             }}
           />
         ) : (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
+          <div className="overflow-hidden rounded-2xl bg-card">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Campaign</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Timeline</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Budget</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Results</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ROI</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Campaign</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Timeline</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Budget</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Results</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">ROI</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="bg-card">
                 {campaigns.map((campaign) => (
-                  <tr key={campaign.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4">
+                  <tr
+                    key={campaign.id}
+                    className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                  >
+                    <td className="px-4 py-3">
                       <div>
                         <p className="font-medium text-foreground">{campaign.name}</p>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -253,8 +257,8 @@ export default function CampaignsPage() {
                         </p>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm">{campaign.type.replaceAll("_", " ")}</td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3 text-sm">{campaign.type.replaceAll("_", " ")}</td>
+                    <td className="px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border",
                         statusColors[campaign.status] || statusColors.DRAFT
@@ -262,22 +266,22 @@ export default function CampaignsPage() {
                         {campaign.status.replaceAll("_", " ")}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
                       <div>{campaign.startDate || "No start date"}</div>
                       <div>{campaign.endDate || "No end date"}</div>
                     </td>
-                    <td className="px-4 py-4 text-sm">
+                    <td className="px-4 py-3 text-sm">
                       <div className="font-medium">{money(campaign.budget)}</div>
                       <div className="text-muted-foreground">{money(campaign.expectedRevenue)} expected</div>
                     </td>
-                    <td className="px-4 py-4 text-sm">
+                    <td className="px-4 py-3 text-sm">
                       <div>{campaign.leadsGenerated ?? 0} leads</div>
                       <div className="text-muted-foreground">
                         {campaign.opportunitiesCreated ?? 0} opps · {campaign.conversions ?? 0} conversions
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm font-medium">{percent(campaign.roiPercent)}</td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3 text-sm font-medium">{percent(campaign.roiPercent)}</td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setInsightsCampaign(campaign)}
@@ -312,6 +316,7 @@ export default function CampaignsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, Bell, User, Settings, LogOut, CreditCard, HelpCircle } from 'lucide-react';
+import { Search, Bell, Calendar, User, Settings, LogOut, CreditCard, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -69,7 +69,7 @@ export function Header() {
   };
 
   return (
-    <header className="h-[70px] px-6 flex justify-between items-center border-b border-border bg-background relative">
+    <header className="h-[50px] px-6 flex justify-between items-center border-b border-border bg-background relative">
       <div className="flex-1 max-w-md hidden md:block">
         <div className="relative">
           <label htmlFor="global-search" className="sr-only">Search</label>
@@ -82,11 +82,24 @@ export function Header() {
             readOnly
             onFocus={openCommandPalette}
             onClick={openCommandPalette}
-            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full pl-9 pr-3 py-1 text-[13px] border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            navigate('/calendar');
+            setShowNotifications(false);
+            setShowUserMenu(false);
+          }}
+          className="h-7 w-7 flex items-center justify-center hover:bg-secondary rounded-lg transition-colors"
+          aria-label="Open calendar"
+          title="Calendar"
+        >
+          <Calendar size={16} />
+        </button>
+
         {/* Notifications Dropdown */}
         <div className="relative">
           <button 
@@ -94,10 +107,10 @@ export function Header() {
               setShowNotifications(!showNotifications);
               setShowUserMenu(false);
             }}
-            className="h-9 w-9 flex items-center justify-center hover:bg-secondary rounded-lg transition-colors relative"
+            className="h-7 w-7 flex items-center justify-center hover:bg-secondary rounded-lg transition-colors relative"
             aria-label="View notifications"
           >
-            <Bell size={18} />
+            <Bell size={16} />
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
             )}
@@ -171,7 +184,7 @@ export function Header() {
               setShowUserMenu(!showUserMenu);
               setShowNotifications(false);
             }}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 hover:ring-2 hover:ring-primary/20 transition-all"
+            className="w-6.5 h-6.5 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 hover:ring-2 hover:ring-primary/20 transition-all"
             aria-label="User menu"
           />
 

@@ -191,49 +191,53 @@ export default function QuotesPage() {
 
       {/* Content */}
       <div className="p-6">
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/50 border-b border-border">
+        <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   <input type="checkbox" className="rounded" />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Quote #</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Customer</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Valid Until</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Quote #</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Customer</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Valid Until</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="bg-card">
               {filteredQuotes.map((quote: any) => (
-                <tr key={quote.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-4">
+                <tr
+                  key={quote.id}
+                  className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                >
+                  <td className="px-4 py-3">
                     <input type="checkbox" className="rounded" />
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-3">
                     <div>
                       <p className="font-semibold text-primary">{quote.quoteNumber || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">Created {quote.createdAt ? new Date(quote.createdAt).toLocaleDateString() : 'N/A'}</p>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-3">
                     <div>
                       <p className="font-medium text-foreground">{quote.contactName || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">{quote.companyName || 'N/A'}</p>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-3">
                     <div>
                       <p className="font-semibold text-foreground">{formatCurrency(quote.total || 0)}</p>
                       <p className="text-xs text-muted-foreground">{quote.lineItems?.length || 0} items</p>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-3">
                     <span className={cn(
                       "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                       statusColors[(quote.status?.toLowerCase()) as keyof typeof statusColors] || statusColors.draft
@@ -241,7 +245,7 @@ export default function QuotesPage() {
                       {quote.status || 'N/A'}
                     </span>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={() => {
@@ -293,6 +297,7 @@ export default function QuotesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Summary Stats */}

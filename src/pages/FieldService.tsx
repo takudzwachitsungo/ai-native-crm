@@ -215,27 +215,31 @@ export default function FieldServicePage() {
       </div>
 
       <div className="p-6 space-y-6">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/40 border-b border-border">
+        <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Work Order</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Customer</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Schedule</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Technician</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Work Order</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Customer</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Schedule</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Technician</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="bg-card">
               {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-muted/20">
-                  <td className="px-4 py-4"><div><p className="font-semibold text-primary">{order.orderNumber || 'Pending number'}</p><p className="text-xs text-muted-foreground">{order.title}</p></div></td>
-                  <td className="px-4 py-4"><div><p className="font-medium">{order.companyName || 'No company'}</p><p className="text-xs text-muted-foreground">{order.contactName || 'No contact'}{order.supportCaseNumber ? ` · ${order.supportCaseNumber}` : ''}</p></div></td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground"><div>{order.scheduledStartAt ? new Date(order.scheduledStartAt).toLocaleString() : 'Unscheduled'}</div><div className="text-xs">{order.serviceAddress || order.territory || 'No service location'}</div></td>
-                  <td className="px-4 py-4"><div className="font-medium">{order.assignedTechnicianName || 'Unassigned'}</div><div className="text-xs text-muted-foreground">{order.priority || 'MEDIUM'} · {order.workType || 'OTHER'}</div></td>
-                  <td className="px-4 py-4"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[order.status || 'OPEN'])}>{(order.status || 'OPEN').replace('_', ' ')}</span></td>
-                  <td className="px-4 py-4">
+                <tr
+                  key={order.id}
+                  className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                >
+                  <td className="px-4 py-3"><div><p className="font-semibold text-primary">{order.orderNumber || 'Pending number'}</p><p className="text-xs text-muted-foreground">{order.title}</p></div></td>
+                  <td className="px-4 py-3"><div><p className="font-medium">{order.companyName || 'No company'}</p><p className="text-xs text-muted-foreground">{order.contactName || 'No contact'}{order.supportCaseNumber ? ` · ${order.supportCaseNumber}` : ''}</p></div></td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground"><div>{order.scheduledStartAt ? new Date(order.scheduledStartAt).toLocaleString() : 'Unscheduled'}</div><div className="text-xs">{order.serviceAddress || order.territory || 'No service location'}</div></td>
+                  <td className="px-4 py-3"><div className="font-medium">{order.assignedTechnicianName || 'Unassigned'}</div><div className="text-xs text-muted-foreground">{order.priority || 'MEDIUM'} · {order.workType || 'OTHER'}</div></td>
+                  <td className="px-4 py-3"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[order.status || 'OPEN'])}>{(order.status || 'OPEN').replace('_', ' ')}</span></td>
+                  <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <button onClick={() => { setSelectedOrder(order); setFormState(buildInitialForm(order)); setIsFormOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Edit</button>
                       {(order.status === 'OPEN' || order.status === 'SCHEDULED') && <button onClick={() => lifecycleMutation.mutate({ action: 'dispatch', order })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Dispatch</button>}
@@ -248,6 +252,7 @@ export default function FieldServicePage() {
               ))}
             </tbody>
           </table>
+          </div>
           {!isLoading && filteredOrders.length === 0 && <div className="py-10 text-center text-muted-foreground">No work orders found yet.</div>}
         </div>
 

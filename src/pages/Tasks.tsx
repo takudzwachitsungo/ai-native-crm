@@ -247,28 +247,32 @@ export default function TasksPage() {
       {/* Content */}
       <div className="p-6">
         {viewMode === "list" ? (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
+          <div className="overflow-hidden rounded-2xl bg-card">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                     <input type="checkbox" className="rounded" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Assignee</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Due Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Task</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Assignee</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Due Date</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="bg-card">
                 {filteredTasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4">
+                  <tr
+                    key={task.id}
+                    className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                  >
+                    <td className="px-4 py-3">
                       <input type="checkbox" className="rounded" />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">{task.title}</span>
@@ -285,7 +289,7 @@ export default function TasksPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       {task.assignedTo ? (
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
@@ -297,7 +301,7 @@ export default function TasksPage() {
                         <span className="text-sm text-muted-foreground">Unassigned</span>
                       )}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                         task.status === 'TODO' ? statusColors['todo'] :
@@ -308,7 +312,7 @@ export default function TasksPage() {
                         {task.status.toLowerCase().replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                         task.priority === 'LOW' ? priorityColors['low'] :
@@ -319,13 +323,13 @@ export default function TasksPage() {
                         {task.priority.toLowerCase()}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-sm text-foreground">
                         <Icons.Calendar size={14} className="text-muted-foreground" />
                         {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -353,6 +357,7 @@ export default function TasksPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-6">

@@ -219,11 +219,12 @@ export default function ProductsPage() {
       {/* Content */}
       <div className="p-6">
         {viewMode === "table" ? (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
+          <div className="overflow-hidden rounded-2xl bg-card">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                     <input type="checkbox" className="rounded" />
                   </th>
                   <SortableTableHeader
@@ -231,59 +232,68 @@ export default function ProductsPage() {
                     field="name"
                     currentSort={sortConfig}
                     onSort={requestSort}
+                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
                   />
                   <SortableTableHeader
                     label="SKU"
                     field="sku"
                     currentSort={sortConfig}
                     onSort={requestSort}
+                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
                   />
                   <SortableTableHeader
                     label="Category"
                     field="category"
                     currentSort={sortConfig}
                     onSort={requestSort}
+                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
                   />
                   <SortableTableHeader
                     label="Price"
                     field="price"
                     currentSort={sortConfig}
                     onSort={requestSort}
+                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
                   />
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Margin</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Margin</th>
                   <SortableTableHeader
                     label="Stock"
                     field="stock"
                     currentSort={sortConfig}
                     onSort={requestSort}
+                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
                   />
                   <SortableTableHeader
                     label="Status"
                     field="status"
                     currentSort={sortConfig}
                     onSort={requestSort}
+                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
                   />
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="bg-card">
                 {sortedProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4">
+                  <tr
+                    key={product.id}
+                    className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                  >
+                    <td className="px-4 py-3">
                       <input type="checkbox" className="rounded" />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <div>
                         <p className="font-medium text-foreground">{product.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{product.description}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm font-mono text-muted-foreground">{product.sku}</td>
-                    <td className="px-4 py-4 text-sm">{product.category}</td>
-                    <td className="px-4 py-4 text-sm font-semibold">{formatPrice(product.unitPrice)}</td>
-                    <td className="px-4 py-4 text-sm text-green-600">{calculateMargin(product.unitPrice, product.cost)}</td>
-                    <td className="px-4 py-4 text-sm">{product.stockQuantity ?? 0} {product.unit || 'unit'}s</td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{product.sku}</td>
+                    <td className="px-4 py-3 text-sm">{product.category}</td>
+                    <td className="px-4 py-3 text-sm font-semibold">{formatPrice(product.unitPrice)}</td>
+                    <td className="px-4 py-3 text-sm text-green-600">{calculateMargin(product.unitPrice, product.cost)}</td>
+                    <td className="px-4 py-3 text-sm">{product.stockQuantity ?? 0} {product.unit || 'unit'}s</td>
+                    <td className="px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                         getStatusColor(product.status)
@@ -291,7 +301,7 @@ export default function ProductsPage() {
                         {product.status?.toLowerCase() || 'draft'}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -319,6 +329,7 @@ export default function ProductsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
