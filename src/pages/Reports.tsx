@@ -315,24 +315,24 @@ export default function ReportsPage() {
   if (showReportView && generatedReport) {
     return (
       <PageLayout>
-        <div className="border-b border-border bg-card px-6 py-4">
+        <div className="border-b border-border bg-card px-5 py-3.5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <button onClick={() => { setShowReportView(false); setGeneratedReport(null); }} className="p-2 hover:bg-secondary rounded transition-colors"><Icons.ArrowLeft size={18} /></button>
               <div>
-                <h1 className="text-2xl font-semibold">{generatedReport.title}</h1>
-                <p className="text-sm text-muted-foreground mt-1">{generatedReport.summary}</p>
+                <h1 className="text-[26px] leading-none font-semibold">{generatedReport.title}</h1>
+                <p className="text-[13px] text-muted-foreground mt-1">{generatedReport.summary}</p>
                 <p className="text-xs text-muted-foreground mt-2">Mode: {modeLabel[generatedReport.report_mode || 'SUMMARY']} | Generated: {new Date(generatedReport.generated_at).toLocaleString()} | Range: {generatedReport.date_range.start} to {generatedReport.date_range.end}</p>
               </div>
             </div>
-            <button onClick={exportCurrentReport} className="px-4 py-2 border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"><Icons.Download size={14} />Export CSV</button>
+            <button onClick={exportCurrentReport} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"><Icons.Download size={14} />Export CSV</button>
           </div>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-5 space-y-5">
           {generatedReport.degraded_mode && <AIDegradedNotice reason={generatedReport.degraded_reason} />}
           {generatedReport.sections.map((section) => (
-            <div key={section.title} className="rounded-lg border border-border bg-card p-6">
-              <h2 className="text-lg font-semibold mb-4">{section.title}</h2>
+            <div key={section.title} className="rounded-xl border border-border bg-card p-4">
+              <h2 className="text-base font-semibold mb-3">{section.title}</h2>
               {renderSection(section)}
             </div>
           ))}
@@ -343,27 +343,27 @@ export default function ReportsPage() {
 
   return (
     <PageLayout>
-      <div className="border-b border-border bg-card px-6 py-4">
-        <h1 className="text-2xl font-semibold">Reports</h1>
-        <p className="text-sm text-muted-foreground mt-1">Standard CRM reports, saved definitions, scheduling, and custom AI reporting in one workspace.</p>
+      <div className="border-b border-border bg-card px-5 py-3.5">
+        <h1 className="text-[26px] leading-none font-semibold">Reports</h1>
+        <p className="text-[13px] text-muted-foreground mt-1">Standard CRM reports, saved definitions, scheduling, and custom AI reporting in one workspace.</p>
       </div>
-      <div className="p-6 space-y-8">
+      <div className="p-5 space-y-6">
         {error && <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-red-600">{error}</div>}
 
-        <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input type="date" value={dateRange.start} onChange={(e) => setDateRange((current) => ({ ...current, start: e.target.value }))} className="px-3 py-2 border border-border rounded bg-background text-sm" />
-            <input type="date" value={dateRange.end} onChange={(e) => setDateRange((current) => ({ ...current, end: e.target.value }))} className="px-3 py-2 border border-border rounded bg-background text-sm" />
-            <select value={selectedMode} onChange={(e) => setSelectedMode(e.target.value as ReportMode)} className="px-3 py-2 border border-border rounded bg-background text-sm">
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <input type="date" value={dateRange.start} onChange={(e) => setDateRange((current) => ({ ...current, start: e.target.value }))} className="h-9 rounded-full border border-border bg-background px-3 text-sm" />
+            <input type="date" value={dateRange.end} onChange={(e) => setDateRange((current) => ({ ...current, end: e.target.value }))} className="h-9 rounded-full border border-border bg-background px-3 text-sm" />
+            <select value={selectedMode} onChange={(e) => setSelectedMode(e.target.value as ReportMode)} className="h-9 rounded-full border border-border bg-background px-3 text-xs font-medium">
               {(['SUMMARY', 'TABULAR', 'MATRIX'] as ReportMode[]).map((mode) => <option key={mode} value={mode}>{modeLabel[mode]}</option>)}
             </select>
-            <input type="text" placeholder="Saved report name" value={savedReportName} onChange={(e) => setSavedReportName(e.target.value)} className="px-3 py-2 border border-border rounded bg-background text-sm" />
+            <input type="text" placeholder="Saved report name" value={savedReportName} onChange={(e) => setSavedReportName(e.target.value)} className="h-9 rounded-full border border-border bg-background px-3 text-sm" />
           </div>
 
           <div className="flex gap-3">
-            <input type="text" placeholder="Ask a custom reporting question..." value={customQuery} onChange={(e) => setCustomQuery(e.target.value)} className="flex-1 px-4 py-3 border border-border rounded bg-background text-sm" />
-            <button onClick={() => generateReport('custom', selectedMode, customQuery)} disabled={!customQuery.trim() || isGenerating} className="px-6 py-3 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">{isGenerating ? <Icons.RefreshCw size={14} className="animate-spin" /> : <Icons.Sparkles size={14} />}Generate</button>
-            <button onClick={handleSaveDefinition} className="px-4 py-3 border border-border rounded hover:bg-secondary transition-colors">Save Definition</button>
+            <input type="text" placeholder="Ask a custom reporting question..." value={customQuery} onChange={(e) => setCustomQuery(e.target.value)} className="h-10 flex-1 rounded-full border border-border bg-background px-4 text-sm" />
+            <button onClick={() => generateReport('custom', selectedMode, customQuery)} disabled={!customQuery.trim() || isGenerating} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{isGenerating ? <Icons.RefreshCw size={14} className="animate-spin" /> : <Icons.Sparkles size={14} />}Generate</button>
+            <button onClick={handleSaveDefinition} className="inline-flex h-10 items-center rounded-full border border-border/70 bg-background px-4 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60">Save Definition</button>
           </div>
 
           <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
@@ -391,18 +391,18 @@ export default function ReportsPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {definitions.map((definition) => (
-              <div key={definition.id} className="rounded-lg border border-border bg-card p-5">
+              <div key={definition.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-semibold">{definition.name}</div>
                     <div className="text-sm text-muted-foreground mt-1">{definition.report_type.replace(/_/g, ' ')} | {modeLabel[definition.report_mode]}</div>
                     {definition.schedule?.enabled && <div className="text-xs text-muted-foreground mt-2">{definition.schedule.cadence} to {definition.schedule.delivery_email || 'email not set'}</div>}
                   </div>
-                  <button onClick={async () => { await reportsApi.deleteDefinition(definition.id); await refreshDefinitions(); }} className="p-2 hover:bg-secondary rounded"><Icons.Trash size={14} /></button>
+                  <button onClick={async () => { await reportsApi.deleteDefinition(definition.id); await refreshDefinitions(); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-secondary"><Icons.Trash size={14} /></button>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <button onClick={() => generateReport(definition.report_type, definition.report_mode, definition.custom_query, definition.id)} className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm">Run</button>
-                  <div className="px-3 py-2 rounded bg-muted/30 text-xs text-muted-foreground">Updated {new Date(definition.updated_at).toLocaleDateString()}</div>
+                  <button onClick={() => generateReport(definition.report_type, definition.report_mode, definition.custom_query, definition.id)} className="inline-flex h-8 items-center rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">Run</button>
+                  <div className="inline-flex h-8 items-center rounded-full bg-muted/30 px-3 text-[11px] text-muted-foreground">Updated {new Date(definition.updated_at).toLocaleDateString()}</div>
                 </div>
               </div>
             ))}
@@ -415,7 +415,7 @@ export default function ReportsPage() {
               <h2 className="text-lg font-semibold mb-4">{group.category}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {group.items.map((template) => (
-                  <button key={template.id} onClick={() => handleTemplateSelect(template)} className="text-left rounded-lg border border-border bg-card p-5 hover:border-primary/50 hover:shadow-md transition-all">
+                  <button key={template.id} onClick={() => handleTemplateSelect(template)} className="text-left rounded-xl border border-border bg-card p-4 hover:border-primary/50 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="p-2 rounded bg-primary/10"><Icons.FileText size={18} className="text-primary" /></div>
                       <div className="text-xs text-muted-foreground">{template.display_modes.map((mode) => modeLabel[mode]).join(' / ')}</div>

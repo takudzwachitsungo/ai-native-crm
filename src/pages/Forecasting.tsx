@@ -33,7 +33,7 @@ const formatVariance = (value: number | null | undefined) => {
 
 const categoryCardClasses = (isSelected: boolean) =>
   cn(
-    'rounded-lg border p-4 transition-colors',
+    'rounded-xl border px-3 py-2.5 transition-colors',
     isSelected ? 'border-primary bg-primary/5' : 'border-border bg-card'
   );
 
@@ -240,7 +240,7 @@ export default function Forecasting() {
       actions={(
         <div className="flex items-center gap-4">
           {lastUpdate && (
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
               {cacheAge !== null && cacheAge < 60 ? (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -254,9 +254,9 @@ export default function Forecasting() {
           <button
             onClick={loadForecast}
             disabled={isRefreshing}
-            className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/90 disabled:opacity-50"
           >
-            <Icons.RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+            <Icons.RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
           <button
@@ -277,28 +277,28 @@ export default function Forecasting() {
                 );
               }
             }}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            <Icons.Download size={16} />
+            <Icons.Download size={14} />
             Export Forecast
           </button>
         </div>
       )}
     >
-      <div className="p-6 space-y-6">
+      <div className="p-5 space-y-5">
         {forecastData.degraded_mode && (
           <AIDegradedNotice reason={forecastData.degraded_reason} />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6">
-          <div className="border border-border rounded-lg p-6 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
+          <div className="border border-border rounded-xl p-4 space-y-3">
             <div>
-              <h3 className="text-lg font-semibold">Forecast Controls</h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h3 className="text-base font-semibold">Forecast Controls</h3>
+              <p className="text-xs text-muted-foreground mt-1">
                 Choose a forecast scenario and apply a manager adjustment before refreshing the model.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {(['COMMIT', 'BEST_CASE', 'UPSIDE'] as ForecastCategory[]).map((category) => {
                 const categoryData = categoryBreakdown.find((item: any) => item.category === category);
                 return (
@@ -335,27 +335,27 @@ export default function Forecasting() {
             </div>
           </div>
 
-          <div className="border border-border rounded-lg p-6 space-y-4">
+          <div className="border border-border rounded-xl p-4 space-y-3">
             <div>
-              <h3 className="text-lg font-semibold">Snapshot Variance</h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h3 className="text-base font-semibold">Snapshot Variance</h3>
+              <p className="text-xs text-muted-foreground mt-1">
                 Compare the current forecast against the previous saved run.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              <div className="p-4 rounded-lg bg-muted/30 border border-border">
+              <div className="px-3 py-2.5 rounded-xl bg-muted/30 border border-border">
                 <div className="text-sm text-muted-foreground">Current Forecast</div>
-                <div className="text-2xl font-bold mt-1">{formatCompactCurrency(finalForecast)}</div>
+                <div className="text-lg font-bold mt-1">{formatCompactCurrency(finalForecast)}</div>
                 <div className="text-xs text-muted-foreground mt-1">
                   Base {formatCompactCurrency(baseForecast)} with {managerAdjustmentPercent}% adjustment
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-muted/30 border border-border">
+              <div className="px-3 py-2.5 rounded-xl bg-muted/30 border border-border">
                 <div className="text-sm text-muted-foreground">Prior Snapshot</div>
                 {priorVariance ? (
                   <>
                     <div className={cn(
-                      'text-2xl font-bold mt-1',
+                      'text-lg font-bold mt-1',
                       (priorVariance.amount ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                     )}>
                       {formatVariance(priorVariance.amount)}
@@ -373,10 +373,10 @@ export default function Forecasting() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1fr] gap-6">
-          <div className="border border-border rounded-lg p-6 space-y-4">
+          <div className="border border-border rounded-xl p-4 space-y-3">
             <div>
-              <h3 className="text-lg font-semibold">Forecast Review Workflow</h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h3 className="text-base font-semibold">Forecast Review Workflow</h3>
+              <p className="text-xs text-muted-foreground mt-1">
                 Submit a scenario snapshot for manager review, then track approval or change requests against the saved forecast state.
               </p>
             </div>
@@ -387,12 +387,12 @@ export default function Forecasting() {
                   type="text"
                   value={submissionTitle}
                   onChange={(event) => setSubmissionTitle(event.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="h-9 w-full rounded-full border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Scenario Summary</label>
-                <div className="px-3 py-2 border border-border rounded-lg bg-muted/30 text-sm text-muted-foreground">
+                <div className="px-3 py-2 border border-border rounded-full bg-muted/30 text-sm text-muted-foreground">
                   {forecastCategory.replace('_', ' ')} with {managerAdjustmentPercent}% adjustment
                 </div>
               </div>
@@ -404,34 +404,34 @@ export default function Forecasting() {
                 value={submissionNotes}
                 onChange={(event) => setSubmissionNotes(event.target.value)}
                 placeholder="Capture assumptions, risks, or manager context for this submission."
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/20 p-4">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/20 p-3">
+              <div className="text-xs text-muted-foreground">
                 The submitted snapshot stores the selected forecast, quota variance, prior variance, and current hierarchy rollup.
               </div>
               <button
                 onClick={handleSubmitForecast}
                 disabled={submissionSaving}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                className="inline-flex h-8 items-center rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors"
               >
                 {submissionSaving ? 'Submitting...' : 'Submit For Review'}
               </button>
             </div>
           </div>
 
-          <div className="border border-border rounded-lg p-6 space-y-4">
+          <div className="border border-border rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold">Submission Queue</h3>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h3 className="text-base font-semibold">Submission Queue</h3>
+                <p className="text-xs text-muted-foreground mt-1">
                   Review saved forecast submissions and keep an audit trail for approval decisions.
                 </p>
               </div>
               <button
                 onClick={() => void loadSubmissions()}
-                className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors text-sm"
+                className="inline-flex h-8 items-center rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
               >
                 Refresh Queue
               </button>
@@ -445,7 +445,7 @@ export default function Forecasting() {
             ) : (
               <div className="space-y-4 max-h-[560px] overflow-auto pr-1">
                 {submissions.map((submission) => (
-                  <div key={submission.id} className="rounded-lg border border-border p-4 space-y-3">
+                  <div key={submission.id} className="rounded-xl border border-border p-3 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold">{submission.title}</p>
@@ -467,11 +467,11 @@ export default function Forecasting() {
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="rounded-lg bg-muted/30 p-3">
+                      <div className="rounded-xl bg-muted/30 p-3">
                         <div className="text-xs text-muted-foreground">Submitted Forecast</div>
                         <div className="font-semibold mt-1">{formatCompactCurrency(submission.forecast_snapshot?.final_forecast)}</div>
                       </div>
-                      <div className="rounded-lg bg-muted/30 p-3">
+                      <div className="rounded-xl bg-muted/30 p-3">
                         <div className="text-xs text-muted-foreground">Quota Variance</div>
                         <div className="font-semibold mt-1">{formatVariance(submission.forecast_snapshot?.forecast_vs_quota)}</div>
                       </div>
@@ -489,20 +489,20 @@ export default function Forecasting() {
                         }))
                       }
                       placeholder="Add review notes for approval or requested changes"
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => void handleReviewSubmission(submission.id, 'CHANGES_REQUESTED')}
                         disabled={submissionReviewingId === submission.id}
-                        className="px-3 py-2 border border-amber-500/30 text-amber-700 rounded-lg hover:bg-amber-500/10 disabled:opacity-60 transition-colors text-sm"
+                        className="inline-flex h-8 items-center rounded-full border border-amber-500/30 px-3 text-xs font-medium text-amber-700 hover:bg-amber-500/10 disabled:opacity-60 transition-colors"
                       >
                         Request Changes
                       </button>
                       <button
                         onClick={() => void handleReviewSubmission(submission.id, 'APPROVED')}
                         disabled={submissionReviewingId === submission.id}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors text-sm"
+                        className="inline-flex h-8 items-center rounded-full bg-green-600 px-3 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60 transition-colors"
                       >
                         Approve
                       </button>
@@ -514,28 +514,28 @@ export default function Forecasting() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="p-4 border border-border rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Total Quota</p>
-            <p className="text-2xl font-bold">{formatCompactCurrency(totalQuota)}</p>
+            <p className="text-lg font-bold">{formatCompactCurrency(totalQuota)}</p>
           </div>
-          <div className="p-4 border border-border rounded-lg">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Selected Forecast</p>
-            <p className="text-2xl font-bold text-blue-600">{formatCompactCurrency(finalForecast)}</p>
+            <p className="text-lg font-bold text-blue-600">{formatCompactCurrency(finalForecast)}</p>
             <p className="text-xs text-muted-foreground mt-1">{formatPercent(forecastSummary.quotaAttainment)} of quota</p>
           </div>
-          <div className="p-4 border border-border rounded-lg">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Weighted Pipeline</p>
-            <p className="text-2xl font-bold">{formatCompactCurrency(weightedPipeline)}</p>
+            <p className="text-lg font-bold">{formatCompactCurrency(weightedPipeline)}</p>
           </div>
-          <div className="p-4 border border-border rounded-lg">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Closed Revenue</p>
-            <p className="text-2xl font-bold text-green-600">{formatCompactCurrency(totalClosed)}</p>
+            <p className="text-lg font-bold text-green-600">{formatCompactCurrency(totalClosed)}</p>
             <p className="text-xs text-muted-foreground mt-1">{formatPercent(forecastSummary.closedAttainment)} of quota</p>
           </div>
-          <div className="p-4 border border-border rounded-lg">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Avg Attainment</p>
-            <p className="text-2xl font-bold">{formatPercent(avgAttainment)}</p>
+            <p className="text-lg font-bold">{formatPercent(avgAttainment)}</p>
           </div>
         </div>
 

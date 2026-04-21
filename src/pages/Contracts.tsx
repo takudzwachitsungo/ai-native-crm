@@ -425,33 +425,33 @@ export default function ContractsPage() {
       icon={<Icons.FileText size={20} />}
       actions={
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsConversionOpen(true)} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2">
-            <Icons.ArrowRight size={16} />
+          <button onClick={() => setIsConversionOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60">
+            <Icons.ArrowRight size={14} />
             Convert Quote
           </button>
-          <button onClick={() => { setSelectedContract(null); setFormState(buildInitialForm()); setIsFormOpen(true); }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
-            <Icons.Plus size={16} />
+          <button onClick={() => { setSelectedContract(null); setFormState(buildInitialForm()); setIsFormOpen(true); }} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+            <Icons.Plus size={14} />
             New Contract
           </button>
         </div>
       }
     >
-      <div className="p-6 border-b border-border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Total Contracts</p><p className="text-2xl font-semibold">{stats.total}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Active</p><p className="text-2xl font-semibold text-green-600">{stats.active}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Renewal Due</p><p className="text-2xl font-semibold text-amber-600">{stats.renewalDue}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Contract Value</p><p className="text-2xl font-semibold">{formatCurrency(stats.value)}</p></div>
+      <div className="px-5 py-4 border-b border-border">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="px-3 py-2 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Total Contracts</p><p className="text-lg font-semibold">{stats.total}</p></div>
+          <div className="px-3 py-2 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Active</p><p className="text-lg font-semibold text-green-600">{stats.active}</p></div>
+          <div className="px-3 py-2 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Renewal Due</p><p className="text-lg font-semibold text-amber-600">{stats.renewalDue}</p></div>
+          <div className="px-3 py-2 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Contract Value</p><p className="text-lg font-semibold">{formatCurrency(stats.value)}</p></div>
         </div>
       </div>
 
-      <div className="p-4 border-b border-border flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="px-5 py-3 border-b border-border flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2 flex-1">
           <div className="relative flex-1 max-w-md">
             <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search contracts..." className="w-full pl-9 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search contracts..." className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
-          <select value={statusFilter || 'ALL'} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="px-3 py-2 border border-border rounded-lg bg-background">
+          <select value={statusFilter || 'ALL'} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="h-9 rounded-full border border-border bg-background px-3 text-xs font-medium">
             <option value="ALL">All statuses</option>
             <option value="DRAFT">Draft</option>
             <option value="ACTIVE">Active</option>
@@ -474,25 +474,25 @@ export default function ContractsPage() {
             ], 'contracts');
             showToast(`Exported ${filteredContracts.length} contracts`, 'success');
           }}
-          className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
         >
-          <Icons.Download size={16} />
+          <Icons.Download size={14} />
           Export
         </button>
       </div>
 
-      <div className="p-6">
-        <div className="overflow-hidden rounded-2xl bg-card">
+      <div className="p-5">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Contract</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Account</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Term</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Value</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Contract</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Account</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Term</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Value</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card">
@@ -501,22 +501,22 @@ export default function ContractsPage() {
                   key={contract.id}
                   className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
                 >
-                  <td className="px-4 py-3"><div><p className="font-semibold text-primary">{contract.contractNumber}</p><p className="text-xs text-muted-foreground">{contract.title || 'Untitled contract'}</p></div></td>
-                  <td className="px-4 py-3"><div><p className="font-medium">{contract.companyName || 'Unassigned company'}</p><p className="text-xs text-muted-foreground">{contract.contactName || 'No contact'}{contract.quoteNumber ? ` · ${contract.quoteNumber}` : ''}</p></div></td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground"><div>{contract.startDate} → {contract.endDate}</div><div className="text-xs">Renewal {contract.autoRenew ? 'auto' : 'manual'}</div></td>
-                  <td className="px-4 py-3"><div className="font-semibold">{formatCurrency(contract.contractValue)}</div><div className="text-xs text-muted-foreground">{contract.ownerName || 'No owner'}</div></td>
-                  <td className="px-4 py-3"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[contract.status || 'DRAFT'])}>{(contract.status || 'DRAFT').replace('_', ' ')}</span></td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5"><div><p className="font-semibold text-primary">{contract.contractNumber}</p><p className="text-xs text-muted-foreground">{contract.title || 'Untitled contract'}</p></div></td>
+                  <td className="px-3 py-2.5"><div><p className="font-medium">{contract.companyName || 'Unassigned company'}</p><p className="text-xs text-muted-foreground">{contract.contactName || 'No contact'}{contract.quoteNumber ? ` · ${contract.quoteNumber}` : ''}</p></div></td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground"><div>{contract.startDate} → {contract.endDate}</div><div className="text-xs">Renewal {contract.autoRenew ? 'auto' : 'manual'}</div></td>
+                  <td className="px-3 py-2.5"><div className="font-semibold">{formatCurrency(contract.contractValue)}</div><div className="text-xs text-muted-foreground">{contract.ownerName || 'No owner'}</div></td>
+                  <td className="px-3 py-2.5"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[contract.status || 'DRAFT'])}>{(contract.status || 'DRAFT').replace('_', ' ')}</span></td>
+                  <td className="px-3 py-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={() => { setSelectedContract(contract); setFormState(buildInitialForm(contract)); setIsFormOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Edit</button>
-                      {(contract.status === 'DRAFT' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'activate', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Activate</button>}
-                      {contract.status === 'ACTIVE' && <button onClick={() => lifecycleMutation.mutate({ action: 'renewal-due', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Renewal Due</button>}
+                      <button onClick={() => { setSelectedContract(contract); setFormState(buildInitialForm(contract)); setIsFormOpen(true); }} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Edit</button>
+                      {(contract.status === 'DRAFT' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'activate', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Activate</button>}
+                      {contract.status === 'ACTIVE' && <button onClick={() => lifecycleMutation.mutate({ action: 'renewal-due', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Renewal Due</button>}
                       {contract.status === 'RENEWAL_DUE' && <>
-                        <button onClick={() => lifecycleMutation.mutate({ action: 'invoice', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Renewal Invoice</button>
-                        <button onClick={() => lifecycleMutation.mutate({ action: 'renew', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Renew</button>
+                        <button onClick={() => lifecycleMutation.mutate({ action: 'invoice', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Renewal Invoice</button>
+                        <button onClick={() => lifecycleMutation.mutate({ action: 'renew', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Renew</button>
                       </>}
-                      {(contract.status === 'ACTIVE' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'terminate', contract })} className="px-2 py-1 text-xs border border-red-200 text-red-700 rounded hover:bg-red-50">Terminate</button>}
-                      <button onClick={() => { setSelectedContract(contract); setIsDeleteModalOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Delete</button>
+                      {(contract.status === 'ACTIVE' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'terminate', contract })} className="rounded-full border border-red-200 px-2.5 py-1 text-[10px] font-medium text-red-700 hover:bg-red-50">Terminate</button>}
+                      <button onClick={() => { setSelectedContract(contract); setIsDeleteModalOpen(true); }} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Delete</button>
                     </div>
                   </td>
                 </tr>

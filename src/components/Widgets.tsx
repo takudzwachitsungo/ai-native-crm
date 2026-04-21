@@ -23,9 +23,9 @@ function Customize({ onClick }: { onClick: () => void }) {
   return (
     <button 
       onClick={onClick}
-      className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
     >
-      <Icons.Settings size={14} />
+      <Icons.Settings size={13} />
       <span>Customize</span>
     </button>
   );
@@ -41,11 +41,11 @@ function MetricsFilter({ period, setPeriod }: { period: string; setPeriod: (p: s
 
   return (
     <div className="relative flex items-center">
-      <Icons.Calendar size={14} className="absolute left-3 text-muted-foreground pointer-events-none" />
+      <Icons.Calendar size={13} className="absolute left-2.5 text-muted-foreground pointer-events-none" />
       <select 
         value={period}
         onChange={(e) => setPeriod(e.target.value)}
-        className="flex items-center gap-2 pl-8 pr-3 py-1.5 text-sm border border-border bg-transparent hover:bg-secondary transition-colors cursor-pointer appearance-none rounded-md"
+        className="h-8 appearance-none rounded-full border border-border/70 bg-card pl-8 pr-7 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/40 cursor-pointer"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -53,7 +53,7 @@ function MetricsFilter({ period, setPeriod }: { period: string; setPeriod: (p: s
           </option>
         ))}
       </select>
-      <Icons.ChevronDown size={14} className="absolute right-2 text-muted-foreground pointer-events-none" />
+      <Icons.ChevronDown size={12} className="absolute right-2.5 text-muted-foreground pointer-events-none" />
     </div>
   );
 }
@@ -76,28 +76,28 @@ function WidgetsHeader({
   const greeting = getGreeting();
   
   return (
-    <div className="mb-6">
-      <h1 className="text-[32px] font-medium mb-1 text-foreground">
+    <div className="mb-4">
+      <h1 className="text-[28px] font-medium mb-0.5 text-foreground leading-none">
         {greeting}<span className="text-muted-foreground">,</span>
       </h1>
-      <p className="text-muted-foreground text-[14px]">
+      <p className="text-muted-foreground text-[13px]">
         {isCustomizing 
           ? "Drag and drop to arrange your dashboard."
           : "Here's your sales pipeline at a glance."}
       </p>
       
-      <div className="flex items-center justify-end mt-6 mb-4">
+      <div className="flex items-center justify-end mt-4 mb-3">
         <div className="flex items-center gap-2" data-no-close>
           <div className="hidden md:block">
             <Customize onClick={onCustomizeToggle} />
           </div>
           <MetricsFilter period={period} setPeriod={setPeriod} />
-          <div className="ml-2 relative flex items-stretch bg-secondary rounded-md w-fit">
+          <div className="ml-1 relative flex items-stretch rounded-full border border-border/70 bg-secondary/60 p-0.5 w-fit">
             <div className="flex items-stretch h-auto p-0 bg-transparent">
               <button 
                 onClick={() => setActiveTab("overview")}
                 className={cn(
-                  "group relative flex items-center gap-1.5 px-3 py-1.5 text-[14px] transition-all whitespace-nowrap h-9 min-h-9 rounded-md",
+                  "group relative flex items-center gap-1.5 px-3 py-1 text-xs font-medium transition-all whitespace-nowrap h-7 min-h-7 rounded-full",
                   "text-muted-foreground hover:text-foreground",
                   activeTab === "overview" && "text-foreground bg-background shadow-sm"
                 )}
@@ -107,7 +107,7 @@ function WidgetsHeader({
               <button 
                 onClick={() => setActiveTab("pipeline")}
                 className={cn(
-                  "group relative flex items-center gap-1.5 px-3 py-1.5 text-[14px] transition-all whitespace-nowrap h-9 min-h-9 rounded-md",
+                  "group relative flex items-center gap-1.5 px-3 py-1 text-xs font-medium transition-all whitespace-nowrap h-7 min-h-7 rounded-full",
                   "text-muted-foreground hover:text-foreground",
                   activeTab === "pipeline" && "text-foreground bg-background shadow-sm"
                 )}
@@ -145,7 +145,7 @@ function BaseWidget({
   return (
     <div
       className={cn(
-        "bg-card border border-border p-3 h-[175px] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-primary/20 group cursor-pointer rounded-lg"
+        "bg-card border border-border p-3 h-[158px] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-primary/20 group cursor-pointer rounded-lg"
       )}
       onClick={onClick}
     >
@@ -260,53 +260,53 @@ function PipelineAnalytics({ period }: { period: string }) {
   const winRate = wonDeals + lostDeals > 0 ? (wonDeals / (wonDeals + lostDeals)) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.DollarSign size={16} className="text-primary" />
             <h3 className="text-xs font-medium text-muted-foreground">Total Pipeline</h3>
           </div>
-          <p className="text-2xl font-semibold">${(totalPipelineValue / 1000000).toFixed(1)}M</p>
+          <p className="text-lg font-semibold leading-none">${(totalPipelineValue / 1000000).toFixed(1)}M</p>
           <p className="text-xs text-muted-foreground mt-1">{totalDeals} deals</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.TrendingUp size={16} className="text-green-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Win Rate</h3>
           </div>
-          <p className="text-2xl font-semibold">{winRate.toFixed(0)}%</p>
+          <p className="text-lg font-semibold leading-none">{winRate.toFixed(0)}%</p>
           <p className="text-xs text-muted-foreground mt-1">{wonDeals} won / {lostDeals} lost</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.BarChart size={16} className="text-blue-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Avg Deal Size</h3>
           </div>
-          <p className="text-2xl font-semibold">${(avgDealSize / 1000000).toFixed(1)}M</p>
+          <p className="text-lg font-semibold leading-none">${(avgDealSize / 1000000).toFixed(1)}M</p>
           <p className="text-xs text-muted-foreground mt-1">across all stages</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/pipeline')}>
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/pipeline')}>
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.Activity size={16} className="text-purple-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Active Deals</h3>
           </div>
-          <p className="text-2xl font-semibold">{totalDeals - wonDeals - lostDeals}</p>
+          <p className="text-lg font-semibold leading-none">{totalDeals - wonDeals - lostDeals}</p>
           <p className="text-xs text-primary mt-1">View pipeline →</p>
         </div>
       </div>
 
       {/* Pipeline Funnel */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-          <Icons.Pipeline size={18} className="text-primary" />
+      <div className="bg-card border border-border rounded-lg p-4">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Icons.Pipeline size={16} className="text-primary" />
           Deal Stage Distribution
         </h3>
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {Object.entries(stageData)
             .filter(([stage]) => !stage.includes('CLOSED'))
             .map(([stage, data]) => {
@@ -315,19 +315,19 @@ function PipelineAnalytics({ period }: { period: string }) {
               
               return (
                 <div key={stage}>
-                  <div className="flex items-center justify-between text-sm mb-1">
+                  <div className="flex items-center justify-between text-xs mb-1">
                     <span className="font-medium capitalize">{stageLabel.toLowerCase()}</span>
                     <div className="flex items-center gap-3">
                       <span className="text-muted-foreground">{data.count} deals</span>
                       <span className="text-xs text-muted-foreground w-12 text-right">{percentage.toFixed(0)}%</span>
                     </div>
                   </div>
-                  <div className="relative h-8 bg-muted/30 rounded-lg overflow-hidden">
+                  <div className="relative h-7 bg-muted/30 rounded-lg overflow-hidden">
                     <div
                       className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-blue-500 rounded-lg transition-all duration-500"
                       style={{ width: `${percentage}%` }}
                     />
-                    <div className="absolute inset-0 flex items-center px-3 justify-between text-xs">
+                    <div className="absolute inset-0 flex items-center px-2.5 justify-between text-[11px]">
                       {data.value > 0 && (
                         <span className="font-semibold text-primary-foreground drop-shadow">
                           ${(data.value / 1000000).toFixed(1)}M
@@ -342,14 +342,14 @@ function PipelineAnalytics({ period }: { period: string }) {
       </div>
 
       {/* Value by Stage & Conversion */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Value by Stage */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-            <Icons.PieChart size={18} className="text-primary" />
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Icons.PieChart size={16} className="text-primary" />
             Pipeline Value by Stage
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {Object.entries(stageData)
               .filter(([stage]) => !stage.includes('CLOSED') && stageData[stage].value > 0)
               .sort(([, a], [, b]) => b.value - a.value)
@@ -361,10 +361,10 @@ function PipelineAnalytics({ period }: { period: string }) {
                   <div key={stage} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-1">
                       <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span className="text-sm capitalize">{stageLabel.toLowerCase()}</span>
+                      <span className="text-xs capitalize">{stageLabel.toLowerCase()}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">${(data.value / 1000000).toFixed(1)}M</span>
+                      <span className="text-xs font-medium">${(data.value / 1000000).toFixed(1)}M</span>
                       <span className="text-xs text-muted-foreground w-12 text-right">{percentage.toFixed(0)}%</span>
                     </div>
                   </div>
@@ -374,16 +374,16 @@ function PipelineAnalytics({ period }: { period: string }) {
         </div>
 
         {/* Conversion Metrics */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-            <Icons.Target size={18} className="text-primary" />
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Icons.Target size={16} className="text-primary" />
             Conversion Metrics
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Prospecting → Qualification</span>
-                <span className="text-sm font-medium">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Prospecting → Qualification</span>
+                <span className="text-xs font-medium">
                   {stageData.PROSPECTING.count > 0 
                     ? ((stageData.QUALIFICATION.count / stageData.PROSPECTING.count) * 100).toFixed(0)
                     : 0}%
@@ -400,9 +400,9 @@ function PipelineAnalytics({ period }: { period: string }) {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Qualification → Proposal</span>
-                <span className="text-sm font-medium">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Qualification → Proposal</span>
+                <span className="text-xs font-medium">
                   {stageData.QUALIFICATION.count > 0 
                     ? ((stageData.PROPOSAL.count / stageData.QUALIFICATION.count) * 100).toFixed(0)
                     : 0}%
@@ -419,9 +419,9 @@ function PipelineAnalytics({ period }: { period: string }) {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Proposal → Negotiation</span>
-                <span className="text-sm font-medium">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Proposal → Negotiation</span>
+                <span className="text-xs font-medium">
                   {stageData.PROPOSAL.count > 0 
                     ? ((stageData.NEGOTIATION.count / stageData.PROPOSAL.count) * 100).toFixed(0)
                     : 0}%
@@ -438,9 +438,9 @@ function PipelineAnalytics({ period }: { period: string }) {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Negotiation → Closed Won</span>
-                <span className="text-sm font-medium">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Negotiation → Closed Won</span>
+                <span className="text-xs font-medium">
                   {stageData.NEGOTIATION.count > 0 
                     ? ((wonDeals / stageData.NEGOTIATION.count) * 100).toFixed(0)
                     : 0}%
@@ -576,7 +576,7 @@ function WidgetsGrid({ period }: { period: string }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 gap-y-4 mb-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 gap-y-3 mb-3">
       {/* Total Leads Widget */}
       <BaseWidget
         title="Total Leads"
@@ -592,7 +592,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View all leads"
         onClick={() => navigate('/leads')}
       >
-        <h2 className="text-xl font-semibold mb-1">{totalLeads}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{totalLeads}</h2>
       </BaseWidget>
 
       {/* Active Deals Widget */}
@@ -619,7 +619,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View pipeline"
         onClick={() => navigate('/pipeline')}
       >
-        <h2 className="text-xl font-semibold mb-1">{activeDeals}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{activeDeals}</h2>
       </BaseWidget>
 
       {/* Revenue Widget */}
@@ -630,7 +630,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View revenue report"
         onClick={() => navigate('/reports')}
       >
-        <h2 className="text-xl font-semibold mb-1">${totalRevenue.toLocaleString()}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">${totalRevenue.toLocaleString()}</h2>
       </BaseWidget>
 
       {/* Conversion Rate Widget */}
@@ -641,7 +641,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View funnel"
         onClick={() => navigate('/pipeline')}
       >
-        <h2 className="text-xl font-semibold mb-1">{conversionRate.toFixed(1)}%</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{conversionRate.toFixed(1)}%</h2>
       </BaseWidget>
 
       {/* Tasks Due Widget */}
@@ -659,7 +659,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View all tasks"
         onClick={() => navigate('/tasks')}
       >
-        <h2 className="text-xl font-semibold mb-1">{tasksDueToday}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{tasksDueToday}</h2>
       </BaseWidget>
 
       {/* Meetings Widget */}
@@ -672,13 +672,13 @@ function WidgetsGrid({ period }: { period: string }) {
       >
         {nextMeeting ? (
           <>
-            <div className="text-sm font-semibold mb-0.5 line-clamp-1">{nextMeeting.title}</div>
+            <div className="text-[13px] font-semibold mb-0.5 line-clamp-1 leading-tight">{nextMeeting.title}</div>
             <div className="text-xs text-muted-foreground">
               {new Date(nextMeeting.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
           </>
         ) : (
-          <h2 className="text-xl font-semibold mb-1">-</h2>
+          <h2 className="text-lg font-semibold mb-0.5 leading-none">-</h2>
         )}
       </BaseWidget>
 
@@ -692,11 +692,11 @@ function WidgetsGrid({ period }: { period: string }) {
       >
         {topDeal ? (
           <>
-            <div className="text-sm font-semibold mb-0.5">{(topDeal as any).companyName || topDeal.name}</div>
+            <div className="text-[13px] font-semibold mb-0.5 line-clamp-1 leading-tight">{(topDeal as any).companyName || topDeal.name}</div>
             <div className="text-xs text-muted-foreground">${(topDeal.value / 1000000).toFixed(1)}M</div>
           </>
         ) : (
-          <div className="text-xl font-semibold mb-1">-</div>
+          <div className="text-lg font-semibold mb-0.5 leading-none">-</div>
         )}
       </BaseWidget>
 
@@ -715,7 +715,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View analytics"
         onClick={() => navigate('/reports')}
       >
-        <h2 className="text-xl font-semibold mb-1">{winRate.toFixed(0)}%</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{winRate.toFixed(0)}%</h2>
       </BaseWidget>
     </div>
   );
@@ -745,16 +745,16 @@ function SuggestedActions({ onSuggestionClick }: { onSuggestionClick: (prompt: s
   });
 
   return (
-    <div className="flex items-center justify-center gap-3 flex-wrap">
+    <div className="flex items-center justify-center gap-1.5 flex-wrap mb-1">
       {actions.map((action, i) => {
         const IconComponent = action.icon;
         return (
           <button
             key={i}
             onClick={() => onSuggestionClick(action.prompt)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors rounded-md"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/6"
           >
-            <IconComponent size={16} className="text-primary" />
+            <IconComponent size={13} className="text-primary" />
             <span>{action.title}</span>
           </button>
         );
@@ -855,18 +855,18 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
   }, [messages, streamingMessage, isConversationOpen]);
 
   return (
-    <div className="mt-12 max-w-[770px] mx-auto">
+    <div className="mt-8 max-w-[720px] mx-auto">
       {/* Unified Chat Card */}
-      <div className="border rounded-2xl bg-gradient-to-br from-card to-card/50 shadow-lg overflow-hidden backdrop-blur-sm">
+      <div className="border rounded-2xl bg-gradient-to-br from-card to-card/50 shadow-md overflow-hidden backdrop-blur-sm">
         {/* Header - Collapsible when there are messages */}
         {messages.length > 0 && (
           <div className="border-b bg-muted/20">
             <div
               onClick={() => setIsConversationOpen(!isConversationOpen)}
-              className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <div className="size-2 rounded-full bg-green-500 animate-pulse"></div>
+                <div className="size-1.5 rounded-full bg-green-500 animate-pulse"></div>
                 <span className="text-sm font-medium">Conversation</span>
                 <span className="text-xs text-muted-foreground">
                   {messages.length} {messages.length === 1 ? 'message' : 'messages'}
@@ -878,7 +878,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                     e.stopPropagation();
                     navigate('/chat');
                   }}
-                  className="px-2.5 py-1 text-xs text-primary hover:bg-primary/10 rounded-md transition-colors"
+                  className="px-2 py-1 text-[11px] text-primary hover:bg-primary/10 rounded-full transition-colors"
                   title="Open full chat"
                 >
                   Expand
@@ -888,7 +888,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                     e.stopPropagation();
                     handleClearConversation();
                   }}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors"
                   title="Clear conversation"
                 >
                   <X size={14} />
@@ -907,7 +907,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
 
         {/* Messages Area - Slides down when open */}
         {messages.length > 0 && isConversationOpen && (
-          <div className="max-h-[400px] overflow-y-auto p-5 space-y-3 bg-muted/5 animate-in slide-in-from-top-2 duration-200">
+          <div className="max-h-[360px] overflow-y-auto p-4 space-y-2.5 bg-muted/5 animate-in slide-in-from-top-2 duration-200">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -918,7 +918,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
               >
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm",
+                    "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm shadow-sm",
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-tr-sm'
                       : 'bg-card border border-border rounded-tl-sm'
@@ -952,7 +952,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
             {/* Streaming message */}
             {streamingMessage && (
               <div className="flex gap-2.5 animate-in fade-in">
-                <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-2.5 bg-card border border-border text-sm shadow-sm">
+                <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-3.5 py-2 bg-card border border-border text-sm shadow-sm">
                   <div className="prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                     <ReactMarkdown
                       components={{
@@ -987,7 +987,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
         )}
 
         {/* Input Area */}
-        <div className={cn("p-4", messages.length > 0 && "pt-0")}>
+        <div className={cn("p-3", messages.length > 0 && "pt-0")}>
           <form
             onSubmit={handleSubmit}
             className={cn(
@@ -1006,9 +1006,9 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                   placeholder="Ask your CRM assistant anything..."
                   disabled={isLoading}
                   className={cn(
-                    "w-full resize-none border-none p-3 pt-4 shadow-none outline-none ring-0 text-sm",
+                    "w-full resize-none border-none p-3 pt-3 shadow-none outline-none ring-0 text-sm",
                     "bg-transparent placeholder:text-muted-foreground/50",
-                    "min-h-[55px] max-h-[120px]",
+                    "min-h-[48px] max-h-[108px]",
                     "focus-visible:ring-0",
                     "disabled:opacity-50"
                   )}
@@ -1022,7 +1022,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                 />
               </div>
 
-              <div className="flex items-center justify-between px-3 pb-2">
+              <div className="flex items-center justify-between px-3 pb-2 pt-0.5">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"

@@ -223,11 +223,11 @@ export default function LeadsPage() {
     <PageLayout>
       {/* Header */}
       <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-5 py-3.5">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">{greeting}, {ownerName}</h1>
-              <p className="text-sm text-muted-foreground">Here is a friendly view of your leads pipeline.</p>
+              <h1 className="text-[26px] leading-none font-semibold text-foreground">{greeting}, {ownerName}</h1>
+              <p className="text-[13px] text-muted-foreground mt-1">Here is a friendly view of your leads pipeline.</p>
             </div>
             <div className="flex items-center gap-2">
               <button 
@@ -246,9 +246,9 @@ export default function LeadsPage() {
                   ], 'leads');
                   showToast(`Exported ${filteredLeads.length} leads to CSV`, 'success');
                 }}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
               >
-                <Icons.Download size={16} />
+                <Icons.Download size={14} />
                 Export
               </button>
               <button 
@@ -256,32 +256,32 @@ export default function LeadsPage() {
                   setSelectedLead(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Icons.Plus size={16} />
+                <Icons.Plus size={14} />
                 Create Lead
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             {/* Stats Cards - Left */}
-            <div className="flex items-center gap-3 flex-1">
-              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+            <div className="flex items-center gap-2.5 flex-1">
+              <div className="rounded-lg border border-border bg-background px-3 py-1.5 flex-1">
                 <p className="text-[10px] text-muted-foreground">Total Leads</p>
-                <p className="text-lg font-semibold text-foreground">{leadStats?.totalLeads ?? totalElements}</p>
+                <p className="text-base font-semibold leading-none text-foreground mt-1">{leadStats?.totalLeads ?? totalElements}</p>
               </div>
-              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+              <div className="rounded-lg border border-border bg-background px-3 py-1.5 flex-1">
                 <p className="text-[10px] text-muted-foreground">Avg Score</p>
-                <p className="text-lg font-semibold text-foreground">{Math.round(leadStats?.averageScore ?? 0)}</p>
+                <p className="text-base font-semibold leading-none text-foreground mt-1">{Math.round(leadStats?.averageScore ?? 0)}</p>
               </div>
-              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+              <div className="rounded-lg border border-border bg-background px-3 py-1.5 flex-1">
                 <p className="text-[10px] text-muted-foreground">Conversion</p>
-                <p className="text-lg font-semibold text-foreground">{Math.round(leadStats?.conversionRate ?? 0)}%</p>
+                <p className="text-base font-semibold leading-none text-foreground mt-1">{Math.round(leadStats?.conversionRate ?? 0)}%</p>
               </div>
-              <div className="rounded-lg border border-border bg-background px-4 py-2 flex-1">
+              <div className="rounded-lg border border-border bg-background px-3 py-1.5 flex-1">
                 <p className="text-[10px] text-muted-foreground">Lead Value</p>
-                <p className="text-lg font-semibold text-foreground">
+                <p className="text-base font-semibold leading-none text-foreground mt-1">
                   ${(Number(leadStats?.totalEstimatedValue ?? 0)).toLocaleString()}
                 </p>
               </div>
@@ -294,7 +294,7 @@ export default function LeadsPage() {
                 <button
                   onClick={(e) => { e.stopPropagation(); setDateDropdownOpen(!dateDropdownOpen); setSourceDropdownOpen(false); }}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors",
+                    "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
                     dateFilter !== "all" ? "border-primary bg-primary/5 text-primary" : "border-border bg-background hover:bg-secondary"
                   )}
                 >
@@ -307,7 +307,7 @@ export default function LeadsPage() {
                     "180": "Last 6 months",
                     "365": "Last year",
                   }[dateFilter]}</span>
-                  <Icons.ChevronDown size={14} className={cn("transition-transform", dateDropdownOpen && "rotate-180")} />
+                  <Icons.ChevronDown size={12} className={cn("transition-transform", dateDropdownOpen && "rotate-180")} />
                 </button>
                 {dateDropdownOpen && (
                   <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-border rounded-lg shadow-lg z-50 py-1">
@@ -339,13 +339,13 @@ export default function LeadsPage() {
                 <button
                   onClick={(e) => { e.stopPropagation(); setSourceDropdownOpen(!sourceDropdownOpen); setDateDropdownOpen(false); }}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors",
+                    "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
                     sourceFilter !== "all" ? "border-primary bg-primary/5 text-primary" : "border-border bg-background hover:bg-secondary"
                   )}
                 >
                   <Icons.TrendingUp size={14} className={sourceFilter !== "all" ? "text-primary" : "text-muted-foreground"} />
                   <span>{sourceFilter === "all" ? "All Sources" : sourceFilter}</span>
-                  <Icons.ChevronDown size={14} className={cn("transition-transform", sourceDropdownOpen && "rotate-180")} />
+                  <Icons.ChevronDown size={12} className={cn("transition-transform", sourceDropdownOpen && "rotate-180")} />
                 </button>
                 {sourceDropdownOpen && (
                   <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-border rounded-lg shadow-lg z-50 py-1">
@@ -377,7 +377,7 @@ export default function LeadsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2.5 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -385,14 +385,14 @@ export default function LeadsPage() {
                 placeholder="Search leads..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="w-full h-9 pl-9 pr-4 text-sm border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
               />
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "table" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="Table view"
@@ -402,7 +402,7 @@ export default function LeadsPage() {
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "grid" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="Grid view"
@@ -413,8 +413,8 @@ export default function LeadsPage() {
           </div>
 
           {/* Status Pipeline Bar */}
-          <div className="rounded-2xl border border-border bg-background p-3 mt-2 shadow-sm">
-            <div className="flex items-center gap-4">
+          <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
+            <div className="flex items-center gap-3">
               <div className="flex items-center flex-1" style={{ gap: '2px' }}>
                 {[
                   { value: "all", label: "All Leads" },
@@ -484,7 +484,7 @@ export default function LeadsPage() {
                 onClick={() => {
                   /* Mark status as complete */
                 }}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors whitespace-nowrap shadow-sm"
+                className="flex items-center gap-1.5 h-8 px-3 text-[11px] font-medium bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors whitespace-nowrap shadow-sm"
               >
                 <Icons.CheckCircle size={14} />
                 Mark Status as Complete
@@ -518,12 +518,12 @@ export default function LeadsPage() {
           }}
         />
       ) : viewMode === "table" ? (
-        <div className="overflow-hidden rounded-2xl bg-card">
+        <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-secondary/50">
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   <input 
                     type="checkbox" 
                     className="rounded" 
@@ -532,14 +532,14 @@ export default function LeadsPage() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Lead Name</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Lead Score</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Value</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Lead Name</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Lead Score</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Value</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card">
@@ -554,7 +554,7 @@ export default function LeadsPage() {
                     setDetailSidebarOpen(true);
                   }}
                 >
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     <input 
                       type="checkbox" 
                       className="rounded" 
@@ -563,8 +563,8 @@ export default function LeadsPage() {
                       onChange={() => toggleSelect(lead.id)}
                     />
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-2.5">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
                     {lead.firstName?.charAt(0) || '?'}
                   </div>
@@ -582,10 +582,10 @@ export default function LeadsPage() {
                   </div>
                 </div>
               </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">{lead.company}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">{lead.email}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">{lead.phone}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm text-foreground">{lead.company}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">{lead.email}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">{lead.phone}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
                       <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden w-16">
                         <div
@@ -599,7 +599,7 @@ export default function LeadsPage() {
                       <span className="text-sm font-medium text-foreground w-7">{lead.score ?? 0}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     <span className={cn(
                       "px-2 py-0.5 text-[11px] font-medium rounded-full",
                       lead.status === "QUALIFIED" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
@@ -611,10 +611,10 @@ export default function LeadsPage() {
                       {lead.status.charAt(0) + lead.status.slice(1).toLowerCase()}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm font-medium text-foreground">
                     {lead.estimatedValue ? `$${lead.estimatedValue.toLocaleString()}` : "-"}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={() => {
@@ -646,17 +646,17 @@ export default function LeadsPage() {
         </div>
       ) : (
         /* Grid View */
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredLeads.map((lead) => (
-            <div key={lead.id} className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow bg-card">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+            <div key={lead.id} className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
+              <div className="flex items-start justify-between mb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
                     {lead.firstName?.charAt(0) || '?'}
                   </div>
                   <div>
-                    <h3 className="font-medium text-foreground">{lead.firstName} {lead.lastName}</h3>
-                    <p className="text-sm text-muted-foreground">{lead.company}</p>
+                    <h3 className="text-sm font-medium text-foreground leading-tight">{lead.firstName} {lead.lastName}</h3>
+                    <p className="text-xs text-muted-foreground">{lead.company}</p>
                     <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                       {lead.ownerName && <span>Owner: {lead.ownerName}</span>}
                       {lead.territory && <span>Territory: {lead.territory}</span>}
@@ -675,7 +675,7 @@ export default function LeadsPage() {
                   {lead.score ?? 0}
                 </span>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-1.5 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Icons.Mail size={14} />
                   <span className="truncate">{lead.email}</span>
@@ -706,8 +706,8 @@ export default function LeadsPage() {
       )}
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} leads
         </div>
         <div className="flex items-center gap-2">
@@ -715,7 +715,7 @@ export default function LeadsPage() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 
                 ? "opacity-50 cursor-not-allowed" 
                 : "hover:bg-secondary"
@@ -742,7 +742,7 @@ export default function LeadsPage() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum
                     ? "bg-primary text-primary-foreground"
                     : "border border-border hover:bg-secondary"
@@ -757,7 +757,7 @@ export default function LeadsPage() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 
                 ? "opacity-50 cursor-not-allowed" 
                 : "hover:bg-secondary"

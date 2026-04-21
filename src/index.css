@@ -1,6 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap");
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --color-background: hsl(220 20% 98%);
   --color-foreground: hsl(0 0% 12%);
   --color-card: hsl(0 0% 100%);
@@ -26,9 +28,17 @@
   * {
     border-color: var(--color-border);
   }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
 }

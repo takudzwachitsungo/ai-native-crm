@@ -184,11 +184,11 @@ export default function CasesPage() {
   return (
     <PageLayout>
       <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-5 py-3.5">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Cases</h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h1 className="text-[26px] leading-none font-semibold text-foreground">Cases</h1>
+              <p className="text-[13px] text-muted-foreground mt-1">
                 Track customer issues, SLA commitments, and escalations in one queue.
               </p>
             </div>
@@ -196,9 +196,9 @@ export default function CasesPage() {
               <button
                 onClick={() => slaAutomationMutation.mutate()}
                 disabled={slaAutomationMutation.isPending}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-muted/60 transition-colors flex items-center gap-2 disabled:opacity-60"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted/60 disabled:opacity-60"
               >
-                <Icons.Zap size={16} />
+                <Icons.Zap size={14} />
                 {slaAutomationMutation.isPending ? "Running SLA Automation..." : "Run SLA Automation"}
               </button>
               <button
@@ -206,42 +206,42 @@ export default function CasesPage() {
                   setSelectedCase(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Icons.Cases size={16} />
+                <Icons.Cases size={14} />
                 New Case
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 mb-4">
-            <div className="border border-border rounded-lg p-4 bg-background">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-2.5 mb-3">
+            <div className="border border-border rounded-lg px-3 py-2 bg-background">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Cases</p>
-              <p className="text-2xl font-semibold mt-2">{caseStats?.totalCases ?? 0}</p>
+              <p className="text-lg font-semibold mt-1.5">{caseStats?.totalCases ?? 0}</p>
             </div>
-            <div className="border border-border rounded-lg p-4 bg-background">
+            <div className="border border-border rounded-lg px-3 py-2 bg-background">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Open Cases</p>
-              <p className="text-2xl font-semibold mt-2">{caseStats?.openCases ?? 0}</p>
+              <p className="text-lg font-semibold mt-1.5">{caseStats?.openCases ?? 0}</p>
             </div>
-            <div className="border border-border rounded-lg p-4 bg-background">
+            <div className="border border-border rounded-lg px-3 py-2 bg-background">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Overdue Response</p>
-              <p className="text-2xl font-semibold mt-2">{caseStats?.overdueResponseCases ?? 0}</p>
+              <p className="text-lg font-semibold mt-1.5">{caseStats?.overdueResponseCases ?? 0}</p>
             </div>
-            <div className="border border-border rounded-lg p-4 bg-background">
+            <div className="border border-border rounded-lg px-3 py-2 bg-background">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Overdue Resolution</p>
-              <p className="text-2xl font-semibold mt-2">{caseStats?.overdueResolutionCases ?? 0}</p>
+              <p className="text-lg font-semibold mt-1.5">{caseStats?.overdueResolutionCases ?? 0}</p>
             </div>
-            <div className="border border-border rounded-lg p-4 bg-background">
+            <div className="border border-border rounded-lg px-3 py-2 bg-background">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Response Watch</p>
-              <p className="text-2xl font-semibold mt-2">{caseStats?.responseWatchCases ?? 0}</p>
+              <p className="text-lg font-semibold mt-1.5">{caseStats?.responseWatchCases ?? 0}</p>
             </div>
-            <div className="border border-border rounded-lg p-4 bg-background">
+            <div className="border border-border rounded-lg px-3 py-2 bg-background">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Escalated</p>
-              <p className="text-2xl font-semibold mt-2">{caseStats?.escalatedCases ?? 0}</p>
+              <p className="text-lg font-semibold mt-1.5">{caseStats?.escalatedCases ?? 0}</p>
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex flex-col md:flex-row gap-2.5">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -252,7 +252,7 @@ export default function CasesPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(0);
                 }}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <select
@@ -261,7 +261,7 @@ export default function CasesPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(0);
               }}
-              className="px-3 py-2 text-sm border border-border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-9 rounded-full border border-border bg-background px-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="all">All statuses</option>
               <option value="OPEN">Open</option>
@@ -275,46 +275,46 @@ export default function CasesPage() {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-5">
         {canManageAssignments && assignmentQueue && assignmentQueue.totalItems > 0 ? (
-          <div className="mb-6 rounded-lg border border-border bg-card p-4 space-y-4">
+          <div className="mb-4 rounded-lg border border-border bg-card p-4 space-y-3">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Assignment Queue</h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h2 className="text-base font-semibold text-foreground">Assignment Queue</h2>
+                <p className="text-xs text-muted-foreground mt-1">
                   Active unassigned or escalated support cases waiting for owner coverage.
                 </p>
               </div>
               <button
                 onClick={() => assignmentAutomationMutation.mutate()}
                 disabled={assignmentAutomationMutation.isPending}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-muted/60 transition-colors flex items-center gap-2 disabled:opacity-60"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-muted/60 disabled:opacity-60"
               >
-                <Icons.Users size={16} />
+                <Icons.Users size={14} />
                 {assignmentAutomationMutation.isPending ? "Assigning..." : "Run Assignment Automation"}
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <div className="border border-border rounded-lg p-3 bg-background">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+              <div className="border border-border rounded-lg px-3 py-2 bg-background">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Queued</p>
-                <p className="text-xl font-semibold mt-2">{assignmentQueue.totalItems}</p>
+                <p className="text-lg font-semibold mt-1.5">{assignmentQueue.totalItems}</p>
               </div>
-              <div className="border border-border rounded-lg p-3 bg-background">
+              <div className="border border-border rounded-lg px-3 py-2 bg-background">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Unassigned</p>
-                <p className="text-xl font-semibold mt-2">{assignmentQueue.unassignedCases}</p>
+                <p className="text-lg font-semibold mt-1.5">{assignmentQueue.unassignedCases}</p>
               </div>
-              <div className="border border-border rounded-lg p-3 bg-background">
+              <div className="border border-border rounded-lg px-3 py-2 bg-background">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Escalated</p>
-                <p className="text-xl font-semibold mt-2">{assignmentQueue.escalatedCases}</p>
+                <p className="text-lg font-semibold mt-1.5">{assignmentQueue.escalatedCases}</p>
               </div>
-              <div className="border border-border rounded-lg p-3 bg-background">
+              <div className="border border-border rounded-lg px-3 py-2 bg-background">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Urgent</p>
-                <p className="text-xl font-semibold mt-2">{assignmentQueue.urgentCases}</p>
+                <p className="text-lg font-semibold mt-1.5">{assignmentQueue.urgentCases}</p>
               </div>
-              <div className="border border-border rounded-lg p-3 bg-background">
+              <div className="border border-border rounded-lg px-3 py-2 bg-background">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Breached</p>
-                <p className="text-xl font-semibold mt-2">{assignmentQueue.breachedCases}</p>
+                <p className="text-lg font-semibold mt-1.5">{assignmentQueue.breachedCases}</p>
               </div>
             </div>
 
@@ -369,22 +369,22 @@ export default function CasesPage() {
             }}
           />
         ) : (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Case</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Source</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">SLA</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Case</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Source</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">SLA</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {cases.map((supportCase) => (
                   <tr key={supportCase.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3.5">
                       <div>
                         <p className="font-medium text-foreground">{supportCase.title}</p>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -400,7 +400,7 @@ export default function CasesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3.5">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border",
                         statusColors[supportCase.status] || statusColors.OPEN
@@ -408,7 +408,7 @@ export default function CasesPage() {
                         {supportCase.status.replaceAll("_", " ")}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3.5">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border",
                         priorityColors[supportCase.priority] || priorityColors.MEDIUM
@@ -416,8 +416,8 @@ export default function CasesPage() {
                         {supportCase.priority}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm">{supportCase.source.replaceAll("_", " ")}</td>
-                    <td className="px-4 py-4 text-sm space-y-2">
+                    <td className="px-3 py-3.5 text-sm">{supportCase.source.replaceAll("_", " ")}</td>
+                    <td className="px-3 py-3.5 text-sm space-y-2">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">Response</span>
@@ -453,7 +453,7 @@ export default function CasesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3.5">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -485,8 +485,8 @@ export default function CasesPage() {
         )}
       </div>
 
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min(currentPage * pageSize + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} cases
         </div>
         <div className="flex items-center gap-2">
@@ -494,20 +494,20 @@ export default function CasesPage() {
             onClick={() => setCurrentPage((page) => Math.max(page - 1, 0))}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
             Previous
           </button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Page {Math.min(currentPage + 1, totalPages)} of {totalPages}
           </span>
           <button
             onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages - 1))}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >

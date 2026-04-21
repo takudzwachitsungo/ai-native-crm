@@ -117,9 +117,9 @@ export default function QuotesPage() {
     <PageLayout>
       {/* Header */}
       <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-foreground">Quotes</h1>
+        <div className="px-5 py-3.5">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-[26px] leading-none font-semibold text-foreground">Quotes</h1>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => {
@@ -134,9 +134,9 @@ export default function QuotesPage() {
                   ], 'quotes');
                   showToast(`Exported ${filteredQuotes.length} quotes to CSV`, 'success');
                 }}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
               >
-                <Icons.Download size={16} />
+                <Icons.Download size={14} />
                 Export
               </button>
               <button
@@ -144,16 +144,16 @@ export default function QuotesPage() {
                   setSelectedItem(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Icons.Plus size={16} />
+                <Icons.Plus size={14} />
                 Create Quote
               </button>
             </div>
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2.5 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -161,7 +161,7 @@ export default function QuotesPage() {
                 placeholder="Search quotes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>
@@ -173,7 +173,7 @@ export default function QuotesPage() {
                 key={status}
                 onClick={() => setFilter(status)}
                 className={cn(
-                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize whitespace-nowrap",
+                  "px-3 py-2 text-xs font-medium border-b-2 transition-colors capitalize whitespace-nowrap",
                   filter === status
                     ? "text-primary border-primary"
                     : "text-muted-foreground border-transparent hover:text-foreground"
@@ -190,21 +190,21 @@ export default function QuotesPage() {
       </div>
 
       {/* Content */}
-      <div className="p-6">
-        <div className="overflow-hidden rounded-2xl bg-card">
+      <div className="p-5">
+        <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   <input type="checkbox" className="rounded" />
                 </th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Quote #</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Customer</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Valid Until</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Quote #</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Customer</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Valid Until</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card">
@@ -213,16 +213,16 @@ export default function QuotesPage() {
                   key={quote.id}
                   className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <input type="checkbox" className="rounded" />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <div>
                       <p className="font-semibold text-primary">{quote.quoteNumber || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">Created {quote.createdAt ? new Date(quote.createdAt).toLocaleDateString() : 'N/A'}</p>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <div>
                       <p className="font-medium text-foreground">{quote.contactName || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">{quote.companyName || 'N/A'}</p>
@@ -234,10 +234,10 @@ export default function QuotesPage() {
                       <p className="text-xs text-muted-foreground">{quote.lineItems?.length || 0} items</p>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">
                     {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <span className={cn(
                       "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                       statusColors[(quote.status?.toLowerCase()) as keyof typeof statusColors] || statusColors.draft
@@ -245,7 +245,7 @@ export default function QuotesPage() {
                       {quote.status || 'N/A'}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={() => {
@@ -301,28 +301,28 @@ export default function QuotesPage() {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-card border border-border rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
+          <div className="bg-card border border-border rounded-lg p-3">
             <p className="text-sm text-muted-foreground mb-1">Total Value</p>
-            <p className="text-2xl font-semibold text-foreground">
+            <p className="text-lg font-semibold text-foreground">
               {formatCurrency(allQuotes.reduce((sum: number, q: any) => sum + (q.total || 0), 0))}
             </p>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-card border border-border rounded-lg p-3">
             <p className="text-sm text-muted-foreground mb-1">Accepted</p>
-            <p className="text-2xl font-semibold text-green-600">
+            <p className="text-lg font-semibold text-green-600">
               {formatCurrency(allQuotes.filter((q: any) => q.status === "ACCEPTED").reduce((sum: number, q: any) => sum + (q.total || 0), 0))}
             </p>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-card border border-border rounded-lg p-3">
             <p className="text-sm text-muted-foreground mb-1">Pending</p>
-            <p className="text-2xl font-semibold text-blue-600">
+            <p className="text-lg font-semibold text-blue-600">
               {formatCurrency(allQuotes.filter((q: any) => q.status === "SENT").reduce((sum: number, q: any) => sum + (q.total || 0), 0))}
             </p>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-card border border-border rounded-lg p-3">
             <p className="text-sm text-muted-foreground mb-1">Conversion Rate</p>
-            <p className="text-2xl font-semibold text-primary">
+            <p className="text-lg font-semibold text-primary">
               {allQuotes.filter((q: any) => q.status !== "DRAFT").length > 0 
                 ? ((allQuotes.filter((q: any) => q.status === "ACCEPTED").length / allQuotes.filter((q: any) => q.status !== "DRAFT").length) * 100).toFixed(1)
                 : '0.0'}%
@@ -344,8 +344,8 @@ export default function QuotesPage() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} quotes
         </div>
         <div className="flex items-center gap-2">
@@ -353,7 +353,7 @@ export default function QuotesPage() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
@@ -370,7 +370,7 @@ export default function QuotesPage() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum
                     ? "bg-primary text-primary-foreground"
                     : "border border-border hover:bg-secondary"
@@ -384,7 +384,7 @@ export default function QuotesPage() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >

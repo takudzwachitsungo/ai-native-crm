@@ -120,9 +120,9 @@ export default function ProductsPage() {
     <PageLayout>
       {/* Header */}
       <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-foreground">Products</h1>
+        <div className="px-5 py-3.5">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-[26px] leading-none font-semibold text-foreground">Products</h1>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => {
@@ -139,9 +139,9 @@ export default function ProductsPage() {
                   ], 'products');
                   showToast(`Exported ${filteredProducts.length} products to CSV`, 'success');
                 }}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
               >
-                <Icons.Download size={16} />
+                <Icons.Download size={14} />
                 Export
               </button>
               <button
@@ -149,16 +149,16 @@ export default function ProductsPage() {
                   setSelectedItem(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Icons.Plus size={16} />
+                <Icons.Plus size={14} />
                 Add Product
               </button>
             </div>
           </div>
 
           {/* Search and Filters */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2.5 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -166,14 +166,14 @@ export default function ProductsPage() {
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "table" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="Table view"
@@ -183,7 +183,7 @@ export default function ProductsPage() {
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "grid" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="Grid view"
@@ -200,7 +200,7 @@ export default function ProductsPage() {
                 key={status}
                 onClick={() => setFilter(status)}
                 className={cn(
-                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize",
+                  "px-3 py-2 text-xs font-medium border-b-2 transition-colors capitalize",
                   filter === status
                     ? "text-primary border-primary"
                     : "text-muted-foreground border-transparent hover:text-foreground"
@@ -217,14 +217,14 @@ export default function ProductsPage() {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-5">
         {viewMode === "table" ? (
-          <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
             <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                     <input type="checkbox" className="rounded" />
                   </th>
                   <SortableTableHeader
@@ -232,45 +232,45 @@ export default function ProductsPage() {
                     field="name"
                     currentSort={sortConfig}
                     onSort={requestSort}
-                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
+                    className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-[11px]"
                   />
                   <SortableTableHeader
                     label="SKU"
                     field="sku"
                     currentSort={sortConfig}
                     onSort={requestSort}
-                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
+                    className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-[11px]"
                   />
                   <SortableTableHeader
                     label="Category"
                     field="category"
                     currentSort={sortConfig}
                     onSort={requestSort}
-                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
+                    className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-[11px]"
                   />
                   <SortableTableHeader
                     label="Price"
                     field="price"
                     currentSort={sortConfig}
                     onSort={requestSort}
-                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
+                    className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-[11px]"
                   />
-                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Margin</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Margin</th>
                   <SortableTableHeader
                     label="Stock"
                     field="stock"
                     currentSort={sortConfig}
                     onSort={requestSort}
-                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
+                    className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-[11px]"
                   />
                   <SortableTableHeader
                     label="Status"
                     field="status"
                     currentSort={sortConfig}
                     onSort={requestSort}
-                    className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-[11px]"
+                    className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-[11px]"
                   />
-                  <th className="border-b border-border/60 bg-secondary/50 px-4 py-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-card">
@@ -279,21 +279,21 @@ export default function ProductsPage() {
                     key={product.id}
                     className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2.5">
                       <input type="checkbox" className="rounded" />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2.5">
                       <div>
                         <p className="font-medium text-foreground">{product.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{product.description}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm font-mono text-muted-foreground">{product.sku}</td>
-                    <td className="px-4 py-3 text-sm">{product.category}</td>
-                    <td className="px-4 py-3 text-sm font-semibold">{formatPrice(product.unitPrice)}</td>
-                    <td className="px-4 py-3 text-sm text-green-600">{calculateMargin(product.unitPrice, product.cost)}</td>
-                    <td className="px-4 py-3 text-sm">{product.stockQuantity ?? 0} {product.unit || 'unit'}s</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2.5 text-sm font-mono text-muted-foreground">{product.sku}</td>
+                    <td className="px-3 py-2.5 text-sm">{product.category}</td>
+                    <td className="px-3 py-2.5 text-sm font-semibold">{formatPrice(product.unitPrice)}</td>
+                    <td className="px-3 py-2.5 text-sm text-green-600">{calculateMargin(product.unitPrice, product.cost)}</td>
+                    <td className="px-3 py-2.5 text-sm">{product.stockQuantity ?? 0} {product.unit || 'unit'}s</td>
+                    <td className="px-3 py-2.5">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                         getStatusColor(product.status)
@@ -301,7 +301,7 @@ export default function ProductsPage() {
                         {product.status?.toLowerCase() || 'draft'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -332,12 +332,12 @@ export default function ProductsPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredProducts.map((product) => (
-              <div key={product.id} className="bg-card border border-border rounded-lg p-5 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
+              <div key={product.id} className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between mb-2.5">
                   <div>
-                    <h3 className="font-semibold text-foreground">{product.name}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{product.name}</h3>
                     <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
                   </div>
                   <span className={cn(
@@ -348,7 +348,7 @@ export default function ProductsPage() {
                   </span>
                 </div>
 
-                <div className="space-y-2 mb-4">
+                <div className="space-y-1.5 mb-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">SKU:</span>
                     <span className="font-mono">{product.sku}</span>
@@ -363,14 +363,14 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
+                <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-border">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Price</p>
-                    <p className="text-lg font-semibold text-primary">{formatPrice(product.unitPrice)}</p>
+                    <p className="text-base font-semibold text-primary">{formatPrice(product.unitPrice)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Margin</p>
-                    <p className="text-lg font-semibold text-green-600">{calculateMargin(product.unitPrice, product.cost)}</p>
+                    <p className="text-base font-semibold text-green-600">{calculateMargin(product.unitPrice, product.cost)}</p>
                   </div>
                 </div>
               </div>
@@ -380,8 +380,8 @@ export default function ProductsPage() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} products
         </div>
         <div className="flex items-center gap-2">
@@ -389,7 +389,7 @@ export default function ProductsPage() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
@@ -406,7 +406,7 @@ export default function ProductsPage() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum
                     ? "bg-primary text-primary-foreground"
                     : "border border-border hover:bg-secondary"
@@ -420,7 +420,7 @@ export default function ProductsPage() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >

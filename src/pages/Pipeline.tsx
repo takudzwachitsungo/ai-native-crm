@@ -184,45 +184,45 @@ export default function PipelinePage() {
   return (
     <PageLayout>
       <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-5 py-3.5">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Pipeline</h1>
-              <p className="text-sm text-muted-foreground mt-1">Drag deals between stages and keep the next step moving.</p>
+              <h1 className="text-[26px] leading-none font-semibold text-foreground">Pipeline</h1>
+              <p className="text-[13px] text-muted-foreground mt-1">Drag deals between stages and keep the next step moving.</p>
             </div>
             <div className="flex items-center gap-2">
-              <button className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2">
-                <Icons.Download size={16} />
+              <button className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60">
+                <Icons.Download size={14} />
                 Export
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 py-4 border-t border-border">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 py-3 border-t border-border">
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground mb-1">Total Pipeline Value</p>
-              <p className="text-2xl font-semibold text-foreground">${totalPipelineValue.toLocaleString()}</p>
+              <p className="text-lg font-semibold text-foreground">${totalPipelineValue.toLocaleString()}</p>
             </div>
-            <div>
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground mb-1">Total Deals</p>
-              <p className="text-2xl font-semibold text-foreground">{totalDeals}</p>
+              <p className="text-lg font-semibold text-foreground">{totalDeals}</p>
             </div>
-            <div>
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground mb-1">Avg Deal Size</p>
-              <p className="text-2xl font-semibold text-foreground">
+              <p className="text-lg font-semibold text-foreground">
                 ${totalDeals > 0 ? Math.round(totalPipelineValue / totalDeals).toLocaleString() : "0"}
               </p>
             </div>
-            <div>
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground mb-1">High Risk Deals</p>
-              <p className="text-2xl font-semibold text-foreground">{riskyDeals}</p>
+              <p className="text-lg font-semibold text-foreground">{riskyDeals}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="p-6 overflow-x-auto">
-        <div className="flex gap-4 min-w-max">
+      <div className="p-5 overflow-x-auto">
+        <div className="flex gap-3 min-w-max">
           {stages.map((stage) => (
             <div
               key={stage.id}
@@ -230,32 +230,32 @@ export default function PipelinePage() {
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, stage.id)}
               className={cn(
-                "w-80 bg-card border border-border rounded-lg flex-shrink-0 transition-all",
+                "w-[19rem] bg-card border border-border rounded-2xl flex-shrink-0 transition-all",
                 dragOverStage === stage.id && "ring-2 ring-primary/50 bg-primary/5"
               )}
             >
-              <div className="px-4 py-3 border-b border-border bg-secondary/30">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-foreground">{stage.name}</h3>
-                  <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">
+              <div className="px-3 py-2.5 border-b border-border bg-secondary/30">
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-sm font-semibold text-foreground">{stage.name}</h3>
+                  <span className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-primary/10 text-primary">
                     {stage.deals.length}
                   </span>
                 </div>
-                <p className="text-sm font-medium text-foreground">${stage.totalValue.toLocaleString()}</p>
+                <p className="text-xs font-medium text-foreground">${stage.totalValue.toLocaleString()}</p>
               </div>
 
-              <div className="p-3 space-y-3 min-h-[400px] max-h-[600px] overflow-y-auto">
+              <div className="p-2.5 space-y-2.5 min-h-[380px] max-h-[560px] overflow-y-auto">
                 {stage.deals.map((deal) => (
                   <div
                     key={deal.id}
                     draggable
                     onDragStart={() => handleDragStart(deal.id, stage.id)}
                     className={cn(
-                      "p-3 bg-background border border-border rounded-lg hover:shadow-md transition-all cursor-move",
+                      "p-2.5 bg-background border border-border rounded-xl hover:shadow-md transition-all cursor-move",
                       draggedDeal?.dealId === deal.id && "opacity-50"
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
                       <h4 className="font-medium text-foreground text-sm flex-1">{deal.name}</h4>
                       <div className="flex flex-wrap gap-1">
                         {getDealBadges(deal).map((badge, idx) => (
@@ -293,9 +293,9 @@ export default function PipelinePage() {
                           <span>Vs {deal.competitorName}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border">
                         <span className="font-semibold text-foreground">${deal.value.toLocaleString()}</span>
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
+                        <span className="rounded-full px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-medium">
                           {deal.probability}%
                         </span>
                       </div>

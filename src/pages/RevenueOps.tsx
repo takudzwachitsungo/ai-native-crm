@@ -245,61 +245,61 @@ export default function RevenueOps() {
       actions={(
         <button
           onClick={refreshOpsData}
-          className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors flex items-center gap-2"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/90"
         >
-          <Icons.RefreshCw size={16} />
+          <Icons.RefreshCw size={14} />
           Refresh Ops View
         </button>
       )}
     >
-      <div className="p-6 space-y-6">
+      <div className="p-5 space-y-5">
         {revenueOpsSummary && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
-              <div className="p-4 border border-border rounded-lg bg-card">
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3">
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Active Owners</p>
-                <p className="text-xl font-semibold">{revenueOpsSummary.activeRepCount}</p>
+                <p className="text-lg font-semibold">{revenueOpsSummary.activeRepCount}</p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-card">
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Governed Territories</p>
-                <p className="text-xl font-semibold">{revenueOpsSummary.governedTerritoryCount} / {revenueOpsSummary.territoryCatalogCount}</p>
+                <p className="text-lg font-semibold">{revenueOpsSummary.governedTerritoryCount} / {revenueOpsSummary.territoryCatalogCount}</p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-card">
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Quarter Progress</p>
-                <p className="text-xl font-semibold">{Math.round(revenueOpsSummary.quarterProgressPercent)}%</p>
+                <p className="text-lg font-semibold">{Math.round(revenueOpsSummary.quarterProgressPercent)}%</p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-green-500/5">
+              <div className="px-3 py-2 border border-border rounded-lg bg-green-500/5">
                 <p className="text-sm text-muted-foreground mb-1">On Track</p>
-                <p className="text-xl font-semibold text-green-600">{revenueOpsSummary.onTrackRepCount}</p>
+                <p className="text-lg font-semibold text-green-600">{revenueOpsSummary.onTrackRepCount}</p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-yellow-500/5">
+              <div className="px-3 py-2 border border-border rounded-lg bg-yellow-500/5">
                 <p className="text-sm text-muted-foreground mb-1">Watch</p>
-                <p className="text-xl font-semibold text-yellow-600">{revenueOpsSummary.watchRepCount}</p>
+                <p className="text-lg font-semibold text-yellow-600">{revenueOpsSummary.watchRepCount}</p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-red-500/5">
+              <div className="px-3 py-2 border border-border rounded-lg bg-red-500/5">
                 <p className="text-sm text-muted-foreground mb-1">At Risk</p>
-                <p className="text-xl font-semibold text-red-600">{revenueOpsSummary.atRiskRepCount}</p>
+                <p className="text-lg font-semibold text-red-600">{revenueOpsSummary.atRiskRepCount}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="p-4 border border-border rounded-lg bg-card">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Quarterly Quota</p>
-                <p className="text-xl font-semibold">{formatCompactCurrency(revenueOpsSummary.totalQuarterlyQuota)}</p>
+                <p className="text-lg font-semibold">{formatCompactCurrency(revenueOpsSummary.totalQuarterlyQuota)}</p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-card">
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Closed vs Expected</p>
-                <p className="text-xl font-semibold">
+                <p className="text-lg font-semibold">
                   {formatCompactCurrency(revenueOpsSummary.closedWonValue)} / {formatCompactCurrency(revenueOpsSummary.expectedClosedValueToDate)}
                 </p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-card">
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Projected Attainment</p>
-                <p className="text-xl font-semibold">{Math.round(revenueOpsSummary.projectedAttainmentPercent)}%</p>
+                <p className="text-lg font-semibold">{Math.round(revenueOpsSummary.projectedAttainmentPercent)}%</p>
               </div>
-              <div className="p-4 border border-border rounded-lg bg-card">
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Pipeline Coverage</p>
-                <p className="text-xl font-semibold">{formatCoverage(revenueOpsSummary.pipelineCoverageRatio)}</p>
+                <p className="text-lg font-semibold">{formatCoverage(revenueOpsSummary.pipelineCoverageRatio)}</p>
               </div>
             </div>
           </>

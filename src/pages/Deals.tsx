@@ -343,16 +343,16 @@ export default function DealsPage() {
   return (
     <PageLayout>
       <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-foreground">Deals</h1>
+        <div className="px-5 py-3.5">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-[26px] leading-none font-semibold text-foreground">Deals</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => stalledAutomationMutation.mutate()}
                 disabled={stalledAutomationMutation.isPending}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Icons.RefreshCw size={16} className={cn(stalledAutomationMutation.isPending && "animate-spin")} />
+                <Icons.RefreshCw size={14} className={cn(stalledAutomationMutation.isPending && "animate-spin")} />
                 Run Rescue Automation
               </button>
               <button
@@ -377,9 +377,9 @@ export default function DealsPage() {
                   );
                   showToast(`Exported ${filteredDeals.length} deals to CSV`, "success");
                 }}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
               >
-                <Icons.Download size={16} />
+                <Icons.Download size={14} />
                 Export
               </button>
               <button
@@ -387,38 +387,38 @@ export default function DealsPage() {
                   setSelectedItem(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Icons.Plus size={16} />
+                <Icons.Plus size={14} />
                 Create Deal
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 mb-4">
-            <div className="rounded-lg border border-border bg-background p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2.5 mb-3">
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground">Pipeline Value</p>
-              <p className="text-xl font-semibold text-foreground">
+              <p className="text-lg leading-none font-semibold text-foreground mt-1">
                 ${Number(dealStats?.totalValue ?? 0).toLocaleString()}
               </p>
             </div>
-            <div className="rounded-lg border border-border bg-background p-3">
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground">Weighted Value</p>
-              <p className="text-xl font-semibold text-foreground">
+              <p className="text-lg leading-none font-semibold text-foreground mt-1">
                 ${Number(dealStats?.weightedTotalValue ?? 0).toLocaleString()}
               </p>
             </div>
-            <div className="rounded-lg border border-border bg-background p-3">
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground">Win Rate</p>
-              <p className="text-xl font-semibold text-foreground">{Math.round(dealStats?.winRate ?? 0)}%</p>
+              <p className="text-lg leading-none font-semibold text-foreground mt-1">{Math.round(dealStats?.winRate ?? 0)}%</p>
             </div>
-            <div className="rounded-lg border border-border bg-background p-3">
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground">Needs Attention</p>
-              <p className="text-xl font-semibold text-foreground">{attentionSummary?.dealsNeedingAttention ?? dealStats?.dealsNeedingAttention ?? 0}</p>
+              <p className="text-lg leading-none font-semibold text-foreground mt-1">{attentionSummary?.dealsNeedingAttention ?? dealStats?.dealsNeedingAttention ?? 0}</p>
             </div>
-            <div className="rounded-lg border border-border bg-background p-3">
+            <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground">Pending Approval</p>
-              <p className="text-xl font-semibold text-foreground">{dealStats?.pendingApprovalCount ?? 0}</p>
+              <p className="text-lg leading-none font-semibold text-foreground mt-1">{dealStats?.pendingApprovalCount ?? 0}</p>
             </div>
           </div>
 
@@ -529,7 +529,7 @@ export default function DealsPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2.5 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -537,14 +537,14 @@ export default function DealsPage() {
                 placeholder="Search deals..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "table" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="Table view"
@@ -554,7 +554,7 @@ export default function DealsPage() {
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "grid" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="Grid view"
@@ -570,7 +570,7 @@ export default function DealsPage() {
                 key={tab.value}
                 onClick={() => setStageFilter(tab.value)}
                 className={cn(
-                  "px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap",
+                  "px-3 py-2 text-xs font-medium transition-colors relative whitespace-nowrap",
                   stageFilter === tab.value ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -586,21 +586,21 @@ export default function DealsPage() {
       </div>
 
       {viewMode === "table" ? (
-        <div className="overflow-hidden rounded-2xl bg-card">
+        <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-secondary/50">
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Deal Name</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Value</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Stage</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Risk</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Territory</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Approval</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Next Step</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Contact</th>
-                <th className="border-b border-border/60 text-left px-4 py-2.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Deal Name</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Value</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Stage</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Risk</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Territory</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Approval</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Next Step</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Contact</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card">
@@ -609,7 +609,7 @@ export default function DealsPage() {
                   key={deal.id}
                   className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <div className="font-medium text-foreground">{deal.name}</div>
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       {getDealBadges(deal).map((badge, idx) => (
@@ -618,22 +618,22 @@ export default function DealsPage() {
                     </div>
                     {deal.competitorName && <div className="text-xs text-muted-foreground mt-1">Competitor: {deal.competitorName}</div>}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-foreground">{deal.companyName || "N/A"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm text-foreground">{deal.companyName || "N/A"}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm font-medium text-foreground">
                     <div>${(deal.value || 0).toLocaleString()}</div>
                     <div className="text-xs text-muted-foreground">Weighted ${(deal.weightedValue || 0).toLocaleString()}</div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     <span className={cn("px-2.5 py-1 text-xs font-medium rounded-full", getStageColor(deal.stage))}>
                       {deal.stage.split("_").map((part) => part.charAt(0) + part.slice(1).toLowerCase()).join(" ")}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getRiskBadgeColor(deal.riskLevel))}>
                       {deal.riskLevel || "AUTO"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">
                     <div>{deal.territory || "N/A"}</div>
                     <div className="text-xs text-muted-foreground">{deal.ownerTerritory || "No owner territory"}</div>
                     {deal.territoryMismatch && (
@@ -642,7 +642,7 @@ export default function DealsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">
                     <div>
                       <span className={cn("px-2 py-1 text-xs font-medium rounded-full", getApprovalBadgeColor(deal))}>
                         {getApprovalLabel(deal)}
@@ -660,16 +660,16 @@ export default function DealsPage() {
                       <div className="text-xs text-red-700 mt-1">Rejected by {deal.rejectedByName}</div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">
                     <div>{deal.nextStep || "No next step set"}</div>
                     <div className="text-xs text-muted-foreground">{deal.nextStepDueDate || deal.expectedCloseDate || "No due date"}</div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                     <div>{deal.contactName || "N/A"}</div>
                     {(deal.stage === "CLOSED_WON" && deal.winReason) && <div className="text-xs text-green-700">Won: {deal.winReason}</div>}
                     {(deal.stage === "CLOSED_LOST" && deal.lossReason) && <div className="text-xs text-red-700">Lost: {deal.lossReason}</div>}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2 flex-wrap">
                       {renderApprovalActions(deal)}
                       <button
@@ -701,19 +701,19 @@ export default function DealsPage() {
           </div>
         </div>
       ) : (
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredDeals.map((deal) => (
-            <div key={deal.id} className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow bg-card">
-              <div className="flex items-start justify-between mb-3">
+            <div key={deal.id} className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
+              <div className="flex items-start justify-between mb-2.5">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-foreground truncate">{deal.name}</h3>
-                  <p className="text-sm text-muted-foreground truncate">{deal.companyName || "N/A"}</p>
+                  <h3 className="text-sm font-medium text-foreground truncate">{deal.name}</h3>
+                  <p className="text-xs text-muted-foreground truncate">{deal.companyName || "N/A"}</p>
                 </div>
                 <span className={cn("px-2 py-1 text-xs font-medium rounded", getStageColor(deal.stage))}>
                   {deal.stage.split("_").map((part) => part.charAt(0) + part.slice(1).toLowerCase()).join(" ")}
                 </span>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Value:</span>
                   <span className="font-medium text-foreground">${(deal.value || 0).toLocaleString()}</span>
@@ -794,8 +794,8 @@ export default function DealsPage() {
         </div>
       )}
 
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} deals
         </div>
         <div className="flex items-center gap-2">
@@ -803,7 +803,7 @@ export default function DealsPage() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
@@ -820,7 +820,7 @@ export default function DealsPage() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum ? "bg-primary text-primary-foreground" : "border border-border hover:bg-secondary"
                 )}
               >
@@ -832,7 +832,7 @@ export default function DealsPage() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >

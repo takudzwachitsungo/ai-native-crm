@@ -123,31 +123,31 @@ export default function Invoices() {
             setSelectedItem(null);
             setIsFormOpen(true);
           }}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Icons.Plus size={16} />
+          <Icons.Plus size={14} />
           Create Invoice
         </button>
       }
     >
       {/* Stats */}
-      <div className="p-6 border-b border-border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 border border-border rounded-lg">
+      <div className="px-5 py-4 border-b border-border">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-            <p className="text-2xl font-bold">${totalRevenue.toLocaleString()}</p>
+            <p className="text-lg font-bold">${totalRevenue.toLocaleString()}</p>
           </div>
-          <div className="p-4 border border-border rounded-lg">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Pending</p>
-            <p className="text-2xl font-bold text-yellow-600">${pendingRevenue.toLocaleString()}</p>
+            <p className="text-lg font-bold text-yellow-600">${pendingRevenue.toLocaleString()}</p>
           </div>
-          <div className="p-4 border border-border rounded-lg">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Overdue</p>
-            <p className="text-2xl font-bold text-red-600">${overdueRevenue.toLocaleString()}</p>
+            <p className="text-lg font-bold text-red-600">${overdueRevenue.toLocaleString()}</p>
           </div>
-          <div className="p-4 border border-border rounded-lg">
+          <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Total Invoices</p>
-            <p className="text-2xl font-bold">{invoices.length}</p>
+            <p className="text-lg font-bold">{invoices.length}</p>
           </div>
         </div>
       </div>
@@ -160,13 +160,13 @@ export default function Invoices() {
 
       {/* Tabs */}
       <div className="border-b border-border bg-background">
-        <div className="flex px-6">
+        <div className="flex px-5">
           {(['all', 'paid', 'pending', 'overdue', 'draft'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "px-4 py-3 border-b-2 transition-colors text-sm font-medium capitalize",
+                "px-3 py-2.5 border-b-2 transition-colors text-xs font-medium capitalize",
                 activeTab === tab
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -179,18 +179,18 @@ export default function Invoices() {
       </div>
 
       {/* Toolbar */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="relative">
             <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search invoices..."
-              className="pl-9 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
+              className="h-9 w-64 rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <button className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 text-sm">
-            <Icons.Filter size={16} />
+          <button className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60">
+            <Icons.Filter size={14} />
             Filter
           </button>
         </div>
@@ -208,28 +208,28 @@ export default function Invoices() {
             ], 'invoices');
             showToast(`Exported ${filteredInvoices.length} invoices to CSV`, 'success');
           }}
-          className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 text-sm"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
         >
-          <Icons.Download size={16} />
+          <Icons.Download size={14} />
           Export
         </button>
       </div>
 
       {/* Invoice List */}
-      <div className="p-6">
-        <div className="overflow-hidden rounded-2xl bg-card">
+      <div className="p-5">
+        <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Invoice #</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Customer</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Issued</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Due Date</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Items</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-right px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Invoice #</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Customer</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Issued</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Due Date</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Items</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-right px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card">
@@ -238,19 +238,19 @@ export default function Invoices() {
                   key={invoice.id}
                   className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <span className="text-sm font-medium text-primary">{invoice.invoiceNumber || 'N/A'}</span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5">
                     <div>
                       <p className="text-sm font-medium">{invoice.contactName || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">{invoice.companyName || 'N/A'}</p>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm font-semibold">${(invoice.total || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A'}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5 text-sm font-semibold">${(invoice.total || 0).toLocaleString()}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-3 py-2.5">
                     <span className={cn(
                       "text-xs px-2 py-1 border rounded-full capitalize",
                       getStatusColor(invoice.status?.toLowerCase())
@@ -258,8 +258,8 @@ export default function Invoices() {
                       {invoice.status || 'N/A'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.lineItems?.length || 0} items</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{invoice.lineItems?.length || 0} items</td>
+                  <td className="px-3 py-2.5">
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => {
@@ -298,7 +298,7 @@ export default function Invoices() {
                       <button
                         onClick={() => erpSyncMutation.mutate({ id: invoice.id, providerKey: 'quickbooks' })}
                         disabled={!invoice.id || erpSyncMutation.isPending}
-                        className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                        className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors disabled:opacity-50 hover:bg-secondary"
                         title="Sync to QuickBooks"
                       >
                         QB
@@ -306,7 +306,7 @@ export default function Invoices() {
                       <button
                         onClick={() => erpSyncMutation.mutate({ id: invoice.id, providerKey: 'xero' })}
                         disabled={!invoice.id || erpSyncMutation.isPending}
-                        className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                        className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors disabled:opacity-50 hover:bg-secondary"
                         title="Sync to Xero"
                       >
                         Xero
@@ -328,8 +328,8 @@ export default function Invoices() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} invoices
         </div>
         <div className="flex items-center gap-2">
@@ -337,7 +337,7 @@ export default function Invoices() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
@@ -354,7 +354,7 @@ export default function Invoices() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum
                     ? "bg-primary text-primary-foreground"
                     : "border border-border hover:bg-secondary"
@@ -368,7 +368,7 @@ export default function Invoices() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >

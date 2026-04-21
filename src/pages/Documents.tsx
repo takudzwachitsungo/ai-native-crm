@@ -245,18 +245,18 @@ export default function Documents() {
     if (filteredDocuments.length === 0) return renderEmptyState();
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {filteredDocuments.map((doc) => {
           const type = getDocumentType(doc.fileType, doc.name);
           return (
-            <div key={doc.id} className="border border-border rounded-lg p-4 hover:border-primary/50 transition-colors">
+            <div key={doc.id} className="border border-border rounded-xl p-3 hover:border-primary/50 transition-colors">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-3">{getFileIcon(type)}</div>
                 <p className="font-medium text-sm mb-1 line-clamp-2">{doc.name}</p>
                 <p className="text-xs text-muted-foreground mb-2">{formatBytes(doc.fileSize)}</p>
                 <span className="text-xs px-2 py-1 bg-muted rounded">{formatCategory(doc.category)}</span>
               </div>
-              <div className="mt-4 pt-4 border-t border-border space-y-1">
+              <div className="mt-3 pt-3 border-t border-border space-y-1">
                 <p className="text-xs text-muted-foreground">Uploaded by {doc.uploadedByName || 'Unknown user'}</p>
                 <p className="text-xs text-muted-foreground">
                   {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : 'Unknown date'}
@@ -267,10 +267,10 @@ export default function Documents() {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-2.5">
                 <button
                   onClick={() => handleDownload(doc)}
-                  className="flex-1 px-3 py-1.5 text-xs border border-border rounded hover:bg-secondary transition-colors"
+                  className="flex-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-medium hover:bg-secondary transition-colors"
                 >
                   Download
                 </button>
@@ -279,7 +279,7 @@ export default function Documents() {
                     setSelectedItem(doc);
                     setIsDeleteModalOpen(true);
                   }}
-                  className="flex-1 px-3 py-1.5 text-xs border border-border rounded hover:bg-secondary transition-colors"
+                  className="flex-1 rounded-full border border-border px-3 py-1.5 text-[11px] font-medium hover:bg-secondary transition-colors"
                 >
                   Delete
                 </button>
@@ -295,18 +295,18 @@ export default function Documents() {
     if (filteredDocuments.length === 0) return renderEmptyState();
 
     return (
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-2xl overflow-hidden">
         <table className="w-full">
           <thead className="bg-muted/50">
             <tr>
-              <th className="text-left p-3 text-xs font-semibold">Name</th>
-              <th className="text-left p-3 text-xs font-semibold">Type</th>
-              <th className="text-left p-3 text-xs font-semibold">Size</th>
-              <th className="text-left p-3 text-xs font-semibold">Category</th>
-              <th className="text-left p-3 text-xs font-semibold">Uploaded By</th>
-              <th className="text-left p-3 text-xs font-semibold">Date</th>
-              <th className="text-left p-3 text-xs font-semibold">Related To</th>
-              <th className="text-right p-3 text-xs font-semibold">Actions</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold">Name</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold">Type</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold">Size</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold">Category</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold">Uploaded By</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold">Date</th>
+              <th className="text-left px-3 py-2 text-xs font-semibold">Related To</th>
+              <th className="text-right px-3 py-2 text-xs font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -314,27 +314,27 @@ export default function Documents() {
               const type = getDocumentType(doc.fileType, doc.name);
               return (
                 <tr key={doc.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="p-3">
+                  <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       {getFileIcon(type)}
                       <span className="text-sm font-medium">{doc.name}</span>
                     </div>
                   </td>
-                  <td className="p-3 text-sm text-muted-foreground uppercase">{doc.fileType || type}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{formatBytes(doc.fileSize)}</td>
-                  <td className="p-3">
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground uppercase">{doc.fileType || type}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{formatBytes(doc.fileSize)}</td>
+                  <td className="px-3 py-2.5">
                     <span className="text-xs px-2 py-1 bg-muted rounded">{formatCategory(doc.category)}</span>
                   </td>
-                  <td className="p-3 text-sm">{doc.uploadedByName || 'Unknown user'}</td>
-                  <td className="p-3 text-sm text-muted-foreground">
+                  <td className="px-3 py-2.5 text-sm">{doc.uploadedByName || 'Unknown user'}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">
                     {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '-'}
                   </td>
-                  <td className="p-3 text-sm text-primary">
+                  <td className="px-3 py-2.5 text-sm text-primary">
                     {doc.relatedEntityType && doc.relatedEntityId
                       ? `${doc.relatedEntityType}: ${doc.relatedEntityId}`
                       : '-'}
                   </td>
-                  <td className="p-3">
+                  <td className="px-3 py-2.5">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => handleDownload(doc)} className="p-1.5 hover:bg-secondary rounded transition-colors">
                         <Icons.Download size={16} className="text-muted-foreground" />
@@ -367,21 +367,21 @@ export default function Documents() {
       actions={
         <button
           onClick={() => setIsUploadOpen(true)}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Icons.Upload size={16} />
+          <Icons.Upload size={14} />
           Add Document
         </button>
       }
     >
       <div className="border-b border-border bg-background">
-        <div className="flex overflow-x-auto px-6">
+        <div className="flex overflow-x-auto px-5">
           {categories.map((category) => (
             <button
               key={category.label}
               onClick={() => setActiveCategory(category.value)}
               className={cn(
-                'px-4 py-3 border-b-2 transition-colors text-sm font-medium whitespace-nowrap',
+                'px-3 py-2.5 border-b-2 transition-colors text-xs font-medium whitespace-nowrap',
                 activeCategory === category.value
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -393,7 +393,7 @@ export default function Documents() {
         </div>
       </div>
 
-      <div className="p-4 border-b border-border flex items-center justify-between gap-4">
+      <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="relative">
             <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -402,30 +402,30 @@ export default function Documents() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search documents..."
-              className="pl-9 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
+              className="h-9 w-64 rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-[11px] text-muted-foreground">
             Backend-backed records: {documentsData?.totalElements ?? filteredDocuments.length}
           </div>
         </div>
-        <div className="flex gap-1 border border-border rounded-lg">
+        <div className="flex gap-1 rounded-full border border-border p-0.5">
           <button
             onClick={() => setViewMode('grid')}
-            className={cn('p-2 rounded-l transition-colors', viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary')}
+            className={cn('flex h-8 w-8 items-center justify-center rounded-full transition-colors', viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary')}
           >
             <Icons.Grid size={16} />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={cn('p-2 rounded-r transition-colors', viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary')}
+            className={cn('flex h-8 w-8 items-center justify-center rounded-full transition-colors', viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary')}
           >
             <Icons.List size={16} />
           </button>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-5">
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Loading documents...</div>
         ) : viewMode === 'grid' ? (
