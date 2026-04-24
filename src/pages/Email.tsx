@@ -281,17 +281,17 @@ export default function EmailPage() {
       }
     >
       <div className="border-b border-border bg-background">
-        <div className="flex px-5">
+        <div className="flex flex-wrap gap-1.5 px-5 py-2.5">
           <button
             onClick={() => {
               setActiveTab('INBOX');
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-3 py-2.5 border-b-2 transition-colors text-xs font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'INBOX'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Inbox
@@ -302,10 +302,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-3 py-2.5 border-b-2 transition-colors text-xs font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'SENT'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Sent
@@ -316,10 +316,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-3 py-2.5 border-b-2 transition-colors text-xs font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'DRAFTS'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Drafts
@@ -330,10 +330,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-3 py-2.5 border-b-2 transition-colors text-xs font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'TEMPLATES'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Templates

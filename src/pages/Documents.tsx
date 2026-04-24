@@ -375,16 +375,16 @@ export default function Documents() {
       }
     >
       <div className="border-b border-border bg-background">
-        <div className="flex overflow-x-auto px-5">
+        <div className="flex flex-wrap gap-1.5 overflow-x-auto px-5 py-2.5">
           {categories.map((category) => (
             <button
               key={category.label}
               onClick={() => setActiveCategory(category.value)}
               className={cn(
-                'px-3 py-2.5 border-b-2 transition-colors text-xs font-medium whitespace-nowrap',
+                'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium whitespace-nowrap transition-colors',
                 activeCategory === category.value
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                  ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                  : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
               )}
             >
               {category.label}

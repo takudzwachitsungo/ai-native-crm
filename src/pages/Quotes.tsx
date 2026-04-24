@@ -167,20 +167,23 @@ export default function QuotesPage() {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex gap-1 border-b border-border -mb-px overflow-x-auto">
+          <div className="flex flex-wrap gap-1.5 overflow-x-auto">
             {(["all", "draft", "sent", "accepted", "declined", "expired"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
                 className={cn(
-                  "px-3 py-2 text-xs font-medium border-b-2 transition-colors capitalize whitespace-nowrap",
+                  "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium capitalize whitespace-nowrap transition-colors",
                   filter === status
-                    ? "text-primary border-primary"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70"
                 )}
               >
-                {status === "all" ? "All Quotes" : status}
-                <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-muted">
+                <span>{status === "all" ? "All Quotes" : status}</span>
+                <span className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                  filter === status ? "bg-primary-foreground/16 text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}>
                   {statusCounts[status]}
                 </span>
               </button>

@@ -160,19 +160,25 @@ export default function Invoices() {
 
       {/* Tabs */}
       <div className="border-b border-border bg-background">
-        <div className="flex px-5">
+        <div className="flex flex-wrap gap-1.5 px-5 py-2.5">
           {(['all', 'paid', 'pending', 'overdue', 'draft'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "px-3 py-2.5 border-b-2 transition-colors text-xs font-medium capitalize",
+                "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium capitalize transition-colors",
                 activeTab === tab
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70"
               )}
             >
-              {tab} {tab !== 'all' && `(${invoices.filter((inv: any) => inv.status === tab).length})`}
+              <span>{tab === 'all' ? 'All' : tab}</span>
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                activeTab === tab ? "bg-primary-foreground/16 text-primary-foreground" : "bg-secondary text-muted-foreground"
+              )}>
+                {tab === 'all' ? invoices.length : invoices.filter((inv: any) => inv.status === tab).length}
+              </span>
             </button>
           ))}
         </div>

@@ -564,21 +564,25 @@ export default function DealsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 border-b border-border -mb-px overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto">
             {stageTabs.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setStageFilter(tab.value)}
                 className={cn(
-                  "px-3 py-2 text-xs font-medium transition-colors relative whitespace-nowrap",
-                  stageFilter === tab.value ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium whitespace-nowrap transition-colors",
+                  stageFilter === tab.value
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70"
                 )}
               >
-                {tab.label}
-                <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-secondary">
+                <span>{tab.label}</span>
+                <span className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                  stageFilter === tab.value ? "bg-primary-foreground/16 text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}>
                   {tab.value === "all" ? stageCounts.all : stageCounts[tab.value as keyof typeof stageCounts]}
                 </span>
-                {stageFilter === tab.value && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
               </button>
             ))}
           </div>

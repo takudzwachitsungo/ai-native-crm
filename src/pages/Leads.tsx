@@ -414,8 +414,8 @@ export default function LeadsPage() {
 
           {/* Status Pipeline Bar */}
           <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center flex-1" style={{ gap: '2px' }}>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="flex flex-1 flex-wrap items-center gap-1.5">
                 {[
                   { value: "all", label: "All Leads" },
                   { value: "new", label: "New" },
@@ -423,59 +423,32 @@ export default function LeadsPage() {
                   { value: "qualified", label: "Qualified" },
                   { value: "unqualified", label: "Unqualified" },
                   { value: "lost", label: "Lost" },
-                ].map((tab, index, arr) => {
+                ].map((tab) => {
                   const isActive = filter === tab.value;
-                  const activeIndex = arr.findIndex(t => t.value === filter);
-                  const isPast = activeIndex > -1 && index < activeIndex;
+                  const count = statusCounts[tab.value as keyof typeof statusCounts] ?? 0;
+
                   return (
                     <button
                       key={tab.value}
                       onClick={() => setFilter(tab.value)}
-                      className="relative flex-1 focus:outline-none"
-                      style={{ zIndex: arr.length - index }}
+                      className={cn(
+                        "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium transition-colors",
+                        isActive
+                          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                          : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70"
+                      )}
                     >
-                      <svg
-                        viewBox="0 0 200 32"
-                        preserveAspectRatio="none"
-                        className="w-full"
-                        style={{ height: '30px', marginLeft: index > 0 ? '-4px' : '0' }}
+                      <span>{tab.label}</span>
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                          isActive
+                            ? "bg-primary-foreground/16 text-primary-foreground"
+                            : "bg-secondary text-muted-foreground"
+                        )}
                       >
-                        <path
-                          d={
-                            index === 0
-                              ? 'M6,1 L184,1 L199,16 L184,31 L6,31 Q1,31 1,26 L1,6 Q1,1 6,1 Z'
-                              : index === arr.length - 1
-                              ? 'M1,1 L15,16 L1,31 L194,31 Q199,31 199,26 L199,6 Q199,1 194,1 Z'
-                              : 'M1,1 L15,16 L1,31 L184,31 L199,16 L184,1 Z'
-                          }
-                          className={cn(
-                            "transition-all duration-200",
-                            isActive
-                              ? "fill-primary stroke-primary"
-                              : isPast
-                              ? "fill-primary/10 stroke-primary/25"
-                              : "fill-[#f3f4f6] dark:fill-[#1f2937] stroke-[#cbd5e1] dark:stroke-[#4b5563]"
-                          )}
-                          strokeWidth="0.75"
-                        />
-                        <text
-                          x="100"
-                          y="17"
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          className={cn(
-                            "select-none pointer-events-none",
-                            isActive
-                              ? "fill-primary-foreground"
-                              : isPast
-                              ? "fill-primary"
-                              : "fill-muted-foreground"
-                          )}
-                          style={{ fontSize: '11px', fontWeight: 500 }}
-                        >
-                          {tab.label}
-                        </text>
-                      </svg>
+                        {count}
+                      </span>
                     </button>
                   );
                 })}
