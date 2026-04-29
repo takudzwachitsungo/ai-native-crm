@@ -131,8 +131,8 @@ export default function Invoices() {
       }
     >
       {/* Stats */}
-      <div className="px-5 py-4 border-b border-border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
+        <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-4">
           <div className="px-3 py-2 border border-border rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
             <p className="text-lg font-bold">${totalRevenue.toLocaleString()}</p>
@@ -159,8 +159,9 @@ export default function Invoices() {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-border bg-background">
-        <div className="flex flex-wrap gap-1.5 px-5 py-2.5">
+      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-5 lg:px-6">
+        <div className="rounded-2xl border border-border bg-background p-2.5 shadow-sm">
+          <div className="flex flex-wrap gap-1.5">
           {(['all', 'paid', 'pending', 'overdue', 'draft'] as const).map((tab) => (
             <button
               key={tab}
@@ -181,11 +182,12 @@ export default function Invoices() {
               </span>
             </button>
           ))}
+          </div>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-4 py-4 sm:px-5 lg:px-6">
         <div className="flex items-center gap-2">
           <div className="relative">
             <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -222,7 +224,7 @@ export default function Invoices() {
       </div>
 
       {/* Invoice List */}
-      <div className="p-5">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pb-4 sm:px-5 lg:px-6">
         <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -334,7 +336,7 @@ export default function Invoices() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5 lg:px-6">
         <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} invoices
         </div>

@@ -202,7 +202,7 @@ export default function Forecasting() {
         subtitle="Forecast categories, snapshots, and rollup hierarchy"
         icon={<Icons.TrendingUp size={20} />}
       >
-        <div className="p-6">
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
           <LoadingSkeleton count={6} height={64} />
         </div>
       </PageLayout>
@@ -216,7 +216,7 @@ export default function Forecasting() {
         subtitle="Forecast categories, snapshots, and rollup hierarchy"
         icon={<Icons.TrendingUp size={20} />}
       >
-        <div className="p-6">
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
           <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-4 rounded-lg">
             <p className="font-semibold">Error loading forecast</p>
             <p className="text-sm mt-1">{error}</p>
@@ -285,12 +285,12 @@ export default function Forecasting() {
         </div>
       )}
     >
-      <div className="p-5 space-y-5">
+      <div className="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-4 sm:px-5 lg:px-6">
         {forecastData.degraded_mode && (
           <AIDegradedNotice reason={forecastData.degraded_reason} />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
           <div className="border border-border rounded-xl p-4 space-y-3">
             <div>
               <h3 className="text-base font-semibold">Forecast Controls</h3>
@@ -372,7 +372,7 @@ export default function Forecasting() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1fr] gap-6">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1fr]">
           <div className="border border-border rounded-xl p-4 space-y-3">
             <div>
               <h3 className="text-base font-semibold">Forecast Review Workflow</h3>

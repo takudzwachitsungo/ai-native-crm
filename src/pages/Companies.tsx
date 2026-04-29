@@ -159,8 +159,9 @@ export default function CompaniesPage() {
 
   return (
     <PageLayout>
-      <div className="border-b border-border bg-card">
-        <div className="px-5 py-3.5">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-[26px] leading-none font-semibold text-foreground">Companies</h1>
             <div className="flex items-center gap-2">
@@ -204,7 +205,7 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 mb-3">
+          <div className="grid grid-cols-1 gap-2.5 mb-3 md:grid-cols-4">
             <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground">Total Accounts</p>
               <p className="text-lg leading-none font-semibold text-foreground mt-1">{totalElements}</p>
@@ -223,7 +224,7 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -258,7 +259,8 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
+            <div className="flex flex-wrap gap-1.5">
             {(["all", "active", "prospect", "inactive"] as const).map((status) => (
               <button
                 key={status}
@@ -279,11 +281,12 @@ export default function CompaniesPage() {
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="space-y-4">
         {canManageTerritories && (
           <div className="mb-4 rounded-lg border border-border bg-card p-4">
             <div className="flex items-start justify-between gap-4 mb-3">
@@ -478,9 +481,9 @@ export default function CompaniesPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3">
             {filteredCompanies.map((company) => (
-              <div key={company.id} className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div key={company.id} className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
@@ -586,7 +589,7 @@ export default function CompaniesPage() {
         )}
       </div>
 
-      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
         <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} companies
         </div>
@@ -631,6 +634,7 @@ export default function CompaniesPage() {
             Next
           </button>
         </div>
+      </div>
       </div>
 
       <CompanyForm

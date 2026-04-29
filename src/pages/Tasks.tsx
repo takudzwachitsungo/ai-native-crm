@@ -144,9 +144,10 @@ export default function TasksPage() {
 
   return (
     <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="px-5 py-3.5">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-[26px] leading-none font-semibold text-foreground">Tasks</h1>
             <div className="flex items-center gap-2">
@@ -186,7 +187,7 @@ export default function TasksPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -222,7 +223,8 @@ export default function TasksPage() {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
+            <div className="flex flex-wrap gap-1.5">
             {(["all", "todo", "in-progress", "completed"] as const).map((status) => (
               <button
                 key={status}
@@ -243,12 +245,13 @@ export default function TasksPage() {
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="space-y-4">
         {viewMode === "list" ? (
           <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
             <div className="overflow-x-auto">
@@ -363,13 +366,13 @@ export default function TasksPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             {(["todo", "in-progress", "completed"] as const).map((status) => {
               const statusKey = status === 'in-progress' ? 'IN_PROGRESS' : status.toUpperCase();
               const statusTasks = filteredTasks.filter(t => t.status === statusKey);
               
               return (
-                <div key={status} className="space-y-3">
+                <div key={status} className="space-y-3 rounded-2xl border border-border/70 bg-card p-3.5">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold capitalize">{status.replace("-", " ")}</h3>
                     <span className="text-sm text-muted-foreground">
@@ -426,7 +429,7 @@ export default function TasksPage() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
         <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} tasks
         </div>
@@ -473,6 +476,7 @@ export default function TasksPage() {
             Next
           </button>
         </div>
+      </div>
       </div>
 
       {/* Form Modal */}

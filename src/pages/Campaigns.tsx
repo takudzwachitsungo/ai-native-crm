@@ -127,8 +127,9 @@ export default function CampaignsPage() {
 
   return (
     <PageLayout>
-      <div className="border-b border-border bg-card">
-        <div className="px-5 py-3.5">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-[26px] leading-none font-semibold text-foreground">Campaigns</h1>
@@ -148,7 +149,7 @@ export default function CampaignsPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-2.5 mb-3">
+          <div className="grid grid-cols-1 gap-2.5 mb-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="border border-border rounded-lg px-3 py-2 bg-background">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Campaigns</p>
               <p className="text-lg leading-none font-semibold mt-1.5">{campaignStats?.totalCampaigns ?? 0}</p>
@@ -175,7 +176,7 @@ export default function CampaignsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-2.5">
+          <div className="flex flex-col gap-2 md:flex-row">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -209,7 +210,7 @@ export default function CampaignsPage() {
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="space-y-4">
         {isLoading ? (
           <div className="border border-border rounded-lg bg-card p-8 text-center text-muted-foreground">
             Loading campaigns...
@@ -321,7 +322,7 @@ export default function CampaignsPage() {
         )}
       </div>
 
-      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
         <div className="text-xs text-muted-foreground">
           Showing {Math.min(currentPage * pageSize + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} campaigns
         </div>
@@ -350,6 +351,7 @@ export default function CampaignsPage() {
             Next
           </button>
         </div>
+      </div>
       </div>
 
       <CampaignForm

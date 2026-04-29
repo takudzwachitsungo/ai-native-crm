@@ -183,8 +183,9 @@ export default function PipelinePage() {
 
   return (
     <PageLayout>
-      <div className="border-b border-border bg-card">
-        <div className="px-5 py-3.5">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-[26px] leading-none font-semibold text-foreground">Pipeline</h1>
@@ -198,7 +199,7 @@ export default function PipelinePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 py-3 border-t border-border">
+          <div className="grid grid-cols-1 gap-2.5 border-t border-border pt-3 md:grid-cols-4">
             <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground mb-1">Total Pipeline Value</p>
               <p className="text-lg font-semibold text-foreground">${totalPipelineValue.toLocaleString()}</p>
@@ -221,8 +222,8 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      <div className="p-5 overflow-x-auto">
-        <div className="flex gap-3 min-w-max">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card p-3.5">
+        <div className="flex min-w-max gap-3">
           {stages.map((stage) => (
             <div
               key={stage.id}
@@ -230,7 +231,7 @@ export default function PipelinePage() {
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, stage.id)}
               className={cn(
-                "w-[19rem] bg-card border border-border rounded-2xl flex-shrink-0 transition-all",
+                "w-[18rem] bg-card border border-border rounded-2xl flex-shrink-0 transition-all",
                 dragOverStage === stage.id && "ring-2 ring-primary/50 bg-primary/5"
               )}
             >
@@ -244,7 +245,7 @@ export default function PipelinePage() {
                 <p className="text-xs font-medium text-foreground">${stage.totalValue.toLocaleString()}</p>
               </div>
 
-              <div className="p-2.5 space-y-2.5 min-h-[380px] max-h-[560px] overflow-y-auto">
+              <div className="min-h-[360px] max-h-[540px] space-y-2 overflow-y-auto p-2.5">
                 {stage.deals.map((deal) => (
                   <div
                     key={deal.id}
@@ -306,6 +307,7 @@ export default function PipelinePage() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </PageLayout>
   );

@@ -144,7 +144,7 @@ export default function EmailPage() {
     }
 
     return (
-      <div className="flex h-[calc(100vh-190px)]">
+      <div className="mx-auto flex h-[calc(100vh-210px)] w-full max-w-[1600px] overflow-hidden rounded-2xl border border-border/70 bg-card">
         <div
           className={cn(
             'border-r border-border overflow-y-auto',
@@ -188,7 +188,7 @@ export default function EmailPage() {
 
         {selectedEmail && (
           <div className="flex-1 overflow-y-auto">
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h2 className="text-lg font-semibold mb-1">{selectedEmail.subject || '(No Subject)'}</h2>
@@ -280,8 +280,8 @@ export default function EmailPage() {
         </div>
       }
     >
-      <div className="border-b border-border bg-background">
-        <div className="flex flex-wrap gap-1.5 px-5 py-2.5">
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
+        <div className="flex flex-wrap gap-1.5 rounded-2xl border border-border bg-background p-2.5 shadow-sm">
           <button
             onClick={() => {
               setActiveTab('INBOX');

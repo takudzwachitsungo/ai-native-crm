@@ -115,9 +115,10 @@ export default function QuotesPage() {
 
   return (
     <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="px-5 py-3.5">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-[26px] leading-none font-semibold text-foreground">Quotes</h1>
             <div className="flex items-center gap-2">
@@ -153,7 +154,7 @@ export default function QuotesPage() {
           </div>
 
           {/* Search */}
-          <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -167,7 +168,8 @@ export default function QuotesPage() {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex flex-wrap gap-1.5 overflow-x-auto">
+          <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
+            <div className="flex flex-wrap gap-1.5 overflow-x-auto">
             {(["all", "draft", "sent", "accepted", "declined", "expired"] as const).map((status) => (
               <button
                 key={status}
@@ -188,12 +190,13 @@ export default function QuotesPage() {
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="space-y-4">
         <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -304,7 +307,7 @@ export default function QuotesPage() {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="bg-card border border-border rounded-lg p-3">
             <p className="text-sm text-muted-foreground mb-1">Total Value</p>
             <p className="text-lg font-semibold text-foreground">
@@ -347,7 +350,7 @@ export default function QuotesPage() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
         <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} quotes
         </div>
@@ -394,6 +397,7 @@ export default function QuotesPage() {
             Next
           </button>
         </div>
+      </div>
       </div>
 
       {/* View Modal */}

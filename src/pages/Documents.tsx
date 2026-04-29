@@ -245,11 +245,11 @@ export default function Documents() {
     if (filteredDocuments.length === 0) return renderEmptyState();
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredDocuments.map((doc) => {
           const type = getDocumentType(doc.fileType, doc.name);
           return (
-            <div key={doc.id} className="border border-border rounded-xl p-3 hover:border-primary/50 transition-colors">
+            <div key={doc.id} className="border border-border rounded-xl bg-card p-3 hover:border-primary/50 transition-colors">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-3">{getFileIcon(type)}</div>
                 <p className="font-medium text-sm mb-1 line-clamp-2">{doc.name}</p>
@@ -295,7 +295,7 @@ export default function Documents() {
     if (filteredDocuments.length === 0) return renderEmptyState();
 
     return (
-      <div className="border border-border rounded-2xl overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
         <table className="w-full">
           <thead className="bg-muted/50">
             <tr>
@@ -374,8 +374,8 @@ export default function Documents() {
         </button>
       }
     >
-      <div className="border-b border-border bg-background">
-        <div className="flex flex-wrap gap-1.5 overflow-x-auto px-5 py-2.5">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pt-4 sm:px-5 lg:px-6">
+        <div className="flex flex-wrap gap-1.5 overflow-x-auto rounded-2xl border border-border bg-background p-2.5 shadow-sm">
           {categories.map((category) => (
             <button
               key={category.label}
@@ -393,7 +393,7 @@ export default function Documents() {
         </div>
       </div>
 
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-4">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-4 sm:px-5 lg:px-6">
         <div className="flex items-center gap-2">
           <div className="relative">
             <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -425,7 +425,7 @@ export default function Documents() {
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pb-4 sm:px-5 lg:px-6">
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Loading documents...</div>
         ) : viewMode === 'grid' ? (

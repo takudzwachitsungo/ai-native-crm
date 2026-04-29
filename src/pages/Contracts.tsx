@@ -436,8 +436,8 @@ export default function ContractsPage() {
         </div>
       }
     >
-      <div className="px-5 py-4 border-b border-border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
+        <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-4">
           <div className="px-3 py-2 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Total Contracts</p><p className="text-lg font-semibold">{stats.total}</p></div>
           <div className="px-3 py-2 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Active</p><p className="text-lg font-semibold text-green-600">{stats.active}</p></div>
           <div className="px-3 py-2 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Renewal Due</p><p className="text-lg font-semibold text-amber-600">{stats.renewalDue}</p></div>
@@ -445,7 +445,7 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="px-5 py-3 border-b border-border flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 px-4 pb-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
         <div className="flex items-center gap-2 flex-1">
           <div className="relative flex-1 max-w-md">
             <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -481,7 +481,7 @@ export default function ContractsPage() {
         </button>
       </div>
 
-      <div className="p-5">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pb-4 sm:px-5 lg:px-6">
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
           <div className="overflow-x-auto">
           <table className="w-full border-collapse">

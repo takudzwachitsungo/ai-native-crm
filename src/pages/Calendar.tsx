@@ -159,7 +159,21 @@ export default function CalendarPage() {
     return days;
   };
 
+  const getMonthDays = () => {
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const startDate = new Date(firstDay);
+    startDate.setDate(firstDay.getDate() - startOffset);
+
+    return Array.from({ length: 42 }, (_, index) => {
+      const day = new Date(startDate);
+      day.setDate(startDate.getDate() + index);
+      return day;
+    });
+  };
+
   const weekDays = getWeekDays();
+  const monthDays = getMonthDays();
   const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -174,13 +188,21 @@ export default function CalendarPage() {
 
   const goToPreviousWeek = () => {
     const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() - 7);
+    if (view === "month") {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else {
+      newDate.setDate(newDate.getDate() - 7);
+    }
     setCurrentDate(newDate);
   };
 
   const goToNextWeek = () => {
     const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + 7);
+    if (view === "month") {
+      newDate.setMonth(newDate.getMonth() + 1);
+    } else {
+      newDate.setDate(newDate.getDate() + 7);
+    }
     setCurrentDate(newDate);
   };
 
@@ -200,6 +222,11 @@ export default function CalendarPage() {
   const totalMeetings = filteredEvents.length;
   const todayKey = formatDateKey(new Date());
   const todayMeetings = eventsByDate[todayKey]?.length || 0;
+  const todayEvents = eventsByDate[todayKey] || [];
+
+  const isCurrentMonth = (date: Date) => {
+    return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+  };
 
   const eventCounts = {
     all: allEvents.length,
@@ -210,16 +237,17 @@ export default function CalendarPage() {
 
   return (
     <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-semibold text-foreground">Calendar</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => syncGoogleWorkspaceMutation.mutate()}
                 disabled={syncGoogleWorkspaceMutation.isPending}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60 disabled:opacity-50"
               >
                 <Icons.Download size={16} />
                 {syncGoogleWorkspaceMutation.isPending ? 'Syncing Google...' : 'Sync Google'}
@@ -227,7 +255,7 @@ export default function CalendarPage() {
               <button
                 onClick={() => syncMicrosoft365Mutation.mutate()}
                 disabled={syncMicrosoft365Mutation.isPending}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60 disabled:opacity-50"
               >
                 <Icons.Download size={16} />
                 {syncMicrosoft365Mutation.isPending ? 'Syncing Outlook...' : 'Sync Outlook'}
@@ -244,7 +272,7 @@ export default function CalendarPage() {
                   ], 'calendar-events');
                   showToast(`Exported ${events.length} events`, 'success');
                 }}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
               >
                 <Icons.Download size={16} />
                 Export
@@ -254,7 +282,7 @@ export default function CalendarPage() {
                   setSelectedItem(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Icons.Plus size={16} />
                 New Event
@@ -263,7 +291,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Search and Controls */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2 mb-4">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -271,32 +299,32 @@ export default function CalendarPage() {
                 placeholder="Search events..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={goToPreviousWeek}
-                className="p-2 hover:bg-secondary rounded transition-colors border border-border"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary"
               >
                 <Icons.ChevronRight size={18} className="rotate-180" />
               </button>
               <button
                 onClick={goToToday}
-                className="px-3 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors"
+                className="inline-flex h-8 items-center rounded-full border border-border px-3 text-xs font-medium transition-colors hover:bg-secondary"
               >
                 Today
               </button>
               <button
                 onClick={goToNextWeek}
-                className="p-2 hover:bg-secondary rounded transition-colors border border-border"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary"
               >
                 <Icons.ChevronRight size={18} />
               </button>
               <button
                 onClick={() => setView("week")}
                 className={cn(
-                  "px-3 py-2 text-sm rounded border",
+                  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors",
                   view === "week" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
               >
@@ -305,7 +333,7 @@ export default function CalendarPage() {
               <button
                 onClick={() => setView("month")}
                 className={cn(
-                  "px-3 py-2 text-sm rounded border",
+                  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors",
                   view === "month" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
               >
@@ -327,183 +355,249 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar Content */}
-      <div className="p-6">
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          {view === "week" ? (
-            <div className="grid grid-cols-7">
-              {weekDays.map((day, index) => {
-                const dateKey = formatDateKey(day);
-                const dayEvents = eventsByDate[dateKey] || [];
-                const today = isToday(day);
-
-                return (
-                  <div
-                    key={index}
-                    className={cn(
-                      "border-r border-border last:border-r-0 flex flex-col min-h-[600px]",
-                      today && "bg-primary/5"
-                    )}
+      <div className="space-y-4">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="grid min-h-[720px] grid-cols-[260px_minmax(0,1fr)]">
+            <aside className="border-r border-border bg-muted/20">
+              <div className="border-b border-border px-4 py-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <button
+                    onClick={goToPreviousWeek}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary"
                   >
-                    {/* Day Header */}
-                    <div className={cn(
-                      "p-3 border-b border-border text-center",
-                      today && "bg-primary/10"
-                    )}>
-                      <p className="text-xs text-muted-foreground uppercase">{dayNames[index]}</p>
-                      <p className={cn(
-                        "text-lg font-semibold mt-1",
-                        today ? "text-primary" : "text-foreground"
-                      )}>
-                        {day.getDate()}
-                      </p>
-                    </div>
-
-                    {/* Events */}
-                    <div className="flex-1 p-2 space-y-2 overflow-y-auto">
-                      {dayEvents.map((event) => {
-                        // Find the original event data for editing
-                        const originalEvent = events.find(e => e.id === event.id);
-                        return (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "p-2 rounded border text-xs cursor-pointer hover:shadow-sm transition-shadow group relative",
-                            eventTypeColors[event.type] || eventTypeColors.OTHER
-                          )}
-                        >
-                          {/* Edit/Delete buttons */}
-                          <div className="absolute top-1 right-1 hidden group-hover:flex items-center gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedItem(originalEvent || null);
-                                setIsFormOpen(true);
-                              }}
-                              className="p-1 rounded hover:bg-background/50"
-                              title="Edit"
-                            >
-                              <Icons.Edit size={10} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedItem(originalEvent || null);
-                                setIsDeleteModalOpen(true);
-                              }}
-                              className="p-1 rounded hover:bg-red-100 text-red-600"
-                              title="Delete"
-                            >
-                              <Icons.Trash size={10} />
-                            </button>
-                          </div>
-                          <div className="flex items-start justify-between gap-1 mb-1">
-                            <p className="font-medium text-xs leading-tight line-clamp-2">{event.title}</p>
-                            <span className="text-[10px] px-1 py-0.5 bg-background/50 rounded capitalize whitespace-nowrap">
-                              {event.type.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Icons.Clock size={10} />
-                            <span className="text-[10px]">{event.time}</span>
-                          </div>
-                          {event.company && (
-                            <p className="text-[10px] truncate mt-1 opacity-75">{event.company}</p>
-                          )}
-                        </div>
-                        );
-                      })}
-                      {dayEvents.length === 0 && (
-                        <div className="text-center py-6 text-muted-foreground/50">
-                          <p className="text-xs">No events</p>
-                        </div>
-                      )}
-                    </div>
+                    <Icons.ChevronRight size={16} className="rotate-180" />
+                  </button>
+                  <div className="text-sm font-semibold text-foreground">
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="p-4">
-              {/* Month View - Simple List */}
-              <div className="space-y-3 max-h-[700px] overflow-y-auto">
-                {Object.entries(eventsByDate).map(([date, dayEvents]) => (
-                  <div key={date} className="border-b border-border pb-3 last:border-b-0">
-                    <h3 className="text-sm font-semibold mb-2 text-muted-foreground">
-                      {new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </h3>
-                    <div className="space-y-2">
-                      {dayEvents.map((event) => {
-                        const originalEvent = events.find(e => e.id === event.id);
-                        return (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "p-3 rounded border cursor-pointer hover:shadow-sm transition-shadow group relative",
-                            eventTypeColors[event.type] || eventTypeColors.OTHER
-                          )}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-sm">{event.title}</h4>
-                              <div className="flex items-center gap-3 mt-1 text-xs">
-                                <div className="flex items-center gap-1">
-                                  <Icons.Clock size={12} />
-                                  <span>{event.time} · {event.duration}</span>
-                                </div>
-                                {event.company && (
-                                  <div className="flex items-center gap-1">
-                                    <Icons.Building2 size={12} />
-                                    <span>{event.company}</span>
-                                  </div>
-                                )}
-                              </div>
-                              {event.description && (
-                                <p className="text-xs mt-2 opacity-75">{event.description}</p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 ml-2">
-                              <span className="text-xs px-2 py-1 bg-background/50 rounded capitalize whitespace-nowrap">
-                                {event.type.toLowerCase().replace('_', ' ')}
-                              </span>
-                              <div className="hidden group-hover:flex items-center gap-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedItem(originalEvent || null);
-                                    setIsFormOpen(true);
-                                  }}
-                                  className="p-1 rounded hover:bg-background/50"
-                                  title="Edit"
-                                >
-                                  <Icons.Edit size={14} />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedItem(originalEvent || null);
-                                    setIsDeleteModalOpen(true);
-                                  }}
-                                  className="p-1 rounded hover:bg-red-100 text-red-600"
-                                  title="Delete"
-                                >
-                                  <Icons.Trash size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
+                  <button
+                    onClick={goToNextWeek}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary"
+                  >
+                    <Icons.ChevronRight size={16} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-7 gap-y-2 text-center text-[11px] font-medium text-muted-foreground">
+                  {dayNames.map((day) => (
+                    <span key={day}>{day.slice(0, 2)}</span>
+                  ))}
+                  {monthDays.map((day) => {
+                    const today = isToday(day);
+                    const inMonth = isCurrentMonth(day);
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        onClick={() => setCurrentDate(day)}
+                        className={cn(
+                          "mx-auto flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors",
+                          today
+                            ? "bg-primary text-primary-foreground"
+                            : inMonth
+                              ? "text-foreground hover:bg-secondary"
+                              : "text-muted-foreground/50 hover:bg-secondary"
+                        )}
+                      >
+                        {day.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-6 px-4 py-4">
+                <section>
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">Task Due Today</h3>
+                  <div className="space-y-2">
+                    {todayEvents.length > 0 ? todayEvents.slice(0, 5).map((event) => (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          "rounded-lg border bg-background px-3 py-2 text-sm",
+                          eventTypeColors[event.type] || eventTypeColors.OTHER
+                        )}
+                      >
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <Icons.Clock size={11} />
+                          <span>{event.time}</span>
                         </div>
-                        );
-                      })}
-                    </div>
+                        <div className="mt-1 truncate font-medium text-foreground">{event.title}</div>
+                      </div>
+                    )) : (
+                      <div className="rounded-lg border border-dashed border-border bg-background px-3 py-4 text-sm text-muted-foreground">
+                        No events scheduled today.
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">Calendar Setting</h3>
+                  <div className="space-y-2">
+                    {Object.entries(eventTypeColors).map(([type, color]) => (
+                      <div key={type} className="flex items-center justify-between rounded-lg bg-background px-3 py-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("h-3 w-3 rounded-full border", color)} />
+                          <span className="capitalize text-foreground">{type.toLowerCase().replace('_', ' ')}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{allEvents.filter((event) => event.type === type).length}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </aside>
+
+            <div className="min-w-0 bg-card">
+              <div className="grid grid-cols-7 border-b border-border bg-background/60">
+                {dayNames.map((day) => (
+                  <div key={day} className="border-r border-border px-4 py-3 text-sm font-medium text-muted-foreground last:border-r-0">
+                    {day}
                   </div>
                 ))}
               </div>
+
+              {view === "week" ? (
+                <div className="grid grid-cols-7">
+                  {weekDays.map((day, index) => {
+                    const dateKey = formatDateKey(day);
+                    const dayEvents = eventsByDate[dateKey] || [];
+                    const today = isToday(day);
+
+                    return (
+                      <div
+                        key={index}
+                        className={cn(
+                          "min-h-[640px] border-r border-border px-3 py-3 last:border-r-0",
+                          today && "bg-primary/5"
+                        )}
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="text-sm font-semibold text-foreground">{day.getDate()}</span>
+                          <span className="text-xs text-muted-foreground">{dayEvents.length || ""}</span>
+                        </div>
+                        <div className="space-y-2">
+                          {dayEvents.map((event) => {
+                            const originalEvent = events.find((item) => item.id === event.id);
+                            return (
+                              <div
+                                key={event.id}
+                                className={cn(
+                                  "group relative rounded-md border-l-2 bg-background px-2.5 py-2 text-xs shadow-sm",
+                                  eventTypeColors[event.type] || eventTypeColors.OTHER
+                                )}
+                              >
+                                <div className="absolute right-1 top-1 hidden items-center gap-1 group-hover:flex">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedItem(originalEvent || null);
+                                      setIsFormOpen(true);
+                                    }}
+                                    className="rounded p-1 hover:bg-background/60"
+                                    title="Edit"
+                                  >
+                                    <Icons.Edit size={10} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedItem(originalEvent || null);
+                                      setIsDeleteModalOpen(true);
+                                    }}
+                                    className="rounded p-1 text-red-600 hover:bg-red-100"
+                                    title="Delete"
+                                  >
+                                    <Icons.Trash size={10} />
+                                  </button>
+                                </div>
+                                <div className="pr-8 font-medium leading-tight text-foreground line-clamp-2">{event.title}</div>
+                                <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Icons.Clock size={10} />
+                                  <span>{event.time}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="grid grid-cols-7">
+                  {monthDays.map((day) => {
+                    const dateKey = formatDateKey(day);
+                    const dayEvents = eventsByDate[dateKey] || [];
+                    const today = isToday(day);
+                    const inMonth = isCurrentMonth(day);
+
+                    return (
+                      <div
+                        key={dateKey}
+                        className={cn(
+                          "min-h-[132px] border-r border-b border-border px-2.5 py-2 last:border-r-0",
+                          !inMonth && "bg-muted/10",
+                          today && "bg-primary/5"
+                        )}
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              today ? "text-primary" : inMonth ? "text-foreground" : "text-muted-foreground"
+                            )}
+                          >
+                            {day.getDate()}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {dayEvents.slice(0, 3).map((event) => {
+                            const originalEvent = events.find((item) => item.id === event.id);
+                            return (
+                              <div
+                                key={event.id}
+                                className={cn(
+                                  "group relative rounded-sm border-l-2 bg-background px-2 py-1.5 text-[11px] shadow-sm",
+                                  eventTypeColors[event.type] || eventTypeColors.OTHER
+                                )}
+                              >
+                                <div className="pr-6 font-medium leading-tight text-foreground truncate">{event.title}</div>
+                                <div className="mt-0.5 text-[10px] text-muted-foreground">{event.time}</div>
+                                <div className="absolute right-1 top-1 hidden items-center gap-1 group-hover:flex">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedItem(originalEvent || null);
+                                      setIsFormOpen(true);
+                                    }}
+                                    className="rounded p-0.5 hover:bg-background/60"
+                                    title="Edit"
+                                  >
+                                    <Icons.Edit size={9} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {dayEvents.length > 3 && (
+                            <div className="px-1 text-[11px] font-medium text-amber-600">
+                              {dayEvents.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Event Type Legend */}
-        <div className="mt-6 flex items-center gap-4 px-4">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3">
           <span className="text-sm text-muted-foreground">Event Types:</span>
           {Object.entries(eventTypeColors).map(([type, color]) => (
             <div key={type} className="flex items-center gap-2">
@@ -513,6 +607,7 @@ export default function CalendarPage() {
             </div>
           ))}
         </div>
+      </div>
       </div>
 
       {/* Form Modal */}

@@ -221,9 +221,10 @@ export default function LeadsPage() {
 
   return (
     <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="px-5 py-3.5">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-[26px] leading-none font-semibold text-foreground">{greeting}, {ownerName}</h1>
@@ -264,7 +265,7 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-2.5 mb-3">
             {/* Stats Cards - Left */}
             <div className="flex items-center gap-2.5 flex-1">
               <div className="rounded-lg border border-border bg-background px-3 py-1.5 flex-1">
@@ -377,7 +378,7 @@ export default function LeadsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -619,7 +620,7 @@ export default function LeadsPage() {
         </div>
       ) : (
         /* Grid View */
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3">
           {filteredLeads.map((lead) => (
             <div key={lead.id} className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
               <div className="flex items-start justify-between mb-2.5">
@@ -679,7 +680,7 @@ export default function LeadsPage() {
       )}
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
         <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} leads
         </div>
@@ -739,6 +740,7 @@ export default function LeadsPage() {
             Next
           </button>
         </div>
+      </div>
       </div>
 
       {/* Create/Edit Lead Form Modal */}

@@ -197,7 +197,7 @@ export default function RevenueOps() {
         subtitle="Quota, territory, and governance operations"
         icon={<Icons.Gauge size={20} />}
       >
-        <div className="p-6">
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
           <div className="border border-border rounded-lg p-6 bg-card">
             <h2 className="text-lg font-semibold">Manager access required</h2>
             <p className="text-sm text-muted-foreground mt-2">
@@ -223,7 +223,7 @@ export default function RevenueOps() {
         subtitle="Quota, territory, and governance operations"
         icon={<Icons.Gauge size={20} />}
       >
-        <div className="p-6">
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
           <LoadingSkeleton count={8} height={72} />
         </div>
       </PageLayout>
@@ -252,10 +252,10 @@ export default function RevenueOps() {
         </button>
       )}
     >
-      <div className="p-5 space-y-5">
+      <div className="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-4 sm:px-5 lg:px-6">
         {revenueOpsSummary && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-3 xl:grid-cols-6">
               <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Active Owners</p>
                 <p className="text-lg font-semibold">{revenueOpsSummary.activeRepCount}</p>
@@ -282,7 +282,7 @@ export default function RevenueOps() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-4">
               <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Quarterly Quota</p>
                 <p className="text-lg font-semibold">{formatCompactCurrency(revenueOpsSummary.totalQuarterlyQuota)}</p>

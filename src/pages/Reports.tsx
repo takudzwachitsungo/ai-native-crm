@@ -310,12 +310,14 @@ export default function ReportsPage() {
     );
   };
 
-  if (isLoading) return <PageLayout><div className="p-6"><LoadingSkeleton count={6} height={80} /></div></PageLayout>;
+  if (isLoading) return <PageLayout><div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6"><LoadingSkeleton count={6} height={80} /></div></PageLayout>;
 
   if (showReportView && generatedReport) {
     return (
       <PageLayout>
-        <div className="border-b border-border bg-card px-5 py-3.5">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="px-4 py-3 sm:px-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <button onClick={() => { setShowReportView(false); setGeneratedReport(null); }} className="p-2 hover:bg-secondary rounded transition-colors"><Icons.ArrowLeft size={18} /></button>
@@ -328,7 +330,8 @@ export default function ReportsPage() {
             <button onClick={exportCurrentReport} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"><Icons.Download size={14} />Export CSV</button>
           </div>
         </div>
-        <div className="p-5 space-y-5">
+        </div>
+        <div className="space-y-4">
           {generatedReport.degraded_mode && <AIDegradedNotice reason={generatedReport.degraded_reason} />}
           {generatedReport.sections.map((section) => (
             <div key={section.title} className="rounded-xl border border-border bg-card p-4">
@@ -337,17 +340,21 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
+        </div>
       </PageLayout>
     );
   }
 
   return (
     <PageLayout>
-      <div className="border-b border-border bg-card px-5 py-3.5">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
         <h1 className="text-[26px] leading-none font-semibold">Reports</h1>
         <p className="text-[13px] text-muted-foreground mt-1">Standard CRM reports, saved definitions, scheduling, and custom AI reporting in one workspace.</p>
       </div>
-      <div className="p-5 space-y-6">
+      </div>
+      <div className="space-y-4">
         {error && <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-red-600">{error}</div>}
 
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -433,6 +440,7 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </PageLayout>
   );

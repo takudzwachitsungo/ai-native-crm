@@ -121,8 +121,9 @@ export default function ContactsPage() {
 
   return (
     <PageLayout>
-      <div className="border-b border-border bg-card">
-        <div className="px-5 py-3.5">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-[26px] leading-none font-semibold text-foreground">Contacts</h1>
             <div className="flex items-center gap-2">
@@ -165,7 +166,7 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 mb-3">
+          <div className="grid grid-cols-1 gap-2.5 mb-3 md:grid-cols-4">
             <div className="rounded-lg border border-border bg-background px-3 py-2">
               <p className="text-xs text-muted-foreground">Total Contacts</p>
               <p className="text-lg leading-none font-semibold text-foreground mt-1">{totalElements}</p>
@@ -184,7 +185,7 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -230,7 +231,8 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
+            <div className="flex flex-wrap items-center gap-1.5">
             {[
               { value: "all", label: "All Contacts" },
               { value: "active", label: "Active" },
@@ -255,6 +257,7 @@ export default function ContactsPage() {
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       </div>
@@ -351,7 +354,7 @@ export default function ContactsPage() {
           </div>
         </div>
       ) : (
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredContacts.map((contact) => (
             <div key={contact.id} className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
               <div className="flex items-start gap-2.5 mb-2.5">
@@ -418,7 +421,7 @@ export default function ContactsPage() {
         </div>
       )}
 
-      <div className="border-t border-border px-5 py-3 flex items-center justify-between bg-card">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
         <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} contacts
         </div>
@@ -463,6 +466,7 @@ export default function ContactsPage() {
             Next
           </button>
         </div>
+      </div>
       </div>
 
       <ContactForm
