@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
 const SALES_MOTION_OPTIONS = ['Inbound-led (marketing drives leads)', 'Outbound-led (reps prospect & cold-call)', 'Product-led (self-serve + sales assist)', 'Channel / Partner-led', 'Hybrid — mix of approaches'];

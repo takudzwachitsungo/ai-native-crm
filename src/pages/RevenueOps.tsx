@@ -218,13 +218,19 @@ export default function RevenueOps() {
 
   if (isLoading) {
     return (
-      <PageLayout
-        title="Revenue Ops"
-        subtitle="Quota, territory, and governance operations"
-        icon={<Icons.Gauge size={20} />}
-      >
+      <PageLayout>
         <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
-          <LoadingSkeleton count={8} height={72} />
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="px-4 py-3 sm:px-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h1 className="text-[26px] leading-none font-semibold text-foreground">Revenue Ops</h1>
+                  <p className="text-[13px] text-muted-foreground mt-1">Quota, territory, and governance operations</p>
+                </div>
+              </div>
+              <LoadingSkeleton count={8} height={72} />
+            </div>
+          </div>
         </div>
       </PageLayout>
     );
@@ -238,55 +244,137 @@ export default function RevenueOps() {
   const automationRuns = automationRunsQuery.data ?? [];
 
   return (
-    <PageLayout
-      title="Revenue Ops"
-      subtitle="Quota, territory, and governance operations"
-      icon={<Icons.Gauge size={20} />}
-      actions={(
-        <button
-          onClick={refreshOpsData}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/90"
-        >
-          <Icons.RefreshCw size={14} />
-          Refresh Ops View
-        </button>
-      )}
-    >
+    <PageLayout>
       <div className="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-4 sm:px-5 lg:px-6">
-        {revenueOpsSummary && (
-          <>
-            <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-3 xl:grid-cols-6">
-              <div className="px-3 py-2 border border-border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground mb-1">Active Owners</p>
-                <p className="text-lg font-semibold">{revenueOpsSummary.activeRepCount}</p>
-              </div>
-              <div className="px-3 py-2 border border-border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground mb-1">Governed Territories</p>
-                <p className="text-lg font-semibold">{revenueOpsSummary.governedTerritoryCount} / {revenueOpsSummary.territoryCatalogCount}</p>
-              </div>
-              <div className="px-3 py-2 border border-border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground mb-1">Quarter Progress</p>
-                <p className="text-lg font-semibold">{Math.round(revenueOpsSummary.quarterProgressPercent)}%</p>
-              </div>
-              <div className="px-3 py-2 border border-border rounded-lg bg-green-500/5">
-                <p className="text-sm text-muted-foreground mb-1">On Track</p>
-                <p className="text-lg font-semibold text-green-600">{revenueOpsSummary.onTrackRepCount}</p>
-              </div>
-              <div className="px-3 py-2 border border-border rounded-lg bg-yellow-500/5">
-                <p className="text-sm text-muted-foreground mb-1">Watch</p>
-                <p className="text-lg font-semibold text-yellow-600">{revenueOpsSummary.watchRepCount}</p>
-              </div>
-              <div className="px-3 py-2 border border-border rounded-lg bg-red-500/5">
-                <p className="text-sm text-muted-foreground mb-1">At Risk</p>
-                <p className="text-lg font-semibold text-red-600">{revenueOpsSummary.atRiskRepCount}</p>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="px-4 py-3 sm:px-5">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h1 className="text-[26px] leading-none font-semibold text-foreground">Revenue Ops</h1>
+                <p className="text-[13px] text-muted-foreground mt-1">Quota, territory, and governance operations</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-4">
-              <div className="px-3 py-2 border border-border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground mb-1">Quarterly Quota</p>
-                <p className="text-lg font-semibold">{formatCompactCurrency(revenueOpsSummary.totalQuarterlyQuota)}</p>
+            {revenueOpsSummary && (
+              <div className="mt-4 mb-3 flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
+                <div className="w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-8">
+                    <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                          <Icons.Users size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Active Owners</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{revenueOpsSummary.activeRepCount}</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Rep coverage</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                          <Icons.Target size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Governed Territories</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{revenueOpsSummary.governedTerritoryCount} / {revenueOpsSummary.territoryCatalogCount}</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Catalog coverage</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                          <Icons.CalendarDays size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Quarter Progress</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{Math.round(revenueOpsSummary.quarterProgressPercent)}%</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Time elapsed</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                          <Icons.CheckCircle size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">On Track</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{revenueOpsSummary.onTrackRepCount}</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Healthy pacing</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                          <Icons.Timer size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Watch</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{revenueOpsSummary.watchRepCount}</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Needs monitoring</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                          <Icons.AlertCircle size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">At Risk</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{revenueOpsSummary.atRiskRepCount}</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Intervention needed</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                          <Icons.CircleDollarSign size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Quarterly Quota</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{formatCompactCurrency(revenueOpsSummary.totalQuarterlyQuota)}</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Team target</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="group relative min-w-0 px-2.5 py-2">
+                      <div className="relative flex items-start gap-2.5">
+                        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                          <Icons.BarChart3 size={14} className="text-blue-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Projected Attainment</p>
+                          <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{Math.round(revenueOpsSummary.projectedAttainmentPercent)}%</p>
+                          <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Coverage {formatCoverage(revenueOpsSummary.pipelineCoverageRatio)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <button
+            onClick={refreshOpsData}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60"
+          >
+            <Icons.RefreshCw size={13} />
+            Refresh Ops View
+          </button>
+        </div>
+
+        {revenueOpsSummary && (
+          <>
+            <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-3">
               <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Closed vs Expected</p>
                 <p className="text-lg font-semibold">
@@ -294,12 +382,12 @@ export default function RevenueOps() {
                 </p>
               </div>
               <div className="px-3 py-2 border border-border rounded-lg bg-card">
-                <p className="text-sm text-muted-foreground mb-1">Projected Attainment</p>
-                <p className="text-lg font-semibold">{Math.round(revenueOpsSummary.projectedAttainmentPercent)}%</p>
-              </div>
-              <div className="px-3 py-2 border border-border rounded-lg bg-card">
                 <p className="text-sm text-muted-foreground mb-1">Pipeline Coverage</p>
                 <p className="text-lg font-semibold">{formatCoverage(revenueOpsSummary.pipelineCoverageRatio)}</p>
+              </div>
+              <div className="px-3 py-2 border border-border rounded-lg bg-card">
+                <p className="text-sm text-muted-foreground mb-1">Expected Closed To Date</p>
+                <p className="text-lg font-semibold">{formatCompactCurrency(revenueOpsSummary.expectedClosedValueToDate)}</p>
               </div>
             </div>
           </>

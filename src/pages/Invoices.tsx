@@ -13,6 +13,7 @@ import { exportToCSV } from '../lib/helpers';
 
 export default function Invoices() {
   const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'pending' | 'overdue' | 'draft'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -84,9 +85,20 @@ export default function Invoices() {
     },
   });
 
-  const filteredInvoices = activeTab === 'all' 
-    ? invoices 
-    : invoices.filter((inv: any) => inv.status?.toLowerCase() === activeTab);
+  const filteredInvoices = invoices.filter((inv: any) => {
+    const matchesTab = activeTab === 'all' || inv.status?.toLowerCase() === activeTab;
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = !query || [
+      inv.invoiceNumber,
+      inv.contactName,
+      inv.companyName,
+      inv.status,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query));
+
+    return matchesTab && matchesSearch;
+  });
 
   // Reset page when tab changes
   React.useEffect(() => {
@@ -113,41 +125,70 @@ export default function Invoices() {
   const overdueRevenue = invoices.filter((inv: any) => inv.status?.toLowerCase() === 'overdue').reduce((sum: number, inv: any) => sum + (inv.total || 0), 0);
 
   return (
-    <PageLayout
-      title="Invoices"
-      subtitle="Billing and invoice management"
-      icon={<Icons.FileText size={20} />}
-      actions={
-        <button
-          onClick={() => {
-            setSelectedItem(null);
-            setIsFormOpen(true);
-          }}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Icons.Plus size={14} />
-          Create Invoice
-        </button>
-      }
-    >
-      {/* Stats */}
-      <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
-        <div className="grid grid-cols-1 gap-2.5 rounded-2xl border border-border bg-card p-3.5 md:grid-cols-4">
-          <div className="px-3 py-2 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-            <p className="text-lg font-bold">${totalRevenue.toLocaleString()}</p>
+    <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-[26px] leading-none font-semibold text-foreground">Invoices</h1>
+              <p className="text-[13px] text-muted-foreground mt-1">Billing and invoice management</p>
+            </div>
           </div>
-          <div className="px-3 py-2 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Pending</p>
-            <p className="text-lg font-bold text-yellow-600">${pendingRevenue.toLocaleString()}</p>
-          </div>
-          <div className="px-3 py-2 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Overdue</p>
-            <p className="text-lg font-bold text-red-600">${overdueRevenue.toLocaleString()}</p>
-          </div>
-          <div className="px-3 py-2 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Total Invoices</p>
-            <p className="text-lg font-bold">{invoices.length}</p>
+
+          <div className="mt-4 mb-3 flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4">
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                      <Icons.CircleDollarSign size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Revenue</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">${totalRevenue.toLocaleString()}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Collected revenue</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.Timer size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Pending</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">${pendingRevenue.toLocaleString()}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Awaiting payment</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                      <Icons.AlertCircle size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Overdue</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">${overdueRevenue.toLocaleString()}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Needs collection follow-up</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.FileText size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Invoices</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{invoices.length}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Billing records</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -187,40 +228,52 @@ export default function Invoices() {
       </div>
 
       {/* Toolbar */}
-      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-4 py-4 sm:px-5 lg:px-6">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-1.5 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <div className="relative min-w-0 flex-1 lg:max-w-[720px]">
+            <Icons.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search invoices..."
-              className="h-9 w-64 rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-8.5 pr-3.5 text-[13px] border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background shadow-[0_3px_12px_rgba(15,23,42,0.035)]"
             />
-          </div>
-          <button className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60">
-            <Icons.Filter size={14} />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+          <button className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60">
+            <Icons.Filter size={13} />
             Filter
           </button>
+          <button 
+            onClick={() => {
+              exportToCSV(filteredInvoices, [
+                { header: 'Invoice #', accessor: 'invoiceNumber' },
+                { header: 'Customer', accessor: (i: any) => i.contact?.firstName + ' ' + i.contact?.lastName || '' },
+                { header: 'Company', accessor: (i: any) => i.company?.name || '' },
+                { header: 'Amount', accessor: (i: any) => i.total || i.totalAmount || 0 },
+                { header: 'Status', accessor: 'status' },
+                { header: 'Issue Date', accessor: (i: any) => i.issueDate ? new Date(i.issueDate).toLocaleDateString() : '' },
+                { header: 'Due Date', accessor: (i: any) => i.dueDate ? new Date(i.dueDate).toLocaleDateString() : '' },
+                { header: 'Paid Date', accessor: (i: any) => i.paidAt ? new Date(i.paidAt).toLocaleDateString() : '' },
+              ], 'invoices');
+              showToast(`Exported ${filteredInvoices.length} invoices to CSV`, 'success');
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60"
+          >
+            <Icons.Download size={13} />
+            Export
+          </button>
+          <button
+            onClick={() => {
+              setSelectedItem(null);
+              setIsFormOpen(true);
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors shadow-[0_3px_12px_rgba(37,99,235,0.18)] hover:bg-primary/90"
+          >
+            <Icons.Plus size={13} />
+            Create Invoice
+          </button>
         </div>
-        <button 
-          onClick={() => {
-            exportToCSV(filteredInvoices, [
-              { header: 'Invoice #', accessor: 'invoiceNumber' },
-              { header: 'Customer', accessor: (i: any) => i.contact?.firstName + ' ' + i.contact?.lastName || '' },
-              { header: 'Company', accessor: (i: any) => i.company?.name || '' },
-              { header: 'Amount', accessor: (i: any) => i.total || i.totalAmount || 0 },
-              { header: 'Status', accessor: 'status' },
-              { header: 'Issue Date', accessor: (i: any) => i.issueDate ? new Date(i.issueDate).toLocaleDateString() : '' },
-              { header: 'Due Date', accessor: (i: any) => i.dueDate ? new Date(i.dueDate).toLocaleDateString() : '' },
-              { header: 'Paid Date', accessor: (i: any) => i.paidAt ? new Date(i.paidAt).toLocaleDateString() : '' },
-            ], 'invoices');
-            showToast(`Exported ${filteredInvoices.length} invoices to CSV`, 'success');
-          }}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
-        >
-          <Icons.Download size={14} />
-          Export
-        </button>
       </div>
 
       {/* Invoice List */}
@@ -230,14 +283,14 @@ export default function Invoices() {
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Invoice #</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Customer</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Amount</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Issued</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Due Date</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Items</th>
-                <th className="border-b border-border/60 bg-secondary/50 text-right px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Invoice #</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Customer</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Amount</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Issued</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Due Date</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Items</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-right px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card">
@@ -383,6 +436,7 @@ export default function Invoices() {
             Next
           </button>
         </div>
+      </div>
       </div>
 
       {/* View Modal */}

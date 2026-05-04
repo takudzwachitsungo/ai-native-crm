@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { Check, Pencil } from 'lucide-react';
 

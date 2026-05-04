@@ -11,6 +11,7 @@ import { useToast } from "../components/Toast";
 import { campaignsApi } from "../lib/api";
 import { cn } from "../lib/utils";
 import type { Campaign } from "../lib/types";
+import { exportToCSV } from "../lib/helpers";
 
 const statusColors: Record<string, string> = {
   DRAFT: "bg-slate-50 text-slate-700 border-slate-200",
@@ -137,48 +138,88 @@ export default function CampaignsPage() {
                 Plan, track, and review campaign performance from one place.
               </p>
             </div>
-            <button
-              onClick={() => {
-                setSelectedCampaign(null);
-                setIsFormOpen(true);
-              }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Icons.Campaigns size={14} />
-              New Campaign
-            </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5 mb-3 md:grid-cols-2 xl:grid-cols-6">
-            <div className="border border-border rounded-lg px-3 py-2 bg-background">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Campaigns</p>
-              <p className="text-lg leading-none font-semibold mt-1.5">{campaignStats?.totalCampaigns ?? 0}</p>
-            </div>
-            <div className="border border-border rounded-lg px-3 py-2 bg-background">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Active</p>
-              <p className="text-lg leading-none font-semibold mt-1.5">{campaignStats?.activeCampaigns ?? 0}</p>
-            </div>
-            <div className="border border-border rounded-lg px-3 py-2 bg-background">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Budget</p>
-              <p className="text-lg leading-none font-semibold mt-1.5">{money(campaignStats?.totalBudget)}</p>
-            </div>
-            <div className="border border-border rounded-lg px-3 py-2 bg-background">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Expected Revenue</p>
-              <p className="text-lg leading-none font-semibold mt-1.5">{money(campaignStats?.totalExpectedRevenue)}</p>
-            </div>
-            <div className="border border-border rounded-lg px-3 py-2 bg-background">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Leads Generated</p>
-              <p className="text-lg leading-none font-semibold mt-1.5">{campaignStats?.totalLeadsGenerated ?? 0}</p>
-            </div>
-            <div className="border border-border rounded-lg px-3 py-2 bg-background">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Attributed Pipeline</p>
-              <p className="text-lg leading-none font-semibold mt-1.5">{money(campaignStats?.totalAttributedPipelineValue)}</p>
+          <div className="mt-4 mb-3 w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-6">
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                    <Icons.Campaigns size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Campaigns</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{campaignStats?.totalCampaigns ?? 0}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">All campaign records</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                    <Icons.CheckCircle size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Active</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{campaignStats?.activeCampaigns ?? 0}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Currently running</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                    <Icons.CircleDollarSign size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Budget</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{money(campaignStats?.totalBudget)}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Allocated spend</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                    <Icons.TrendingUp size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Expected Revenue</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{money(campaignStats?.totalExpectedRevenue)}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Forecasted return</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                    <Icons.Users size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Leads Generated</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{campaignStats?.totalLeadsGenerated ?? 0}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Net new leads</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                    <Icons.BarChart3 size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Attributed Pipeline</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{money(campaignStats?.totalAttributedPipelineValue)}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Pipeline influenced</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 md:flex-row">
-            <div className="flex-1 relative">
-              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <div className="mb-2.5 flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
+            <div className="relative min-w-0 flex-1 lg:max-w-[720px]">
+              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
               <input
                 type="text"
                 placeholder="Search campaigns..."
@@ -187,25 +228,63 @@ export default function CampaignsPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(0);
                 }}
-                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full h-9 pl-8.5 pr-3.5 text-[13px] border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background shadow-[0_3px_12px_rgba(15,23,42,0.035)]"
               />
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(0);
-              }}
-              className="h-9 rounded-full border border-border bg-background px-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="all">All statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PLANNED">Planned</option>
-              <option value="ACTIVE">Active</option>
-              <option value="PAUSED">Paused</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+            <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(0);
+                }}
+                className="h-8 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium shadow-[0_3px_12px_rgba(15,23,42,0.035)] focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="all">All statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PLANNED">Planned</option>
+                <option value="ACTIVE">Active</option>
+                <option value="PAUSED">Paused</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+              <button
+                onClick={() => {
+                  exportToCSV(
+                    campaigns,
+                    [
+                      { header: "Name", accessor: "name" },
+                      { header: "Type", accessor: (campaign: Campaign) => campaign.type.replaceAll("_", " ") },
+                      { header: "Status", accessor: (campaign: Campaign) => campaign.status.replaceAll("_", " ") },
+                      { header: "Channel", accessor: (campaign: Campaign) => campaign.channel.replaceAll("_", " ") },
+                      { header: "Audience", accessor: "targetAudience" },
+                      { header: "Budget", accessor: "budget" },
+                      { header: "Expected Revenue", accessor: "expectedRevenue" },
+                      { header: "Leads Generated", accessor: "leadsGenerated" },
+                      { header: "Opportunities", accessor: "opportunitiesCreated" },
+                      { header: "Conversions", accessor: "conversions" },
+                      { header: "ROI", accessor: (campaign: Campaign) => percent(campaign.roiPercent) },
+                    ],
+                    "campaigns"
+                  );
+                  showToast(`Exported ${campaigns.length} campaigns to CSV`, "success");
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60"
+              >
+                <Icons.Download size={13} />
+                Export
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedCampaign(null);
+                  setIsFormOpen(true);
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors shadow-[0_3px_12px_rgba(37,99,235,0.18)] hover:bg-primary/90"
+              >
+                <Icons.Campaigns size={13} />
+                New Campaign
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -234,14 +313,14 @@ export default function CampaignsPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Campaign</th>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Timeline</th>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Budget</th>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Results</th>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">ROI</th>
-                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Campaign</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Timeline</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Budget</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Results</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">ROI</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-card">

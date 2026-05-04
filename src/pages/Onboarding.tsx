@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding, ONBOARDING_STEPS } from '../contexts/OnboardingContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,7 +9,7 @@ import { StepTeam } from '../components/onboarding/StepTeam';
 import { StepData } from '../components/onboarding/StepData';
 import { StepPreferences } from '../components/onboarding/StepPreferences';
 import { StepReview } from '../components/onboarding/StepReview';
-import { ArrowLeft, ArrowRight, Rocket } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 const STEP_COMPONENTS: React.FC[] = [
   StepAboutYou,

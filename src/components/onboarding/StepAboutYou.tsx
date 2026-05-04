@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
 const ROLE_OPTIONS = ['Closing deals daily', 'Managing a sales team', 'Running the business', 'Operations & RevOps', 'Driving marketing & demand gen', 'Supporting customers post-sale'];

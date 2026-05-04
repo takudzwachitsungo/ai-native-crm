@@ -63,7 +63,7 @@ export function MainMenu({ onSelect, isExpanded = false }: Props) {
   return (
     <div className="mt-1 w-full">
       <nav className="w-full">
-        <div className="flex flex-col gap-0">
+        <div className="flex flex-col gap-0.5">
           {visibleItems.map((item) => {
             const Icon = icons[item.path];
             const isActive = location.pathname === item.path;
@@ -78,7 +78,7 @@ export function MainMenu({ onSelect, isExpanded = false }: Props) {
                 <div className="relative">
                   <div
                     className={cn(
-                      "border border-transparent h-[32px] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ml-[10px] mr-[10px]",
+                      "border border-transparent h-[32px] rounded-lg transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ml-[10px] mr-[10px]",
                       isActive &&
                         "bg-[#f7f7f7] dark:bg-[#131313] border-[#e6e6e6] dark:border-[#1d1d1d]",
                       isExpanded ? "w-[calc(100%-20px)]" : "w-[32px]"
@@ -93,7 +93,7 @@ export function MainMenu({ onSelect, isExpanded = false }: Props) {
                     <div className="absolute top-0 left-[43px] right-[4px] h-[32px] flex items-center pointer-events-none">
                       <span
                         className={cn(
-                          "text-[12px] font-medium transition-opacity duration-200 ease-in-out text-[#666] group-hover:text-primary",
+                          "text-[13px] font-medium transition-opacity duration-200 ease-in-out text-[#666] group-hover:text-primary",
                           "whitespace-nowrap overflow-hidden",
                           isActive && "text-primary"
                         )}

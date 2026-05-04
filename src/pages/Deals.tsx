@@ -347,79 +347,76 @@ export default function DealsPage() {
         <div className="px-4 py-3 sm:px-5">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-[26px] leading-none font-semibold text-foreground">Deals</h1>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => stalledAutomationMutation.mutate()}
-                disabled={stalledAutomationMutation.isPending}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Icons.RefreshCw size={14} className={cn(stalledAutomationMutation.isPending && "animate-spin")} />
-                Run Rescue Automation
-              </button>
-              <button
-                onClick={() => {
-                  exportToCSV(
-                    filteredDeals,
-                    [
-                      { header: "Name", accessor: "name" },
-                      { header: "Company", accessor: "companyName" },
-                      { header: "Contact", accessor: "contactName" },
-                      { header: "Amount", accessor: (deal: Deal) => deal.value || "" },
-                      { header: "Stage", accessor: "stage" },
-                      { header: "Territory", accessor: (deal: Deal) => deal.territory || "" },
-                      { header: "Owner Territory", accessor: (deal: Deal) => deal.ownerTerritory || "" },
-                      { header: "Probability", accessor: "probability" },
-                      { header: "Competitor", accessor: "competitorName" },
-                      { header: "Risk", accessor: "riskLevel" },
-                      { header: "Next Step", accessor: "nextStep" },
-                      { header: "Expected Close", accessor: (deal: Deal) => deal.expectedCloseDate || "" },
-                    ],
-                    "deals"
-                  );
-                  showToast(`Exported ${filteredDeals.length} deals to CSV`, "success");
-                }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
-              >
-                <Icons.Download size={14} />
-                Export
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedItem(null);
-                  setIsFormOpen(true);
-                }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <Icons.Plus size={14} />
-                Create Deal
-              </button>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5 mb-3 md:grid-cols-2 xl:grid-cols-5">
-            <div className="rounded-lg border border-border bg-background px-3 py-2">
-              <p className="text-xs text-muted-foreground">Pipeline Value</p>
-              <p className="text-lg leading-none font-semibold text-foreground mt-1">
-                ${Number(dealStats?.totalValue ?? 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-background px-3 py-2">
-              <p className="text-xs text-muted-foreground">Weighted Value</p>
-              <p className="text-lg leading-none font-semibold text-foreground mt-1">
-                ${Number(dealStats?.weightedTotalValue ?? 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-background px-3 py-2">
-              <p className="text-xs text-muted-foreground">Win Rate</p>
-              <p className="text-lg leading-none font-semibold text-foreground mt-1">{Math.round(dealStats?.winRate ?? 0)}%</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background px-3 py-2">
-              <p className="text-xs text-muted-foreground">Needs Attention</p>
-              <p className="text-lg leading-none font-semibold text-foreground mt-1">{attentionSummary?.dealsNeedingAttention ?? dealStats?.dealsNeedingAttention ?? 0}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background px-3 py-2">
-              <p className="text-xs text-muted-foreground">Pending Approval</p>
-              <p className="text-lg leading-none font-semibold text-foreground mt-1">{dealStats?.pendingApprovalCount ?? 0}</p>
+          <div className="mt-4 mb-3 flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-5">
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                      <Icons.CircleDollarSign size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Pipeline Value</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">
+                        ${Number(dealStats?.totalValue ?? 0).toLocaleString()}
+                      </p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Open pipeline value</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.BarChart3 size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Weighted Value</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">
+                        ${Number(dealStats?.weightedTotalValue ?? 0).toLocaleString()}
+                      </p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Probability-adjusted</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                      <Icons.TrendingUp size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Win Rate</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{Math.round(dealStats?.winRate ?? 0)}%</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Closed-won efficiency</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.AlertCircle size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Needs Attention</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{attentionSummary?.dealsNeedingAttention ?? dealStats?.dealsNeedingAttention ?? 0}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Flagged active deals</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                      <Icons.CheckCircle size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Pending Approval</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{dealStats?.pendingApprovalCount ?? 0}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Awaiting review</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -530,38 +527,85 @@ export default function DealsPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1 relative">
-              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <div className="mb-2.5 flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
+            <div className="relative min-w-0 flex-1 lg:max-w-[720px]">
+              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
               <input
                 type="text"
                 placeholder="Search deals..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full h-9 pl-8.5 pr-3.5 text-[13px] border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background shadow-[0_3px_12px_rgba(15,23,42,0.035)]"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+              <button
+                onClick={() => stalledAutomationMutation.mutate()}
+                disabled={stalledAutomationMutation.isPending}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Icons.RefreshCw size={13} className={cn(stalledAutomationMutation.isPending && "animate-spin")} />
+                Run Rescue Automation
+              </button>
+              <button
+                onClick={() => {
+                  exportToCSV(
+                    filteredDeals,
+                    [
+                      { header: "Name", accessor: "name" },
+                      { header: "Company", accessor: "companyName" },
+                      { header: "Contact", accessor: "contactName" },
+                      { header: "Amount", accessor: (deal: Deal) => deal.value || "" },
+                      { header: "Stage", accessor: "stage" },
+                      { header: "Territory", accessor: (deal: Deal) => deal.territory || "" },
+                      { header: "Owner Territory", accessor: (deal: Deal) => deal.ownerTerritory || "" },
+                      { header: "Probability", accessor: "probability" },
+                      { header: "Competitor", accessor: "competitorName" },
+                      { header: "Risk", accessor: "riskLevel" },
+                      { header: "Next Step", accessor: "nextStep" },
+                      { header: "Expected Close", accessor: (deal: Deal) => deal.expectedCloseDate || "" },
+                    ],
+                    "deals"
+                  );
+                  showToast(`Exported ${filteredDeals.length} deals to CSV`, "success");
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60"
+              >
+                <Icons.Download size={13} />
+                Export
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedItem(null);
+                  setIsFormOpen(true);
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors shadow-[0_3px_12px_rgba(37,99,235,0.18)] hover:bg-primary/90"
+              >
+                <Icons.Plus size={13} />
+                Create Deal
+              </button>
+              <div className="flex items-center gap-0.5 rounded-xl border border-border/70 bg-background p-0.5 shadow-[0_3px_12px_rgba(15,23,42,0.035)]">
               <button
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
-                  viewMode === "table" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
+                  "inline-flex h-7.5 w-7.5 items-center justify-center rounded-lg transition-colors",
+                  viewMode === "table" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"
                 )}
                 aria-label="Table view"
               >
-                <Icons.List size={16} />
+                <Icons.List size={15} />
               </button>
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
-                  viewMode === "grid" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
+                  "inline-flex h-7.5 w-7.5 items-center justify-center rounded-lg transition-colors",
+                  viewMode === "grid" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"
                 )}
                 aria-label="Grid view"
               >
-                <Icons.LayoutDashboard size={16} />
+                <Icons.LayoutDashboard size={15} />
               </button>
+              </div>
             </div>
           </div>
 
@@ -598,16 +642,16 @@ export default function DealsPage() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-secondary/50">
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Deal Name</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Company</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Value</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Stage</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Risk</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Territory</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Approval</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Next Step</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Contact</th>
-                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Deal Name</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Company</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Value</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Stage</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Risk</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Territory</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Approval</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Next Step</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Contact</th>
+                <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card">

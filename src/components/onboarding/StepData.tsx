@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { Upload, Database, BarChart3, Sparkles } from 'lucide-react';
 

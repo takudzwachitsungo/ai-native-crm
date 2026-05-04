@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
 const INDUSTRIES = ['SaaS & Cloud Software', 'Financial Services & Fintech', 'Agency & Consulting', 'E-commerce & DTC', 'Healthcare & Life Sciences', 'Construction & Real Estate', 'Manufacturing & Supply Chain', 'Education & EdTech', 'Media & Publishing', 'Other'];

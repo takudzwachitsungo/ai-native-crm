@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { Users, Mail, Network } from 'lucide-react';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 
 const NOTIFICATION_OPTIONS = ['Real-time — notify me about everything', 'Smart digest — important stuff only', 'Minimal — just my assignments & mentions', 'Quiet — I\'ll check manually'];
