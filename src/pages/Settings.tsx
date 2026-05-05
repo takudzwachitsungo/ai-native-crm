@@ -57,6 +57,11 @@ export default function SettingsPage() {
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
   const [activeSection, setActiveSection] = useState("profile");
+  const [activeProfileTab, setActiveProfileTab] = useState<"personal" | "workspace" | "preferences">("personal");
+  const [activeTeamTab, setActiveTeamTab] = useState<"territories" | "create" | "members">("members");
+  const [activeWorkflowTab, setActiveWorkflowTab] = useState<"overview" | "acquisition" | "support" | "ops" | "governance">("overview");
+  const [activeIntegrationTab, setActiveIntegrationTab] = useState<"overview" | "native" | "thirdParty" | "setup">("overview");
+  const [activeSecurityTab, setActiveSecurityTab] = useState<"overview" | "credentials" | "sessions">("overview");
   const [darkMode, setDarkMode] = useState(false);
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -1303,24 +1308,24 @@ export default function SettingsPage() {
   };
 
   const renderWorkspaceSummaryCards = () => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace Name</p>
-        <p className="mt-2 text-sm font-semibold">{user?.tenantName || "Workspace"}</p>
+        <p className="mt-1.5 text-xs font-semibold text-foreground">{user?.tenantName || "Workspace"}</p>
       </div>
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace Slug</p>
-        <p className="mt-2 text-sm font-semibold">{user?.tenantSlug || "Not available"}</p>
+        <p className="mt-1.5 text-xs font-semibold text-foreground">{user?.tenantSlug || "Not available"}</p>
       </div>
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workspace Tier</p>
-        <p className="mt-2 text-sm font-semibold">
+        <p className="mt-1.5 text-xs font-semibold text-foreground">
           {user?.tenantTier ? tenantTierLabels[user.tenantTier] : "Free"}
         </p>
       </div>
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tenant ID</p>
-        <p className="mt-2 text-xs break-all text-muted-foreground">{user?.tenantId || "Not available"}</p>
+        <p className="mt-1.5 text-[11px] break-all text-muted-foreground">{user?.tenantId || "Not available"}</p>
       </div>
     </div>
   );
@@ -1335,43 +1340,137 @@ export default function SettingsPage() {
           fully wired.
         </p>
       </div>
+
+      <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-muted/30 p-1">
+        <button
+          onClick={() => setActiveIntegrationTab("overview")}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+            activeIntegrationTab === "overview"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveIntegrationTab("native")}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+            activeIntegrationTab === "native"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Native Channels
+        </button>
+        <button
+          onClick={() => setActiveIntegrationTab("thirdParty")}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+            activeIntegrationTab === "thirdParty"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Third-Party
+        </button>
+        <button
+          onClick={() => setActiveIntegrationTab("setup")}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+            activeIntegrationTab === "setup"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Connector Setup
+        </button>
+      </div>
+
       {settingsCapabilitiesLoading || workspaceIntegrationsLoading ? (
         <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
           Loading workspace integrations...
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Native Channels</p>
-              <p className="mt-2 text-sm font-semibold">
-                {workspaceIntegrations.filter((item) => item.providerType === "NATIVE").length}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configured</p>
-              <p className="mt-2 text-sm font-semibold">
-                {workspaceIntegrations.filter((item) => ["ACTIVE", "CONFIGURED"].includes(item.status)).length}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Editable Connectors</p>
-              <p className="mt-2 text-sm font-semibold">
-                {workspaceIntegrations.filter((item) => item.editable).length}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-card p-4 md:col-span-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sync Health</p>
-              <p className="mt-2 text-sm font-semibold">
-                {workspaceIntegrations.filter((item) => item.lastSyncSucceeded === true).length} succeeding ·{" "}
-                {workspaceIntegrations.filter((item) => item.lastSyncSucceeded === false).length} failing ·{" "}
-                {workspaceIntegrations.filter((item) => item.syncEnabled && item.lastSyncSucceeded == null).length} waiting
-              </p>
-            </div>
-          </div>
+          {(activeIntegrationTab === "overview" || activeIntegrationTab === "native" || activeIntegrationTab === "thirdParty") ? (
+            <>
+              {activeIntegrationTab === "overview" ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Native Channels</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {workspaceIntegrations.filter((item) => item.providerType === "NATIVE").length}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configured</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {workspaceIntegrations.filter((item) => ["ACTIVE", "CONFIGURED"].includes(item.status)).length}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Editable Connectors</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {workspaceIntegrations.filter((item) => item.editable).length}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-4 md:col-span-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sync Health</p>
+                    <p className="mt-2 text-sm font-semibold">
+                      {workspaceIntegrations.filter((item) => item.lastSyncSucceeded === true).length} succeeding ·{" "}
+                      {workspaceIntegrations.filter((item) => item.lastSyncSucceeded === false).length} failing ·{" "}
+                      {workspaceIntegrations.filter((item) => item.syncEnabled && item.lastSyncSucceeded == null).length} waiting
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {workspaceIntegrations
+                  .filter((integration) =>
+                    activeIntegrationTab === "overview"
+                      ? true
+                      : activeIntegrationTab === "native"
+                        ? integration.providerType === "NATIVE"
+                        : integration.providerType !== "NATIVE"
+                  )
+                  .map((integration) => (
+                    <div key={integration.key} className="rounded-lg border border-border bg-card p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{integration.name}</p>
+                          <p className="text-sm text-muted-foreground">{integration.description}</p>
+                        </div>
+                        <span
+                          className={cn(
+                            "px-3 py-1.5 text-xs rounded-full transition-colors",
+                            integrationStatusClassName(integration.status)
+                          )}
+                        >
+                          {integrationStatusLabel(integration.status)}
+                        </span>
+                      </div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {integration.category.replaceAll("_", " ")} · {integration.providerType === "NATIVE" ? "Built In" : "Third Party"}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{integration.detail}</p>
+                      <div className={cn("rounded-lg border p-3 text-sm", integrationSyncStatusClassName(integration))}>
+                        <p className="font-medium">{integrationSyncStatusLabel(integration)}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {integration.lastSyncMessage ?? "Sync and connection health will surface here as connector jobs run."}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </>
+          ) : null}
+
+          {activeIntegrationTab === "setup" ? (
           <div className="space-y-4">
-            {workspaceIntegrations.map((integration) => {
+            {workspaceIntegrations.filter((integration) => integration.editable).map((integration) => {
               const draft = integrationDrafts[integration.key] ?? {
                 authType: integration.authType ?? "OAUTH2",
                 baseUrl: integration.baseUrl ?? "",
@@ -1448,7 +1547,7 @@ export default function SettingsPage() {
                             <select
                               value={draft.authType ?? "OAUTH2"}
                               onChange={(e) => updateIntegrationDraft(integration.key, "authType", e.target.value)}
-                              className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              className="w-full max-w-[28rem] px-3 py-1.5 text-xs border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                             >
                               <option value="OAUTH2">OAuth 2.0</option>
                               <option value="API_KEY">API Key</option>
@@ -1611,7 +1710,7 @@ export default function SettingsPage() {
                                     }
                                     rows={3}
                                     placeholder="Paste the provider code returned after consent"
-                                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    className="w-full max-w-[28rem] px-3 py-1.5 text-xs border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                                   />
                                 </div>
 
@@ -1643,6 +1742,7 @@ export default function SettingsPage() {
               );
             })}
           </div>
+          ) : null}
         </>
       )}
     </div>
@@ -1656,7 +1756,7 @@ export default function SettingsPage() {
     switch (activeSection) {
       case "profile":
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
               {settingsCapabilitiesLoading
                 ? "Loading account capability overview..."
@@ -1664,128 +1764,181 @@ export default function SettingsPage() {
                   ? "Your profile is now backed by a real account endpoint and updates will persist for this workspace user."
                   : "Profile identity is currently sourced from your authenticated workspace session."}
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-              <div className="flex items-start gap-6">
-                <div className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-semibold">
-                  {getInitials(profileForm.firstName || user?.firstName || "", profileForm.lastName || user?.lastName || "") || "U"}
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">First Name</label>
-                      <input
-                        type="text"
-                        value={profileForm.firstName}
-                        onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))}
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Last Name</label>
-                      <input
-                        type="text"
-                        value={profileForm.lastName}
-                        onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))}
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={profileForm.email}
-                      onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Avatar URL</label>
-                    <input
-                      type="url"
-                      value={profileForm.avatar}
-                      onChange={(e) => setProfileForm((prev) => ({ ...prev, avatar: e.target.value }))}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Role</label>
-                    <input
-                      type="text"
-                      value={accountProfile?.role ? roleLabel(accountProfile.role as UserRole) : user?.role ? roleLabel(user.role as UserRole) : ""}
-                      disabled
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Workspace Slug</label>
-                    <input
-                      type="text"
-                      value={accountProfile?.tenantSlug || user?.tenantSlug || ""}
-                      disabled
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
-                    <div>
-                      <p className="font-medium">Last Login</p>
-                      <p className="text-sm text-muted-foreground">
-                        {accountProfile?.lastLoginAt ? formatOptionalDateTime(accountProfile.lastLoginAt) : "Not available yet"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleSaveProfile}
-                      disabled={profileSaving || profileLoading}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
-                    >
-                      {profileSaving ? "Saving..." : "Save Profile"}
-                    </button>
-                  </div>
-                </div>
+            <div className="space-y-4">
+              <div className="inline-flex rounded-xl border border-border bg-muted/30 p-1">
+                <button
+                  onClick={() => setActiveProfileTab("personal")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    activeProfileTab === "personal"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Personal Information
+                </button>
+                <button
+                  onClick={() => setActiveProfileTab("workspace")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    activeProfileTab === "workspace"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Workspace
+                </button>
+                <button
+                  onClick={() => setActiveProfileTab("preferences")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    activeProfileTab === "preferences"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Preferences
+                </button>
               </div>
-            </div>
 
-            <div className="border-t border-border pt-6">
-              <h3 className="text-lg font-semibold mb-4">Workspace</h3>
-              {renderWorkspaceSummaryCards()}
-            </div>
+              {activeProfileTab === "personal" ? (
+                <div>
+                  <h3 className="mb-3 text-base font-semibold">Personal Information</h3>
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-[260px,minmax(0,1fr)]">
+                    <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-semibold text-primary-foreground">
+                          {getInitials(profileForm.firstName || user?.firstName || "", profileForm.lastName || user?.lastName || "") || "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">
+                            {`${profileForm.firstName || user?.firstName || ""} ${profileForm.lastName || user?.lastName || ""}`.trim() || "Workspace User"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{profileForm.email || user?.email || "No email available"}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">
+                            {accountProfile?.role ? roleLabel(accountProfile.role as UserRole) : user?.role ? roleLabel(user.role as UserRole) : "Not available"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Workspace Slug</p>
+                          <p className="mt-1 break-all text-xs text-muted-foreground">{accountProfile?.tenantSlug || user?.tenantSlug || "Not available"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Last Login</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {accountProfile?.lastLoginAt ? formatOptionalDateTime(accountProfile.lastLoginAt) : "Not available yet"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-            <div className="border-t border-border pt-6">
-              <h3 className="text-lg font-semibold mb-4">Preferences</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Dark Mode</p>
-                    <p className="text-sm text-muted-foreground">Use dark theme across the application</p>
+                    <div className="rounded-xl border border-border bg-card p-4">
+                      <div className="mb-3">
+                        <p className="text-sm font-medium text-foreground">Edit Profile Details</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Update the identity fields that appear across this workspace.</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">First Name</label>
+                          <input
+                            type="text"
+                            value={profileForm.firstName}
+                            onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Last Name</label>
+                          <input
+                            type="text"
+                            value={profileForm.lastName}
+                            onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Email</label>
+                          <input
+                            type="email"
+                            value={profileForm.email}
+                            onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-muted-foreground">Avatar URL</label>
+                          <input
+                            type="url"
+                            value={profileForm.avatar}
+                            onChange={(e) => setProfileForm((prev) => ({ ...prev, avatar: e.target.value }))}
+                            placeholder="https://..."
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex justify-start">
+                        <button
+                          onClick={handleSaveProfile}
+                          disabled={profileSaving || profileLoading}
+                          className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                        >
+                          {profileSaving ? "Saving..." : "Save Profile"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative",
-                      darkMode ? "bg-primary" : "bg-muted"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
-                      darkMode ? "translate-x-6" : "translate-x-0.5"
-                    )} />
-                  </button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Timezone</p>
-                    <p className="text-sm text-muted-foreground">Display preference only for now</p>
+              ) : null}
+
+              {activeProfileTab === "workspace" ? (
+                <div>
+                  <h3 className="mb-3 text-base font-semibold">Workspace</h3>
+                  {renderWorkspaceSummaryCards()}
+                </div>
+              ) : null}
+
+              {activeProfileTab === "preferences" ? (
+                <div>
+                  <h3 className="mb-3 text-base font-semibold">Preferences</h3>
+                  <div className="space-y-4 rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Dark Mode</p>
+                        <p className="text-sm text-muted-foreground">Use dark theme across the application</p>
+                      </div>
+                      <button
+                        onClick={() => setDarkMode(!darkMode)}
+                        className={cn(
+                          "w-12 h-6 rounded-full transition-colors relative",
+                          darkMode ? "bg-primary" : "bg-muted"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform",
+                          darkMode ? "translate-x-6" : "translate-x-0.5"
+                        )} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Timezone</p>
+                        <p className="text-sm text-muted-foreground">Display preference only for now</p>
+                      </div>
+                      <select className="w-full max-w-[16rem] px-3 py-1.5 text-xs border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option>Pacific Time (PT)</option>
+                        <option>Mountain Time (MT)</option>
+                        <option>Central Time (CT)</option>
+                        <option>Eastern Time (ET)</option>
+                      </select>
+                    </div>
                   </div>
-                  <select className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option>Pacific Time (PT)</option>
-                    <option>Mountain Time (MT)</option>
-                    <option>Central Time (CT)</option>
-                    <option>Eastern Time (ET)</option>
-                  </select>
                 </div>
-              </div>
+              ) : null}
             </div>
 
               <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-700">
@@ -1815,29 +1968,29 @@ export default function SettingsPage() {
             ) : workspaceLoading ? (
               <div className="p-4 text-sm text-muted-foreground">Loading workspace database settings...</div>
             ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="rounded-lg border border-border bg-card p-4">
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                  <div className="rounded-lg border border-border bg-card p-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Routing Mode</p>
-                    <p className="mt-2 text-sm font-semibold">
+                    <p className="mt-1.5 text-xs font-semibold text-foreground">
                       {workspaceDatabase?.routingMode === "DEDICATED" ? "Dedicated Database" : "Shared Database"}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="rounded-lg border border-border bg-card p-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Config Saved</p>
-                    <p className="mt-2 text-sm font-semibold">
+                    <p className="mt-1.5 text-xs font-semibold text-foreground">
                       {workspaceDatabase?.databaseConfigured ? "Yes" : "Incomplete"}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="rounded-lg border border-border bg-card p-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Password Stored</p>
-                    <p className="mt-2 text-sm font-semibold">
+                    <p className="mt-1.5 text-xs font-semibold text-foreground">
                       {workspaceDatabase?.passwordConfigured ? "Yes" : "No"}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="rounded-lg border border-border bg-card p-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Validation</p>
-                    <p className="mt-2 text-sm font-semibold">
+                    <p className="mt-1.5 text-xs font-semibold text-foreground">
                       {workspaceDatabase?.lastValidationSucceeded === true
                         ? "Passed"
                         : workspaceDatabase?.lastValidationSucceeded === false
@@ -2005,299 +2158,230 @@ export default function SettingsPage() {
               <h3 className="text-lg font-semibold">Team Members</h3>
             </div>
 
-            <div className="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h4 className="font-medium">Territory Catalog</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Revenue owners now assign against governed workspace territories instead of free-text labels.
-                  </p>
-                </div>
-                <div className="text-right text-xs text-muted-foreground">
-                  <p>{activeTerritories.length} active</p>
-                  <p>{territories.length} total</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-[1.2fr,1.6fr,auto] gap-3">
-                <input
-                  type="text"
-                  value={newTerritory.name}
-                  onChange={(e) => setNewTerritory((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="Territory name"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <input
-                  type="text"
-                  value={newTerritory.description}
-                  onChange={(e) => setNewTerritory((prev) => ({ ...prev, description: e.target.value }))}
-                  placeholder="Optional description or region note"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
+            <div className="space-y-4">
+              <div className="inline-flex rounded-xl border border-border bg-muted/30 p-1">
                 <button
-                  onClick={handleCreateTerritory}
-                  disabled={territorySubmitting}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                  onClick={() => setActiveTeamTab("members")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    activeTeamTab === "members" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  {territorySubmitting ? "Saving..." : "Add Territory"}
+                  Team Members
+                </button>
+                <button
+                  onClick={() => setActiveTeamTab("create")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    activeTeamTab === "create" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Create Member
+                </button>
+                <button
+                  onClick={() => setActiveTeamTab("territories")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                    activeTeamTab === "territories" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Territory Catalog
                 </button>
               </div>
 
-              {territoriesLoading ? (
-                <div className="p-3 text-sm text-muted-foreground">Loading territory catalog...</div>
-              ) : territories.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                  No governed territories yet. Add one before assigning reps to a sales region.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {territories.map((territory) => (
-                    <div key={territory.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-medium">{territory.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {territory.description || "No description yet"}
-                          </p>
-                        </div>
-                        <span
-                          className={cn(
-                            "text-xs px-2 py-1 rounded-full border",
-                            territory.isActive
-                              ? "bg-green-500/10 text-green-700 border-green-500/20"
-                              : "bg-muted text-muted-foreground border-border"
-                          )}
-                        >
-                          {territory.isActive ? "Active" : "Paused"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{territory.assignedUserCount} assigned user{territory.assignedUserCount === 1 ? "" : "s"}</span>
-                        <button
-                          onClick={() => handleToggleTerritoryStatus(territory)}
-                          className="text-primary hover:underline"
-                        >
-                          {territory.isActive ? "Pause territory" : "Reactivate territory"}
-                        </button>
-                      </div>
+              {activeTeamTab === "territories" ? (
+                <div className="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h4 className="font-medium">Territory Catalog</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Revenue owners now assign against governed workspace territories instead of free-text labels.
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
-              <h4 className="font-medium">Create Team Member</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={newMember.firstName}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, firstName: e.target.value }))}
-                  placeholder="First name"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <input
-                  type="text"
-                  value={newMember.lastName}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, lastName: e.target.value }))}
-                  placeholder="Last name"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <input
-                  type="email"
-                  value={newMember.email}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, email: e.target.value }))}
-                  placeholder="Email"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <input
-                  type="password"
-                  value={newMember.password}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, password: e.target.value }))}
-                  placeholder="Temporary password"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <select
-                  value={newMember.territory}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, territory: e.target.value }))}
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Unassigned territory</option>
-                  {activeTerritories.map((territory) => (
-                    <option key={territory.id} value={territory.name}>
-                      {territory.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  value={newMember.quarterlyQuota}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, quarterlyQuota: e.target.value }))}
-                  placeholder="Quarterly quota"
-                  min="0"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <input
-                  type="number"
-                  value={newMember.annualQuota}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, annualQuota: e.target.value }))}
-                  placeholder="Annual quota"
-                  min="0"
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <select
-                  value={newMember.role}
-                  onChange={(e) => setNewMember((prev) => ({ ...prev, role: e.target.value as UserRole }))}
-                  className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="USER">User</option>
-                  <option value="SALES_REP">Sales Rep</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={handleCreateMember}
-                  disabled={teamSubmitting}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
-                >
-                  <Icons.Plus size={18} />
-                  <span>{teamSubmitting ? "Creating..." : "Create Member"}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {teamLoading ? (
-                <div className="p-4 text-sm text-muted-foreground">Loading team members...</div>
-              ) : teamMembers.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">No team members found.</div>
-              ) : (
-                teamMembers.map((member) => (
-                  <div key={member.id} className="p-4 bg-muted/50 rounded-lg space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium">
-                          {getInitials(member.firstName, member.lastName)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{member.firstName} {member.lastName}</p>
-                          <p className="text-sm text-muted-foreground truncate">{member.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={roleUpdates[member.id] ?? member.role}
-                          onChange={(e) => setRoleUpdates((prev) => ({ ...prev, [member.id]: e.target.value as UserRole }))}
-                          className="px-2 py-1 border border-border rounded bg-background text-sm"
-                        >
-                          <option value="USER">User</option>
-                          <option value="SALES_REP">Sales Rep</option>
-                          <option value="MANAGER">Manager</option>
-                          <option value="ADMIN">Admin</option>
-                        </select>
-                        <button
-                          onClick={() => handleUpdateRole(member)}
-                          className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        >
-                          Save Role
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(member)}
-                          disabled={member.id === user?.id && member.isActive}
-                          className={cn(
-                            "px-2 py-1 text-xs rounded transition-colors",
-                            member.isActive
-                              ? "bg-red-100 text-red-700 hover:bg-red-200"
-                              : "bg-green-100 text-green-700 hover:bg-green-200",
-                            member.id === user?.id && member.isActive && "opacity-60 cursor-not-allowed"
-                          )}
-                        >
-                          {member.isActive ? "Deactivate" : "Activate"}
-                        </button>
-                      </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <p>{activeTerritories.length} active</p>
+                      <p>{territories.length} total</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <select
-                        value={revenueOpsDrafts[member.id]?.territory ?? ""}
-                        onChange={(e) =>
-                          setRevenueOpsDrafts((prev) => ({
-                            ...prev,
-                            [member.id]: {
-                              territory: e.target.value,
-                              quarterlyQuota: prev[member.id]?.quarterlyQuota ?? "",
-                              annualQuota: prev[member.id]?.annualQuota ?? "",
-                            },
-                          }))
-                        }
-                        className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      >
-                        <option value="">Unassigned territory</option>
-                        {buildTerritoryOptions(revenueOpsDrafts[member.id]?.territory ?? member.territory).map((territoryName) => (
-                          <option key={`${member.id}-${territoryName}`} value={territoryName}>
-                            {territoryName}
-                            {isGovernedTerritory(territoryName) ? "" : " (legacy)"}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        value={revenueOpsDrafts[member.id]?.quarterlyQuota ?? ""}
-                        onChange={(e) =>
-                          setRevenueOpsDrafts((prev) => ({
-                            ...prev,
-                            [member.id]: {
-                              territory: prev[member.id]?.territory ?? "",
-                              quarterlyQuota: e.target.value,
-                              annualQuota: prev[member.id]?.annualQuota ?? "",
-                            },
-                          }))
-                        }
-                        placeholder="Quarterly quota"
-                        min="0"
-                        className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                      <input
-                        type="number"
-                        value={revenueOpsDrafts[member.id]?.annualQuota ?? ""}
-                        onChange={(e) =>
-                          setRevenueOpsDrafts((prev) => ({
-                            ...prev,
-                            [member.id]: {
-                              territory: prev[member.id]?.territory ?? "",
-                              quarterlyQuota: prev[member.id]?.quarterlyQuota ?? "",
-                              annualQuota: e.target.value,
-                            },
-                          }))
-                        }
-                        placeholder="Annual quota"
-                        min="0"
-                        className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                      <button
-                        onClick={() => handleUpdateRevenueOps(member)}
-                        className="px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                      >
-                        Save Revenue Ops
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                      <span>
-                        Territory: {member.territory || "Unassigned"}
-                        {member.territory && !isGovernedTerritory(member.territory) ? " (legacy)" : ""}
-                      </span>
-                      <span>Quarterly quota: {member.quarterlyQuota != null ? `$${Number(member.quarterlyQuota).toLocaleString()}` : "Not set"}</span>
-                      <span>Annual quota: {member.annualQuota != null ? `$${Number(member.annualQuota).toLocaleString()}` : "Not set"}</span>
-                    </div>
-                    {member.territory && !isGovernedTerritory(member.territory) ? (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-                        This user is on a legacy territory label. Select an active catalog territory to bring them back under workspace governance.
-                      </div>
-                    ) : null}
                   </div>
-                ))
-              )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-[1.2fr,1.6fr,auto] gap-3">
+                    <input
+                      type="text"
+                      value={newTerritory.name}
+                      onChange={(e) => setNewTerritory((prev) => ({ ...prev, name: e.target.value }))}
+                      placeholder="Territory name"
+                      className="w-full max-w-[28rem] px-3 py-1.5 text-xs border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <input
+                      type="text"
+                      value={newTerritory.description}
+                      onChange={(e) => setNewTerritory((prev) => ({ ...prev, description: e.target.value }))}
+                      placeholder="Optional description or region note"
+                      className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <button
+                      onClick={handleCreateTerritory}
+                      disabled={territorySubmitting}
+                      className="inline-flex w-fit justify-self-start self-start rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                    >
+                      {territorySubmitting ? "Saving..." : "Add Territory"}
+                    </button>
+                  </div>
+
+                  {territoriesLoading ? (
+                    <div className="p-3 text-sm text-muted-foreground">Loading territory catalog...</div>
+                  ) : territories.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                      No governed territories yet. Add one before assigning reps to a sales region.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {territories.map((territory) => (
+                        <div key={territory.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{territory.name}</p>
+                              <p className="text-sm text-muted-foreground">{territory.description || "No description yet"}</p>
+                            </div>
+                            <span
+                              className={cn(
+                                "text-xs px-2 py-1 rounded-full border",
+                                territory.isActive ? "bg-green-500/10 text-green-700 border-green-500/20" : "bg-muted text-muted-foreground border-border"
+                              )}
+                            >
+                              {territory.isActive ? "Active" : "Paused"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{territory.assignedUserCount} assigned user{territory.assignedUserCount === 1 ? "" : "s"}</span>
+                            <button onClick={() => handleToggleTerritoryStatus(territory)} className="text-primary hover:underline">
+                              {territory.isActive ? "Pause territory" : "Reactivate territory"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {activeTeamTab === "create" ? (
+                <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
+                  <h4 className="font-medium">Create Team Member</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input type="text" value={newMember.firstName} onChange={(e) => setNewMember((prev) => ({ ...prev, firstName: e.target.value }))} placeholder="First name" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <input type="text" value={newMember.lastName} onChange={(e) => setNewMember((prev) => ({ ...prev, lastName: e.target.value }))} placeholder="Last name" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <input type="email" value={newMember.email} onChange={(e) => setNewMember((prev) => ({ ...prev, email: e.target.value }))} placeholder="Email" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <input type="password" value={newMember.password} onChange={(e) => setNewMember((prev) => ({ ...prev, password: e.target.value }))} placeholder="Temporary password" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <select value={newMember.territory} onChange={(e) => setNewMember((prev) => ({ ...prev, territory: e.target.value }))} className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="">Unassigned territory</option>
+                      {activeTerritories.map((territory) => (
+                        <option key={territory.id} value={territory.name}>{territory.name}</option>
+                      ))}
+                    </select>
+                    <input type="number" value={newMember.quarterlyQuota} onChange={(e) => setNewMember((prev) => ({ ...prev, quarterlyQuota: e.target.value }))} placeholder="Quarterly quota" min="0" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <input type="number" value={newMember.annualQuota} onChange={(e) => setNewMember((prev) => ({ ...prev, annualQuota: e.target.value }))} placeholder="Annual quota" min="0" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <select value={newMember.role} onChange={(e) => setNewMember((prev) => ({ ...prev, role: e.target.value as UserRole }))} className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="USER">User</option>
+                      <option value="SALES_REP">Sales Rep</option>
+                      <option value="MANAGER">Manager</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end">
+                    <button onClick={handleCreateMember} disabled={teamSubmitting} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors">
+                      <Icons.Plus size={18} />
+                      <span>{teamSubmitting ? "Creating..." : "Create Member"}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTeamTab === "members" ? (
+                <div className="space-y-3">
+                  {teamLoading ? (
+                    <div className="p-4 text-sm text-muted-foreground">Loading team members...</div>
+                  ) : teamMembers.length === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground">No team members found.</div>
+                  ) : (
+                    teamMembers.map((member) => (
+                      <div key={member.id} className="p-4 bg-muted/50 rounded-lg space-y-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium">
+                              {getInitials(member.firstName, member.lastName)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{member.firstName} {member.lastName}</p>
+                              <p className="text-sm text-muted-foreground truncate">{member.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select value={roleUpdates[member.id] ?? member.role} onChange={(e) => setRoleUpdates((prev) => ({ ...prev, [member.id]: e.target.value as UserRole }))} className="px-2 py-1 border border-border rounded bg-background text-sm">
+                              <option value="USER">User</option>
+                              <option value="SALES_REP">Sales Rep</option>
+                              <option value="MANAGER">Manager</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                            <button onClick={() => handleUpdateRole(member)} className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80">Save Role</button>
+                            <button
+                              onClick={() => handleToggleStatus(member)}
+                              disabled={member.id === user?.id && member.isActive}
+                              className={cn(
+                                "px-2 py-1 text-xs rounded transition-colors",
+                                member.isActive ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-green-100 text-green-700 hover:bg-green-200",
+                                member.id === user?.id && member.isActive && "opacity-60 cursor-not-allowed"
+                              )}
+                            >
+                              {member.isActive ? "Deactivate" : "Activate"}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <select
+                            value={revenueOpsDrafts[member.id]?.territory ?? ""}
+                            onChange={(e) =>
+                              setRevenueOpsDrafts((prev) => ({
+                                ...prev,
+                                [member.id]: {
+                                  territory: e.target.value,
+                                  quarterlyQuota: prev[member.id]?.quarterlyQuota ?? "",
+                                  annualQuota: prev[member.id]?.annualQuota ?? "",
+                                },
+                              }))
+                            }
+                            className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          >
+                            <option value="">Unassigned territory</option>
+                            {buildTerritoryOptions(revenueOpsDrafts[member.id]?.territory ?? member.territory).map((territoryName) => (
+                              <option key={`${member.id}-${territoryName}`} value={territoryName}>
+                                {territoryName}
+                                {isGovernedTerritory(territoryName) ? "" : " (legacy)"}
+                              </option>
+                            ))}
+                          </select>
+                          <input type="number" value={revenueOpsDrafts[member.id]?.quarterlyQuota ?? ""} onChange={(e) => setRevenueOpsDrafts((prev) => ({ ...prev, [member.id]: { territory: prev[member.id]?.territory ?? "", quarterlyQuota: e.target.value, annualQuota: prev[member.id]?.annualQuota ?? "" } }))} placeholder="Quarterly quota" min="0" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                          <input type="number" value={revenueOpsDrafts[member.id]?.annualQuota ?? ""} onChange={(e) => setRevenueOpsDrafts((prev) => ({ ...prev, [member.id]: { territory: prev[member.id]?.territory ?? "", quarterlyQuota: prev[member.id]?.quarterlyQuota ?? "", annualQuota: e.target.value } }))} placeholder="Annual quota" min="0" className="px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                          <button onClick={() => handleUpdateRevenueOps(member)} className="px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">Save Revenue Ops</button>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                          <span>
+                            Territory: {member.territory || "Unassigned"}
+                            {member.territory && !isGovernedTerritory(member.territory) ? " (legacy)" : ""}
+                          </span>
+                          <span>Quarterly quota: {member.quarterlyQuota != null ? `$${Number(member.quarterlyQuota).toLocaleString()}` : "Not set"}</span>
+                          <span>Annual quota: {member.annualQuota != null ? `$${Number(member.annualQuota).toLocaleString()}` : "Not set"}</span>
+                        </div>
+                        {member.territory && !isGovernedTerritory(member.territory) ? (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                            This user is on a legacy territory label. Select an active catalog territory to bring them back under workspace governance.
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
         );
@@ -2346,24 +2430,81 @@ export default function SettingsPage() {
 
         return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold">Workflow Automation</h3>
-                <p className="text-sm text-muted-foreground">
-                  Configure tenant-managed workflows instead of relying on hardcoded automation behavior.
-                </p>
-              </div>
-              <span className={cn(
-                "px-3 py-1 text-xs rounded-full border",
-                leadWorkflowDraft.isActive
-                  ? "border-green-200 bg-green-50 text-green-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700"
-              )}>
-                {leadWorkflowDraft.isActive ? "Active" : "Paused"}
-              </span>
+            <div>
+              <h3 className="text-lg font-semibold">Workflow Automation</h3>
+              <p className="text-sm text-muted-foreground">
+                Configure tenant-managed workflows instead of relying on hardcoded automation behavior.
+              </p>
             </div>
 
-            <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+            <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-muted/30 p-1">
+              <button
+                onClick={() => setActiveWorkflowTab("overview")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeWorkflowTab === "overview"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveWorkflowTab("acquisition")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeWorkflowTab === "acquisition"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Lead & Campaign
+              </button>
+              <button
+                onClick={() => setActiveWorkflowTab("support")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeWorkflowTab === "support"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Support Cases
+              </button>
+              <button
+                onClick={() => setActiveWorkflowTab("ops")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeWorkflowTab === "ops"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Revenue Ops
+              </button>
+              <button
+                onClick={() => setActiveWorkflowTab("governance")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeWorkflowTab === "governance"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Governance
+              </button>
+            </div>
+
+            {activeWorkflowTab === "overview" ? (
+            <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-muted/20 p-4">
+              <p className="text-sm font-medium text-foreground">Workflow Lanes</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Use the tabs above to switch between lead routing, support automation, revenue operations, and governance policy without scrolling through every workflow on one page.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h4 className="text-base font-semibold">Recent Automation Runs</h4>
@@ -2428,8 +2569,12 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+            </div>
+            ) : null}
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            {activeWorkflowTab === "acquisition" ? (
+            <>
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Workflow Name</label>
@@ -2437,7 +2582,7 @@ export default function SettingsPage() {
                     type="text"
                     value={leadWorkflowDraft.name}
                     onChange={(e) => setLeadWorkflowDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full max-w-[28rem] px-3 py-1.5 text-xs border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div>
@@ -2469,7 +2614,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-medium">Auto Assignment</p>
@@ -2502,7 +2647,7 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-medium">Auto Follow-up</p>
@@ -2553,7 +2698,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div>
                   <h4 className="font-medium">Fast-track Thresholds</h4>
                   <p className="text-sm text-muted-foreground">
@@ -2625,8 +2770,12 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+            </>
+            ) : null}
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            {activeWorkflowTab === "support" ? (
+            <>
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="font-semibold">Campaign Nurture Workflow</h4>
@@ -2699,7 +2848,7 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Nurture Acceleration</p>
                     <p className="text-sm text-muted-foreground">Boost score and speed for attributed leads when campaigns are performing.</p>
@@ -2764,7 +2913,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="font-semibold">Case SLA Workflow</h4>
@@ -2821,7 +2970,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Default SLA Targets</p>
                     <p className="text-sm text-muted-foreground">Define workspace-level response and resolution targets by case priority.</p>
@@ -2856,7 +3005,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Breach Automation</p>
                     <p className="text-sm text-muted-foreground">Route follow-up work and escalations automatically once a case breaches its SLA.</p>
@@ -2904,7 +3053,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div>
                   <p className="font-medium">Customer Tier Accelerators</p>
                   <p className="text-sm text-muted-foreground">
@@ -2951,7 +3100,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="font-semibold">Case Assignment Workflow</h4>
@@ -3051,7 +3200,7 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Assignment Task SLA</p>
                     <p className="text-sm text-muted-foreground">Set separate due dates and priorities for urgent support work versus the standard queue.</p>
@@ -3123,12 +3272,16 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+            </>
+            ) : null}
 
+            {activeWorkflowTab === "ops" ? (
+            <>
               <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
                Lead intake, campaign nurture, case assignment, case SLA, and deal rescue now share the same tenant-managed workflow foundation, so new automation lanes can keep reusing the same policy surface instead of becoming hardcoded service logic.
               </div>
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="font-semibold">Deal Rescue Workflow</h4>
@@ -3228,7 +3381,7 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Rescue Timing</p>
                     <p className="text-sm text-muted-foreground">Control how quickly rescue work is due once a deal is flagged.</p>
@@ -3289,7 +3442,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="font-semibold">Quota Risk Workflow</h4>
@@ -3371,7 +3524,7 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Task Timing And Priority</p>
                     <p className="text-sm text-muted-foreground">At-risk reviews can be tighter and louder than watch-band reviews.</p>
@@ -3448,7 +3601,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="font-semibold">Deal Approval Workflow</h4>
@@ -3531,7 +3684,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Approval Task SLA</p>
                     <p className="text-sm text-muted-foreground">Set how quickly approval tasks are due once a rep requests sign-off.</p>
@@ -3584,7 +3737,11 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+            </>
+            ) : null}
 
+            {activeWorkflowTab === "governance" ? (
+            <>
             <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -3642,7 +3799,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Digest Cadence</p>
                     <p className="text-sm text-muted-foreground">Decide how often governance digests become due and how quickly managers should action them.</p>
@@ -3694,7 +3851,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Review SLA Bands</p>
                     <p className="text-sm text-muted-foreground">Define when overdue reviews shift from watch to high to critical inside governance reporting.</p>
@@ -3802,7 +3959,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h4 className="text-base font-semibold">Territory Escalation Workflow</h4>
@@ -3859,7 +4016,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Escalation Thresholds</p>
                     <p className="text-sm text-muted-foreground">Define what pushes territory drift into high or critical escalation bands.</p>
@@ -3901,7 +4058,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Escalation SLA</p>
                     <p className="text-sm text-muted-foreground">Set when watch, high, and critical drift should count as SLA-breached.</p>
@@ -3922,7 +4079,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                   <div>
                     <p className="font-medium">Task Routing SLA</p>
                     <p className="text-sm text-muted-foreground">Choose how urgently watch, high, and critical territory alerts should be assigned.</p>
@@ -3981,6 +4138,8 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+            </>
+            ) : null}
           </div>
         );
 
@@ -4191,12 +4350,52 @@ export default function SettingsPage() {
       case "security":
         return (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold">Security Settings</h3>
+            <div>
+              <h3 className="text-lg font-semibold">Security Settings</h3>
+            </div>
             <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
               {settingsCapabilitiesLoading
                 ? "Loading security capability overview..."
                 : "Authentication and access control are live, and self-service password, 2FA, and session controls are now available from this workspace."}
             </div>
+
+            <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-muted/30 p-1">
+              <button
+                onClick={() => setActiveSecurityTab("overview")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeSecurityTab === "overview"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveSecurityTab("credentials")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeSecurityTab === "credentials"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Password & 2FA
+              </button>
+              <button
+                onClick={() => setActiveSecurityTab("sessions")}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  activeSecurityTab === "sessions"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Sessions
+              </button>
+            </div>
+
+            {activeSecurityTab === "overview" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-lg border border-border bg-card p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Authentication</p>
@@ -4241,8 +4440,12 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
+            ) : null}
+
+            {activeSecurityTab === "credentials" ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div>
                   <h4 className="font-semibold">Change Password</h4>
                   <p className="text-sm text-muted-foreground">Update your password and optionally revoke every other session.</p>
@@ -4252,7 +4455,7 @@ export default function SettingsPage() {
                   placeholder="Current password"
                   value={passwordForm.currentPassword}
                   onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                  className="w-full max-w-[28rem] px-3 py-1.5 text-xs border border-border rounded-lg bg-background"
                 />
                 <input
                   type="password"
@@ -4285,7 +4488,7 @@ export default function SettingsPage() {
                 </button>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+              <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div>
                   <h4 className="font-semibold">Two-Factor Authentication</h4>
                   <p className="text-sm text-muted-foreground">
@@ -4345,8 +4548,11 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
+            </div>
+            ) : null}
 
-            <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+            {activeSecurityTab === "sessions" ? (
+            <div className="rounded-lg border border-border bg-card p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h4 className="font-semibold">Active Sessions</h4>
@@ -4396,6 +4602,7 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+            ) : null}
           </div>
         );
 
@@ -4406,54 +4613,56 @@ export default function SettingsPage() {
 
   return (
     <PageLayout>
-      {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences</p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar Navigation */}
-          <div className="lg:w-72 flex-shrink-0">
-            <div className="bg-card border border-border rounded-lg p-2">
-              <nav className="space-y-1">
-                {settingSections.map((section) => {
-                  const Icon = Icons[section.icon];
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => setActiveSection(section.id)}
-                      className={cn(
-                        "w-full flex items-start gap-3 px-4 py-3 rounded text-left transition-colors",
-                        activeSection === section.id
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted text-foreground"
-                      )}
-                    >
-                      <Icon size={20} className="mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm">{section.title}</p>
-                        <p className={cn(
-                          "text-xs mt-0.5",
-                          activeSection === section.id ? "text-primary-foreground/80" : "text-muted-foreground"
-                        )}>
-                          {section.description}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
+      <div className="px-4 py-4 sm:px-5 sm:py-5">
+        <div className="mx-auto max-w-[1320px] overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+          <div className="border-b border-border/80 bg-muted/20 px-5 py-4 sm:px-6">
+            <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage your account and preferences</p>
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 bg-card border border-border rounded-lg p-6">
-            {renderContent()}
+          <div className="flex flex-col lg:flex-row">
+            <aside className="lg:w-64 lg:flex-shrink-0 lg:border-r lg:border-border/80">
+              <div className="p-3 sm:p-4">
+                <nav className="space-y-1.5">
+                  {settingSections.map((section) => {
+                    const Icon = Icons[section.icon];
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => setActiveSection(section.id)}
+                        className={cn(
+                          "w-full rounded-xl px-3 py-2.5 text-left transition-colors",
+                          activeSection === section.id
+                            ? "bg-primary/10 text-foreground"
+                            : "text-foreground hover:bg-muted/70"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={cn(
+                              "mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-colors",
+                              activeSection === section.id
+                                ? "border-primary/20 bg-primary text-primary-foreground"
+                                : "border-border bg-background text-muted-foreground"
+                            )}
+                          >
+                            <Icon size={18} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{section.title}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">{section.description}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </aside>
+
+            <section className="min-w-0 flex-1 bg-background/40 px-4 py-4 text-[13px] [&_input:not([type='checkbox'])]:max-w-[22rem] [&_select]:max-w-[14rem] [&_textarea]:max-w-[30rem] sm:px-5 sm:py-5">
+              {renderContent()}
+            </section>
           </div>
         </div>
       </div>
