@@ -388,58 +388,104 @@ export default function ContactsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredContacts.map((contact) => (
-            <div key={contact.id} className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
-              <div className="flex items-start gap-2.5 mb-2.5">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-base">
-                  {(contact.firstName?.charAt(0) || contact.email?.charAt(0) || "?").toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-medium text-foreground truncate">{contact.firstName} {contact.lastName}</h3>
-                    {contact.isPrimary && (
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                        Primary
-                      </span>
-                    )}
-                    {getContactBadges(contact).map((badge, idx) => (
-                      <InsightBadge key={idx} type={badge.type} label={badge.label} />
-                    ))}
+        <div className="grid grid-cols-1 gap-2.5 rounded-[1.2rem] border border-border/70 bg-card/70 p-2.5 md:grid-cols-2 xl:grid-cols-4">
+          {filteredContacts.map((contact) => {
+            const initials = `${contact.firstName?.charAt(0) || ""}${contact.lastName?.charAt(0) || contact.email?.charAt(0) || "?"}`.toUpperCase();
+            const companyLabel = contact.companyName || contact.company?.name || "No company yet";
+            const statusTone = cn(
+              "border",
+              contact.status === "ACTIVE" ? "border-sky-200/80 bg-sky-50 text-sky-700" : "border-slate-200/80 bg-slate-100 text-slate-700"
+            );
+            const influenceTone = cn(
+              contact.influenceLevel === "HIGH" && "border-sky-200/80 bg-sky-50 text-sky-700",
+              contact.influenceLevel === "MEDIUM" && "border-amber-200/80 bg-amber-50 text-amber-700",
+              (!contact.influenceLevel || contact.influenceLevel === "LOW") && "border-slate-200/80 bg-slate-100 text-slate-700"
+            );
+
+            return (
+              <div
+                key={contact.id}
+                className="group relative overflow-hidden rounded-[1rem] border border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.92))] shadow-[0_18px_40px_-36px_rgba(15,23,42,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_24px_50px_-36px_rgba(37,99,235,0.35)]"
+              >
+                <div className="absolute inset-x-0 top-0 h-14 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_60%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_52%)]" />
+                <div className="absolute right-3 top-3 h-10 w-10 rounded-full bg-primary/6 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+
+                <div className="relative flex h-full flex-col p-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.9rem] border border-white/70 bg-white/80 text-[11px] font-semibold text-primary shadow-[0_10px_24px_-20px_rgba(37,99,235,0.55)] backdrop-blur">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <h3 className="truncate text-[13px]  font-semibold leading-tight text-foreground">{contact.firstName} {contact.lastName}</h3>
+                          <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em]", statusTone)}>
+                            {contact.status || "Unknown"}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground">{contact.title || stakeholderLabel(contact)}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                          <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[8px] font-medium text-foreground/75">
+                            {companyLabel}
+                          </span>
+                          {contact.isPrimary && (
+                            <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[8px] font-medium text-primary">
+                              Primary
+                            </span>
+                          )}
+                          {getContactBadges(contact).map((badge, idx) => (
+                            <span key={idx} className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-100 px-1.5 py-0.5 text-[8px] font-medium text-slate-700">
+                              {badge.label || badge.type}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={cn("inline-flex min-w-[2.45rem] flex-col items-center rounded-[0.85rem] border px-1.5 py-1 text-center shadow-sm", influenceTone)}>
+                      <span className="text-[8px] font-semibold uppercase tracking-[0.16em] opacity-80">Influence</span>
+                      <span className="mt-0.5 text-[10px] font-semibold leading-none">{contact.influenceLevel || "Low"}</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{contact.title || "N/A"}</p>
-                  <p className="text-xs text-muted-foreground truncate">{contact.companyName || "N/A"}</p>
+
+                  <div className="relative mt-2.5 overflow-hidden rounded-[0.9rem] border border-border/60 bg-white/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-foreground/45">Stakeholder</p>
+                        <p className="mt-0.5 truncate text-[11px] font-medium text-foreground/80">{stakeholderLabel(contact)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-foreground/45">Reports To</p>
+                        <p className="mt-0.5 truncate text-[11px] font-medium text-foreground/80">{contact.reportsToName || "Direct contact"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 space-y-1.5 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 rounded-[0.8rem] border border-border/60 bg-background/70 px-2 py-1.5">
+                      <Icons.Mail size={13} className="shrink-0 text-primary/80" />
+                      <span className="truncate text-[10px]">{contact.email || "No email provided"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-[0.8rem] border border-border/60 bg-background/70 px-2 py-1.5">
+                      <Icons.Phone size={13} className="shrink-0 text-primary/80" />
+                      <span className="truncate text-[10px]">{contact.phone || contact.mobile || "No phone provided"}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/60 pt-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/80 px-2 py-1 text-[9px] font-medium text-foreground">
+                      <Icons.Users size={12} />
+                      {contact.department || "No department"}
+                    </span>
+                    <span className="text-[9px] font-medium text-muted-foreground truncate text-right">
+                      {contact.reportsToName ? `Reports to ${contact.reportsToName}` : (contact.lastContactDate || "No recent contact")}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Icons.Mail size={14} />
-                  <span className="truncate">{contact.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Icons.Phone size={14} />
-                  <span>{contact.phone || contact.mobile || "N/A"}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Icons.Users size={14} />
-                  <span>{stakeholderLabel(contact)}</span>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <span
-                    className={cn(
-                      "px-2 py-1 text-xs font-medium rounded-full",
-                      contact.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                    )}
-                  >
-                    {contact.status ? `${contact.status.charAt(0)}${contact.status.slice(1).toLowerCase()}` : "N/A"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {contact.reportsToName ? `Reports to ${contact.reportsToName}` : (contact.lastContactDate || "No recent contact")}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

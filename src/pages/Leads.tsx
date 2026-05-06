@@ -258,6 +258,17 @@ export default function LeadsPage() {
     setSelectedIds(newSelected);
   };
 
+  const getLeadAvatarUrl = (lead: Lead) => {
+    const seed = `${lead.firstName || "lead"}-${lead.lastName || "profile"}-${lead.id || lead.email || "crm"}`
+      .trim()
+      .toLowerCase();
+    const hash = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const imageId = (hash % 70) + 1;
+    return `https://i.pravatar.cc/160?img=${imageId}`;
+  };
+
+  const viewingLeadAvatarUrl = viewingLead ? getLeadAvatarUrl(viewingLead) : "";
+
   return (
     <PageLayout>
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
@@ -545,10 +556,10 @@ export default function LeadsPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-secondary/50">
-                    <th className="border-b border-border/60 text-left px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="border-b border-border/60 text-left px-2 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       <input
                         type="checkbox"
-                        className="rounded"
+                        className="h-2.5 w-2.5 rounded-sm"
                         aria-label="Select all"
                         checked={selectedIds.size === filteredLeads.length && filteredLeads.length > 0}
                         onChange={toggleSelectAll}
@@ -576,10 +587,10 @@ export default function LeadsPage() {
                         setDetailSidebarOpen(true);
                       }}
                     >
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-2 py-2.5 whitespace-nowrap">
                         <input
                           type="checkbox"
-                          className="rounded"
+                          className="h-2.5 w-2.5 rounded-sm"
                           aria-label="Select lead"
                           checked={lead.id ? selectedIds.has(lead.id) : false}
                           onChange={() => toggleSelect(lead.id)}
@@ -587,8 +598,8 @@ export default function LeadsPage() {
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
-                            {lead.firstName?.charAt(0) || '?'}
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-primary/10 text-[10px] font-semibold text-primary shadow-sm">
+                            {`${lead.firstName?.charAt(0) || ""}${lead.lastName?.charAt(0) || lead.email?.charAt(0) || "?"}`.toUpperCase()}
                           </div>
                           <div>
                             <div className="text-sm font-medium text-foreground">{lead.firstName} {lead.lastName}</div>
@@ -609,11 +620,11 @@ export default function LeadsPage() {
                       <td className="px-3 py-2.5 whitespace-nowrap text-sm text-muted-foreground">{lead.phone}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
-                          <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden w-16">
+                          <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden w-16">
                             <div
                               className={cn(
                                 "h-full transition-all",
-                                (lead.score ?? 0) >= 80 ? "bg-green-500" : (lead.score ?? 0) >= 60 ? "bg-yellow-500" : "bg-red-500"
+                                (lead.score ?? 0) >= 80 ? "bg-sky-500" : (lead.score ?? 0) >= 60 ? "bg-yellow-500" : "bg-red-500"
                               )}
                               style={{ width: `${lead.score ?? 0}%` }}
                             />
@@ -668,62 +679,151 @@ export default function LeadsPage() {
           </div>
         ) : (
           /* Grid View */
-          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3">
-            {filteredLeads.map((lead) => (
-              <div key={lead.id} className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
-                <div className="flex items-start justify-between mb-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
-                      {lead.firstName?.charAt(0) || '?'}
+          <div className="grid grid-cols-1 gap-3 rounded-[1.35rem] border border-border/70 bg-card/70 p-3 md:grid-cols-2 xl:grid-cols-4">
+            {filteredLeads.map((lead) => {
+              const score = lead.score ?? 0;
+              const initials = `${lead.firstName?.charAt(0) || ''}${lead.lastName?.charAt(0) || ''}`.trim() || '?';
+              const scoreTone =
+                score >= 80
+                  ? "border-sky-200/80 bg-sky-50 text-sky-700"
+                  : score >= 60
+                    ? "border-amber-200/80 bg-amber-50 text-amber-700"
+                    : "border-rose-200/80 bg-rose-50 text-rose-700";
+              const statusTone = cn(
+                "border",
+                lead.status === "QUALIFIED" && "border-emerald-200/80 bg-emerald-50 text-emerald-700",
+                lead.status === "UNQUALIFIED" && "border-orange-200/80 bg-orange-50 text-orange-700",
+                lead.status === "CONTACTED" && "border-sky-200/80 bg-sky-50 text-sky-700",
+                lead.status === "NEW" && "border-slate-200/80 bg-slate-100 text-slate-700",
+                lead.status === "LOST" && "border-rose-200/80 bg-rose-50 text-rose-700"
+              );
+
+              return (
+                <div
+                  key={lead.id}
+                  className="group relative overflow-hidden rounded-[1.1rem] border border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.92))] shadow-[0_18px_40px_-34px_rgba(15,23,42,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_24px_50px_-34px_rgba(37,99,235,0.35)]"
+                >
+                  <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_60%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_52%)]" />
+                  <div className="absolute right-3 top-3 h-12 w-12 rounded-full bg-primary/6 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+
+                  <div
+                    className="relative flex h-full flex-col p-3"
+                    onClick={() => {
+                      setViewingLead(lead);
+                      setDetailSidebarOpen(true);
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-white/70 bg-white/80 text-[11px] font-semibold text-primary shadow-[0_10px_24px_-18px_rgba(37,99,235,0.55)] backdrop-blur">
+                          {initials}
+                        </div>
+                        <div className="min-w-0 pt-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="truncate text-[14px] font-semibold leading-tight text-foreground">
+                              {lead.firstName} {lead.lastName}
+                            </h3>
+                            <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]", statusTone)}>
+                              {lead.status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">{lead.company || "No company yet"}</p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                            {lead.ownerName && (
+                              <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                                Owner {lead.ownerName}
+                              </span>
+                            )}
+                            {lead.territory && (
+                              <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                                {lead.territory}
+                              </span>
+                            )}
+                            {lead.territoryMismatch && (
+                              <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
+                                Territory mismatch
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={cn("inline-flex min-w-[2.8rem] flex-col items-center rounded-[0.95rem] border px-1.5 py-1 text-center shadow-sm", scoreTone)}>
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-80">Score</span>
+                        <span className="mt-0.5 text-[1rem] font-semibold leading-none">{score}</span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-foreground leading-tight">{lead.firstName} {lead.lastName}</h3>
-                      <p className="text-xs text-muted-foreground">{lead.company}</p>
-                      <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-                        {lead.ownerName && <span>Owner: {lead.ownerName}</span>}
-                        {lead.territory && <span>Territory: {lead.territory}</span>}
-                        {lead.territoryMismatch && (
-                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
-                            Territory mismatch
-                          </span>
-                        )}
+
+                    <div className="relative mt-3 overflow-hidden rounded-[1rem] border border-border/60 bg-white/75 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Estimated Value</p>
+                          <p className="mt-0.5 text-[0.95rem] font-semibold leading-none text-foreground">
+                            {lead.estimatedValue ? `$${lead.estimatedValue.toLocaleString()}` : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Source</p>
+                          <p className="mt-0.5 truncate text-[12px] font-medium text-foreground/80">
+                            {lead.source ? lead.source.replace(/_/g, ' ') : "Unknown"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Mail size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{lead.email || "No email provided"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Phone size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{lead.phone || "No phone provided"}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewingLead(lead);
+                          setDetailSidebarOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/80 px-2.5 py-1.5 text-[10px] font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                      >
+                        <Icons.Eye size={13} />
+                        View profile
+                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLead(lead);
+                            setIsFormOpen(true);
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                          aria-label="Edit lead"
+                        >
+                          <Icons.Edit size={14} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLead(lead);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                          aria-label="Delete lead"
+                        >
+                          <Icons.Trash size={14} />
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <span className={cn(
-                    "px-2 py-1 text-xs font-medium rounded",
-                    (lead.score ?? 0) >= 80 ? "bg-green-100 text-green-700" : (lead.score ?? 0) >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
-                  )}>
-                    {lead.score ?? 0}
-                  </span>
                 </div>
-                <div className="space-y-1.5 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Icons.Mail size={14} />
-                    <span className="truncate">{lead.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Icons.Phone size={14} />
-                    <span>{lead.phone}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className={cn(
-                      "px-2 py-1 text-xs font-medium rounded-full",
-                      lead.status === "QUALIFIED" && "bg-green-100 text-green-700",
-                      lead.status === "UNQUALIFIED" && "bg-orange-100 text-orange-700",
-                      lead.status === "CONTACTED" && "bg-blue-100 text-blue-700",
-                      lead.status === "NEW" && "bg-gray-100 text-gray-700",
-                      lead.status === "LOST" && "bg-red-100 text-red-700"
-                    )}>
-                      {lead.status.charAt(0) + lead.status.slice(1).toLowerCase()}
-                    </span>
-                    {lead.estimatedValue && (
-                      <span className="font-medium text-foreground">${lead.estimatedValue.toLocaleString()}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -878,33 +978,37 @@ export default function LeadsPage() {
           ]}
         >
           {/* ── Profile Header ── */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-4">
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-center gap-3">
               {/* Avatar */}
-              <div className="h-14 w-14 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xl font-bold flex-shrink-0 select-none">
-                {viewingLead.firstName?.[0]?.toUpperCase()}{viewingLead.lastName?.[0]?.toUpperCase()}
+              <div className="h-11 w-11 overflow-hidden rounded-full border border-border/70 bg-primary/10 shadow-sm flex-shrink-0 select-none">
+                <img
+                  src={viewingLeadAvatarUrl}
+                  alt={`${viewingLead.firstName} ${viewingLead.lastName}`}
+                  className="h-full w-full object-cover"
+                />
               </div>
               {/* Name + quick-action icons */}
               <div className="flex-1 min-w-0">
-                <p className="text-base font-semibold text-foreground leading-tight">
+                <p className="text-sm font-semibold text-foreground leading-tight">
                   {viewingLead.firstName} {viewingLead.lastName}
                 </p>
                 {viewingLead.title && (
                   <p className="text-xs text-muted-foreground mt-0.5">{viewingLead.title}</p>
                 )}
-                <div className="flex gap-2 mt-2.5">
+                <div className="flex gap-1.5 mt-2">
                   {viewingLead.phone && (
                     <a href={`tel:${viewingLead.phone}`}
-                      className="p-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                      className="p-1 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
                       title="Call">
-                      <Icons.Phone size={14} />
+                      <Icons.Phone size={13} />
                     </a>
                   )}
                   {viewingLead.email && (
                     <a href={`mailto:${viewingLead.email}`}
-                      className="p-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                      className="p-1 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
                       title="Send email">
-                      <Icons.Mail size={14} />
+                      <Icons.Mail size={13} />
                     </a>
                   )}
                 </div>
@@ -915,11 +1019,11 @@ export default function LeadsPage() {
                   {viewingLead.company && (
                     <>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Company</p>
-                      <p className="text-sm font-medium text-foreground">{viewingLead.company}</p>
+                      <p className="text-xs font-medium text-foreground">{viewingLead.company}</p>
                     </>
                   )}
                   {viewingLead.estimatedValue && (
-                    <p className="text-xs text-primary font-semibold mt-1">
+                    <p className="text-[11px] text-primary font-semibold mt-0.5">
                       ${viewingLead.estimatedValue.toLocaleString()}
                     </p>
                   )}
@@ -929,18 +1033,18 @@ export default function LeadsPage() {
           </div>
 
           {/* ── Lead Details Card ── */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-primary mb-4">Lead Details</h3>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <div className="rounded-lg border border-border bg-card p-3">
+            <h3 className="text-xs font-semibold text-primary mb-3">Lead Details</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Owner</p>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-xs font-medium text-foreground">
                   {viewingLead.ownerName || "Unassigned"}
                 </p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Created on</p>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-xs font-medium text-foreground">
                   {viewingLead.createdAt
                     ? new Date(viewingLead.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
                     : "—"}
@@ -949,7 +1053,7 @@ export default function LeadsPage() {
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1">Lead Stage</p>
                 <span className={cn(
-                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold",
+                  "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold",
                   viewingLead.status === "NEW" && "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
                   viewingLead.status === "CONTACTED" && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
                   viewingLead.status === "QUALIFIED" && "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
@@ -962,7 +1066,7 @@ export default function LeadsPage() {
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Modified on</p>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-xs font-medium text-foreground">
                   {viewingLead.updatedAt
                     ? new Date(viewingLead.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
                     : "—"}
@@ -970,29 +1074,29 @@ export default function LeadsPage() {
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Lead Source</p>
-                <p className="text-sm font-medium text-foreground">{viewingLead.source || "—"}</p>
+                <p className="text-xs font-medium text-foreground">{viewingLead.source || "—"}</p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Campaign</p>
-                <p className="text-sm font-medium text-foreground">{viewingLead.campaignName || "—"}</p>
+                <p className="text-xs font-medium text-foreground">{viewingLead.campaignName || "—"}</p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Lead Score</p>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-primary transition-all"
+                      className="h-full rounded-full bg-sky-500 transition-all"
                       style={{ width: `${viewingLead.score ?? 0}%` }}
                     />
                   </div>
-                  <span className="text-xs font-semibold text-foreground tabular-nums">
+                  <span className="text-[11px] font-semibold text-foreground tabular-nums">
                     {viewingLead.score ?? 0}
                   </span>
                 </div>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Last Contact</p>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-xs font-medium text-foreground">
                   {viewingLead.lastContactDate || viewingLead.lastContact || "—"}
                 </p>
               </div>
@@ -1000,20 +1104,20 @@ export default function LeadsPage() {
 
             {/* Follow-up comment */}
             {viewingLead.notes && (
-              <div className="mt-4 pt-4 border-t border-border/70">
+              <div className="mt-3 pt-3 border-t border-border/70">
                 <p className="text-[11px] text-muted-foreground mb-1">Follow-up comment</p>
-                <p className="text-sm text-foreground leading-relaxed">{viewingLead.notes}</p>
+                <p className="text-xs text-foreground leading-relaxed">{viewingLead.notes}</p>
               </div>
             )}
           </div>
 
           {/* ── Tags ── */}
           {viewingLead.tags && viewingLead.tags.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h3 className="text-sm font-semibold text-primary mb-3">Tags</h3>
-              <div className="flex flex-wrap gap-2">
+            <div className="rounded-lg border border-border bg-card p-3">
+              <h3 className="text-xs font-semibold text-primary mb-2.5">Tags</h3>
+              <div className="flex flex-wrap gap-1.5">
                 {viewingLead.tags.map((tag) => (
-                  <span key={tag} className="px-2.5 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
+                  <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-[11px] rounded-full font-medium">
                     {tag}
                   </span>
                 ))}
@@ -1022,28 +1126,28 @@ export default function LeadsPage() {
           )}
 
           {/* ── Contact Information Card ── */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-primary mb-4">Contact Information</h3>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <div className="rounded-lg border border-border bg-card p-3">
+            <h3 className="text-xs font-semibold text-primary mb-3">Contact Information</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Phone</p>
-                <p className="text-sm font-medium text-foreground">{viewingLead.phone || "—"}</p>
+                <p className="text-xs font-medium text-foreground">{viewingLead.phone || "—"}</p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Email</p>
-                <p className="text-sm font-medium text-foreground break-all">{viewingLead.email || "—"}</p>
+                <p className="text-xs font-medium text-foreground break-all">{viewingLead.email || "—"}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-[11px] text-muted-foreground mb-0.5">Company</p>
-                <p className="text-sm font-medium text-foreground">{viewingLead.company || "—"}</p>
+                <p className="text-xs font-medium text-foreground">{viewingLead.company || "—"}</p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Territory</p>
-                <p className="text-sm font-medium text-foreground">{viewingLead.territory || "Unassigned"}</p>
+                <p className="text-xs font-medium text-foreground">{viewingLead.territory || "Unassigned"}</p>
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground mb-0.5">Owner Territory</p>
-                <p className="text-sm font-medium text-foreground">{viewingLead.ownerTerritory || "Unassigned"}</p>
+                <p className="text-xs font-medium text-foreground">{viewingLead.ownerTerritory || "Unassigned"}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-[11px] text-muted-foreground mb-0.5">Territory Coverage</p>
@@ -1052,7 +1156,7 @@ export default function LeadsPage() {
                     "inline-block h-2 w-2 rounded-full flex-shrink-0",
                     viewingLead.territoryMismatch ? "bg-red-500" : "bg-green-500"
                   )} />
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-xs font-medium text-foreground">
                     {viewingLead.territoryMismatch ? "Needs reassignment review" : "Aligned"}
                   </p>
                 </div>

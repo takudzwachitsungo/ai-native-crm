@@ -260,10 +260,10 @@ function PipelineAnalytics({ period }: { period: string }) {
   const winRate = wonDeals + lostDeals > 0 ? (wonDeals / (wonDeals + lostDeals)) * 100 : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-7xl space-y-3.5">
       {/* Top Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
-        <div className="bg-card border border-border rounded-lg p-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="bg-card border border-border rounded-lg p-2.5">
           <div className="flex items-center gap-2 mb-1.5">
             <Icons.DollarSign size={16} className="text-primary" />
             <h3 className="text-xs font-medium text-muted-foreground">Total Pipeline</h3>
@@ -272,7 +272,7 @@ function PipelineAnalytics({ period }: { period: string }) {
           <p className="text-xs text-muted-foreground mt-1">{totalDeals} deals</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-3">
+        <div className="bg-card border border-border rounded-lg p-2.5">
           <div className="flex items-center gap-2 mb-1.5">
             <Icons.TrendingUp size={16} className="text-green-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Win Rate</h3>
@@ -281,7 +281,7 @@ function PipelineAnalytics({ period }: { period: string }) {
           <p className="text-xs text-muted-foreground mt-1">{wonDeals} won / {lostDeals} lost</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-3">
+        <div className="bg-card border border-border rounded-lg p-2.5">
           <div className="flex items-center gap-2 mb-1.5">
             <Icons.BarChart size={16} className="text-blue-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Avg Deal Size</h3>
@@ -290,7 +290,7 @@ function PipelineAnalytics({ period }: { period: string }) {
           <p className="text-xs text-muted-foreground mt-1">across all stages</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/pipeline')}>
+        <div className="bg-card border border-border rounded-lg p-2.5 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/pipeline')}>
           <div className="flex items-center gap-2 mb-1.5">
             <Icons.Activity size={16} className="text-purple-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Active Deals</h3>
@@ -300,56 +300,55 @@ function PipelineAnalytics({ period }: { period: string }) {
         </div>
       </div>
 
-      {/* Pipeline Funnel */}
-      <div className="bg-card border border-border rounded-lg p-4">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Icons.Pipeline size={16} className="text-primary" />
-          Deal Stage Distribution
-        </h3>
-        <div className="space-y-2.5">
-          {Object.entries(stageData)
-            .filter(([stage]) => !stage.includes('CLOSED'))
-            .map(([stage, data]) => {
-              const percentage = totalDeals > 0 ? (data.count / totalDeals) * 100 : 0;
-              const stageLabel = stage.replace(/_/g, ' ');
-              
-              return (
-                <div key={stage}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-medium capitalize">{stageLabel.toLowerCase()}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground">{data.count} deals</span>
-                      <span className="text-xs text-muted-foreground w-12 text-right">{percentage.toFixed(0)}%</span>
+      {/* Pipeline Sections */}
+      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-3">
+        <div className="bg-card border border-border rounded-lg p-3.5">
+          <h3 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
+            <Icons.Pipeline size={16} className="text-primary" />
+            Deal Stage Distribution
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(stageData)
+              .filter(([stage]) => !stage.includes('CLOSED'))
+              .map(([stage, data]) => {
+                const percentage = totalDeals > 0 ? (data.count / totalDeals) * 100 : 0;
+                const stageLabel = stage.replace(/_/g, ' ');
+                
+                return (
+                  <div key={stage} className="rounded-md border border-border/50 bg-background/40 px-2.5 py-2">
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="font-medium capitalize">{stageLabel.toLowerCase()}</span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-muted-foreground">{data.count} deals</span>
+                        <span className="text-[11px] text-muted-foreground w-10 text-right">{percentage.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <div className="relative h-6 bg-muted/30 rounded-md overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-blue-500 rounded-md transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                      <div className="absolute inset-0 flex items-center px-2 justify-between text-[10px]">
+                        {data.value > 0 && (
+                          <span className="font-semibold text-primary-foreground drop-shadow">
+                            ${(data.value / 1000000).toFixed(1)}M
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="relative h-7 bg-muted/30 rounded-lg overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-blue-500 rounded-lg transition-all duration-500"
-                      style={{ width: `${percentage}%` }}
-                    />
-                    <div className="absolute inset-0 flex items-center px-2.5 justify-between text-[11px]">
-                      {data.value > 0 && (
-                        <span className="font-semibold text-primary-foreground drop-shadow">
-                          ${(data.value / 1000000).toFixed(1)}M
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+          </div>
         </div>
-      </div>
 
-      {/* Value by Stage & Conversion */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Value by Stage */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <div className="bg-card border border-border rounded-lg p-3.5">
+          <h3 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
             <Icons.PieChart size={16} className="text-primary" />
             Pipeline Value by Stage
           </h3>
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {Object.entries(stageData)
               .filter(([stage]) => !stage.includes('CLOSED') && stageData[stage].value > 0)
               .sort(([, a], [, b]) => b.value - a.value)
@@ -358,14 +357,14 @@ function PipelineAnalytics({ period }: { period: string }) {
                 const stageLabel = stage.replace(/_/g, ' ');
                 
                 return (
-                  <div key={stage} className="flex items-center justify-between">
+                  <div key={stage} className="flex items-center justify-between rounded-md border border-border/40 px-2.5 py-2">
                     <div className="flex items-center gap-2 flex-1">
                       <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span className="text-xs capitalize">{stageLabel.toLowerCase()}</span>
+                      <span className="text-[11px] capitalize">{stageLabel.toLowerCase()}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-medium">${(data.value / 1000000).toFixed(1)}M</span>
-                      <span className="text-xs text-muted-foreground w-12 text-right">{percentage.toFixed(0)}%</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] font-medium">${(data.value / 1000000).toFixed(1)}M</span>
+                      <span className="text-[11px] text-muted-foreground w-10 text-right">{percentage.toFixed(0)}%</span>
                     </div>
                   </div>
                 );
@@ -374,12 +373,12 @@ function PipelineAnalytics({ period }: { period: string }) {
         </div>
 
         {/* Conversion Metrics */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <div className="bg-card border border-border rounded-lg p-3.5">
+          <h3 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
             <Icons.Target size={16} className="text-primary" />
             Conversion Metrics
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs text-muted-foreground">Prospecting → Qualification</span>
