@@ -651,7 +651,7 @@ export default function RevenueOps() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium">{run.automationName}</p>
+                        <p className="text-sm font-medium">{run.automationName}</p>
                         <span className={pacingBadgeClasses(run.runStatus === 'SUCCESS' ? 'ON_TRACK' : run.runStatus === 'SKIPPED' ? 'WATCH' : 'AT_RISK')}>
                           {run.runStatus}
                         </span>

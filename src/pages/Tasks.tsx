@@ -281,7 +281,7 @@ export default function TasksPage() {
                     <td className="px-3 py-2.5">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{task.title}</span>
+                          <span className="text-sm font-medium text-foreground">{task.title}</span>
                           {getTaskBadges(task).map((badge, idx) => (
                             <InsightBadge 
                               key={idx}

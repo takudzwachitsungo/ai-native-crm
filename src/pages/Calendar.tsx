@@ -237,11 +237,11 @@ export default function CalendarPage() {
 
   return (
     <PageLayout>
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="mx-auto flex h-full w-full max-w-[1600px] flex-col gap-2 overflow-hidden px-4 py-2 sm:px-5 lg:px-6">
       {/* Header */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="px-4 py-3 sm:px-5">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-4 py-2.5 sm:px-5">
+          <div className="mb-3 flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-foreground">Calendar</h1>
             <div className="flex items-center gap-2">
               <button
@@ -291,7 +291,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Search and Controls */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="mb-3 flex items-center gap-2">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -355,12 +355,12 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar Content */}
-      <div className="space-y-4">
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="grid min-h-[720px] grid-cols-[260px_minmax(0,1fr)]">
+      <div className="min-h-0 flex-1">
+        <div className="h-full overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="grid h-full min-h-0 grid-cols-[220px_minmax(0,1fr)]">
             <aside className="border-r border-border bg-muted/20">
-              <div className="border-b border-border px-4 py-4">
-                <div className="mb-4 flex items-center justify-between">
+              <div className="border-b border-border px-3 py-2">
+                <div className="mb-2 flex items-center justify-between">
                   <button
                     onClick={goToPreviousWeek}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary"
@@ -378,7 +378,7 @@ export default function CalendarPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-7 gap-y-2 text-center text-[11px] font-medium text-muted-foreground">
+                <div className="grid grid-cols-7 gap-y-1.5 text-center text-[10px] font-medium text-muted-foreground">
                   {dayNames.map((day) => (
                     <span key={day}>{day.slice(0, 2)}</span>
                   ))}
@@ -390,7 +390,7 @@ export default function CalendarPage() {
                         key={day.toISOString()}
                         onClick={() => setCurrentDate(day)}
                         className={cn(
-                          "mx-auto flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors",
+                          "mx-auto flex h-7 w-7 items-center justify-center rounded-full text-[11px] transition-colors",
                           today
                             ? "bg-primary text-primary-foreground"
                             : inMonth
@@ -405,15 +405,15 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="space-y-6 px-4 py-4">
+              <div className="space-y-3 px-3 py-2">
                 <section>
-                  <h3 className="mb-3 text-sm font-semibold text-foreground">Task Due Today</h3>
-                  <div className="space-y-2">
-                    {todayEvents.length > 0 ? todayEvents.slice(0, 5).map((event) => (
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">Task Due Today</h3>
+                  <div className="space-y-1.5">
+                    {todayEvents.length > 0 ? todayEvents.slice(0, 3).map((event) => (
                       <div
                         key={event.id}
                         className={cn(
-                          "rounded-lg border bg-background px-3 py-2 text-sm",
+                          "rounded-lg border bg-background px-2.5 py-1.5 text-xs",
                           eventTypeColors[event.type] || eventTypeColors.OTHER
                         )}
                       >
@@ -421,10 +421,10 @@ export default function CalendarPage() {
                           <Icons.Clock size={11} />
                           <span>{event.time}</span>
                         </div>
-                        <div className="mt-1 truncate font-medium text-foreground">{event.title}</div>
+                        <div className="mt-0.5 truncate font-medium text-foreground">{event.title}</div>
                       </div>
                     )) : (
-                      <div className="rounded-lg border border-dashed border-border bg-background px-3 py-4 text-sm text-muted-foreground">
+                      <div className="rounded-lg border border-dashed border-border bg-background px-2.5 py-3 text-xs text-muted-foreground">
                         No events scheduled today.
                       </div>
                     )}
@@ -432,10 +432,10 @@ export default function CalendarPage() {
                 </section>
 
                 <section>
-                  <h3 className="mb-3 text-sm font-semibold text-foreground">Calendar Setting</h3>
-                  <div className="space-y-2">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">Calendar Setting</h3>
+                  <div className="space-y-1.5">
                     {Object.entries(eventTypeColors).map(([type, color]) => (
-                      <div key={type} className="flex items-center justify-between rounded-lg bg-background px-3 py-2 text-sm">
+                      <div key={type} className="flex items-center justify-between rounded-lg bg-background px-2.5 py-1.5 text-xs">
                         <div className="flex items-center gap-2">
                           <div className={cn("h-3 w-3 rounded-full border", color)} />
                           <span className="capitalize text-foreground">{type.toLowerCase().replace('_', ' ')}</span>
@@ -448,17 +448,17 @@ export default function CalendarPage() {
               </div>
             </aside>
 
-            <div className="min-w-0 bg-card">
+            <div className="flex min-w-0 min-h-0 flex-col bg-card">
               <div className="grid grid-cols-7 border-b border-border bg-background/60">
                 {dayNames.map((day) => (
-                  <div key={day} className="border-r border-border px-4 py-3 text-sm font-medium text-muted-foreground last:border-r-0">
+                  <div key={day} className="border-r border-border px-1 py-0.5 text-[10px] font-medium text-muted-foreground last:border-r-0">
                     {day}
                   </div>
                 ))}
               </div>
 
               {view === "week" ? (
-                <div className="grid grid-cols-7">
+                <div className="grid min-h-0 flex-1 grid-cols-7">
                   {weekDays.map((day, index) => {
                     const dateKey = formatDateKey(day);
                     const dayEvents = eventsByDate[dateKey] || [];
@@ -468,22 +468,22 @@ export default function CalendarPage() {
                       <div
                         key={index}
                         className={cn(
-                          "min-h-[640px] border-r border-border px-3 py-3 last:border-r-0",
+                          "flex min-h-0 flex-col border-r border-border px-1 py-1 last:border-r-0",
                           today && "bg-primary/5"
                         )}
                       >
-                        <div className="mb-3 flex items-center justify-between">
-                          <span className="text-sm font-semibold text-foreground">{day.getDate()}</span>
-                          <span className="text-xs text-muted-foreground">{dayEvents.length || ""}</span>
+                        <div className="mb-0.5 flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-foreground">{day.getDate()}</span>
+                          <span className="text-[9px] text-muted-foreground">{dayEvents.length || ""}</span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="min-h-0 space-y-0.5 overflow-hidden">
                           {dayEvents.map((event) => {
                             const originalEvent = events.find((item) => item.id === event.id);
                             return (
                               <div
                                 key={event.id}
                                 className={cn(
-                                  "group relative rounded-md border-l-2 bg-background px-2.5 py-2 text-xs shadow-sm",
+                                  "group relative rounded-sm border-l-2 bg-background px-0.5 py-0.5 text-[9px] shadow-sm",
                                   eventTypeColors[event.type] || eventTypeColors.OTHER
                                 )}
                               >
@@ -511,9 +511,9 @@ export default function CalendarPage() {
                                     <Icons.Trash size={10} />
                                   </button>
                                 </div>
-                                <div className="pr-8 font-medium leading-tight text-foreground line-clamp-2">{event.title}</div>
-                                <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                                  <Icons.Clock size={10} />
+                                <div className="pr-6 font-medium leading-tight text-foreground line-clamp-2">{event.title}</div>
+                                <div className="mt-0.5 flex items-center gap-0.5 text-[8px] text-muted-foreground">
+                                  <Icons.Clock size={8} />
                                   <span>{event.time}</span>
                                 </div>
                               </div>
@@ -525,7 +525,7 @@ export default function CalendarPage() {
                   })}
                 </div>
               ) : (
-                <div className="grid grid-cols-7">
+                <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-[repeat(6,minmax(0,1fr))]">
                   {monthDays.map((day) => {
                     const dateKey = formatDateKey(day);
                     const dayEvents = eventsByDate[dateKey] || [];
@@ -536,15 +536,15 @@ export default function CalendarPage() {
                       <div
                         key={dateKey}
                         className={cn(
-                          "min-h-[132px] border-r border-b border-border px-2.5 py-2 last:border-r-0",
+                          "flex min-h-0 flex-col overflow-hidden border-r border-b border-border px-0.5 py-0.5 last:border-r-0",
                           !inMonth && "bg-muted/10",
                           today && "bg-primary/5"
                         )}
                       >
-                        <div className="mb-2 flex items-center justify-between">
+                        <div className="mb-0.5 flex items-center justify-between">
                           <span
                             className={cn(
-                              "text-sm font-medium",
+                              "text-[10px] font-medium",
                               today ? "text-primary" : inMonth ? "text-foreground" : "text-muted-foreground"
                             )}
                           >
@@ -552,19 +552,19 @@ export default function CalendarPage() {
                           </span>
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden">
                           {dayEvents.slice(0, 3).map((event) => {
                             const originalEvent = events.find((item) => item.id === event.id);
                             return (
                               <div
                                 key={event.id}
                                 className={cn(
-                                  "group relative rounded-sm border-l-2 bg-background px-2 py-1.5 text-[11px] shadow-sm",
+                                  "group relative rounded-sm border-l-2 bg-background px-0.5 py-0.5 text-[9px] shadow-sm",
                                   eventTypeColors[event.type] || eventTypeColors.OTHER
                                 )}
                               >
-                                <div className="pr-6 font-medium leading-tight text-foreground truncate">{event.title}</div>
-                                <div className="mt-0.5 text-[10px] text-muted-foreground">{event.time}</div>
+                                <div className="pr-4 font-medium leading-tight text-foreground truncate">{event.title}</div>
+                                <div className="mt-0.5 text-[8px] text-muted-foreground">{event.time}</div>
                                 <div className="absolute right-1 top-1 hidden items-center gap-1 group-hover:flex">
                                   <button
                                     onClick={(e) => {

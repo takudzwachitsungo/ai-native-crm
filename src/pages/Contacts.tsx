@@ -324,7 +324,7 @@ export default function ContactsPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{contact.firstName} {contact.lastName}</span>
+                          <span className="text-sm font-medium text-foreground">{contact.firstName} {contact.lastName}</span>
                           {contact.isPrimary && (
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                               Primary
@@ -418,7 +418,7 @@ export default function ContactsPage() {
                       </div>
                       <div className="min-w-0 pt-0.5">
                         <div className="flex flex-wrap items-center gap-1">
-                          <h3 className="truncate text-[13px]  font-semibold leading-tight text-foreground">{contact.firstName} {contact.lastName}</h3>
+                          <h3 className="truncate text-[13px] font-semibold leading-tight text-foreground">{contact.firstName} {contact.lastName}</h3>
                           <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em]", statusTone)}>
                             {contact.status || "Unknown"}
                           </span>

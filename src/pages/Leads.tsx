@@ -258,16 +258,10 @@ export default function LeadsPage() {
     setSelectedIds(newSelected);
   };
 
-  const getLeadAvatarUrl = (lead: Lead) => {
-    const seed = `${lead.firstName || "lead"}-${lead.lastName || "profile"}-${lead.id || lead.email || "crm"}`
-      .trim()
-      .toLowerCase();
-    const hash = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const imageId = (hash % 70) + 1;
-    return `https://i.pravatar.cc/160?img=${imageId}`;
+  const getLeadInitials = (lead: Lead) => {
+    const initials = `${lead.firstName?.charAt(0) || ""}${lead.lastName?.charAt(0) || lead.email?.charAt(0) || "?"}`;
+    return initials.toUpperCase();
   };
-
-  const viewingLeadAvatarUrl = viewingLead ? getLeadAvatarUrl(viewingLead) : "";
 
   return (
     <PageLayout>
@@ -981,12 +975,8 @@ export default function LeadsPage() {
           <div className="rounded-lg border border-border bg-card p-3">
             <div className="flex items-center gap-3">
               {/* Avatar */}
-              <div className="h-11 w-11 overflow-hidden rounded-full border border-border/70 bg-primary/10 shadow-sm flex-shrink-0 select-none">
-                <img
-                  src={viewingLeadAvatarUrl}
-                  alt={`${viewingLead.firstName} ${viewingLead.lastName}`}
-                  className="h-full w-full object-cover"
-                />
+              <div className="flex h-11 w-11 shrink-0 select-none items-center justify-center rounded-full border border-border/70 bg-primary/10 text-xs font-semibold text-primary shadow-sm">
+                {getLeadInitials(viewingLead)}
               </div>
               {/* Name + quick-action icons */}
               <div className="flex-1 min-w-0">

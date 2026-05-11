@@ -224,7 +224,7 @@ export default function QuotesPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <div>
-                      <p className="font-semibold text-primary">{quote.quoteNumber || 'N/A'}</p>
+                      <p className="text-sm font-semibold text-primary">{quote.quoteNumber || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">Created {quote.createdAt ? new Date(quote.createdAt).toLocaleDateString() : 'N/A'}</p>
                     </div>
                   </td>

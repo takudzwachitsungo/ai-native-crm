@@ -354,7 +354,7 @@ export default function CompaniesPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground">{item.companyName}</p>
+                          <p className=" text-sm font-medium text-foreground">{item.companyName}</p>
                           <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
                             Needs reassignment
                           </span>
@@ -421,7 +421,7 @@ export default function CompaniesPage() {
                           <Icons.Building2 size={18} className="text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{company.name}</p>
+                          <p className="text-sm font-medium text-foreground">{company.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : "Top-level account"}
                           </p>
@@ -515,98 +515,173 @@ export default function CompaniesPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3">
-            {filteredCompanies.map((company) => (
-              <div key={company.id} className="bg-card border border-border rounded-lg p-3 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
-                      <Icons.Building2 size={20} className="text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground">{company.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : company.industry || "Top-level account"}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border capitalize",
-                      statusColors[(company.status || "ACTIVE").toLowerCase() as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
-                    )}
-                  >
-                    {company.status ? `${company.status.charAt(0)}${company.status.slice(1).toLowerCase()}` : "N/A"}
-                  </span>
-                </div>
+          <div className="grid grid-cols-1 gap-3 rounded-[1.35rem] border border-border/70 bg-card/70 p-3 md:grid-cols-2 xl:grid-cols-4">
+            {filteredCompanies.map((company) => {
+              const statusTone = cn(
+                "border",
+                company.status === "ACTIVE" && "border-emerald-200/80 bg-emerald-50 text-emerald-700",
+                company.status === "PROSPECT" && "border-sky-200/80 bg-sky-50 text-sky-700",
+                company.status === "INACTIVE" && "border-slate-200/80 bg-slate-100 text-slate-700"
+              );
+              const metricTone =
+                (company.revenue ?? 0) >= 1000000
+                  ? "border-emerald-200/80 bg-emerald-50 text-emerald-700"
+                  : (company.revenue ?? 0) >= 250000
+                    ? "border-amber-200/80 bg-amber-50 text-amber-700"
+                    : "border-slate-200/80 bg-slate-100 text-slate-700";
+              const location = company.city && company.state
+                ? `${company.city}, ${company.state}`
+                : company.city || company.state || company.country || "No location set";
+              const initials = company.name
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part.charAt(0))
+                .join("")
+                .toUpperCase() || "?";
 
-                <div className="space-y-1.5 mb-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Phone size={14} />
-                    <span>{company.phone || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Mail size={14} />
-                    <span>{company.email || company.website || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Building2 size={14} />
-                    <span>{company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Target size={14} />
-                    <span>{company.territory || company.country || "No territory set"}</span>
-                  </div>
-                  {company.territoryMismatch && (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-700">
-                      Account territory does not match the current owner coverage.
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-border">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Revenue</p>
-                    <p className="text-sm font-semibold">{company.revenue ? `$${Number(company.revenue).toLocaleString()}` : "N/A"}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Contacts</p>
-                    <p className="text-sm font-semibold">{company.contactCount || 0}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Subsidiaries</p>
-                    <p className="text-sm font-semibold">{company.childCompanyCount || 0}</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedCompany(company);
-                    setIsInsightsOpen(true);
-                  }}
-                  className="mt-3 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-border px-3 text-xs font-medium transition-colors hover:bg-secondary"
+              return (
+                <div
+                  key={company.id}
+                  className="group relative overflow-hidden rounded-[1.1rem] border border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.92))] shadow-[0_18px_40px_-34px_rgba(15,23,42,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_24px_50px_-34px_rgba(37,99,235,0.35)]"
                 >
-                  <Icons.Activity size={14} />
-                  View Account Intelligence
-                </button>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "quickbooks" })}
-                    disabled={!company.id || erpSyncMutation.isPending}
-                    className="h-8 rounded-full border border-border px-3 text-xs font-medium transition-colors disabled:opacity-50 hover:bg-secondary"
-                  >
-                    Sync QuickBooks
-                  </button>
-                  <button
-                    onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "xero" })}
-                    disabled={!company.id || erpSyncMutation.isPending}
-                    className="h-8 rounded-full border border-border px-3 text-xs font-medium transition-colors disabled:opacity-50 hover:bg-secondary"
-                  >
-                    Sync Xero
-                  </button>
+                  <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_60%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_52%)]" />
+                  <div className="absolute right-3 top-3 h-12 w-12 rounded-full bg-primary/6 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+
+                  <div className="relative flex h-full flex-col p-3">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-white/70 bg-white/80 text-[11px] font-semibold text-primary shadow-[0_10px_24px_-18px_rgba(37,99,235,0.55)] backdrop-blur">
+                          {initials}
+                        </div>
+                        <div className="min-w-0 pt-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="truncate text-[14px] font-semibold leading-tight text-foreground">
+                              {company.name}
+                            </h3>
+                            <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]", statusTone)}>
+                              {company.status || "ACTIVE"}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">
+                            {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : company.industry || "Top-level account"}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                            {company.ownerName && (
+                              <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                                Owner {company.ownerName}
+                              </span>
+                            )}
+                            {(company.territory || company.country) && (
+                              <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                                {company.territory || company.country}
+                              </span>
+                            )}
+                            {company.territoryMismatch && (
+                              <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
+                                Territory mismatch
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={cn("inline-flex min-w-[3.35rem] flex-col items-center rounded-[0.95rem] border px-1.5 py-1 text-center shadow-sm", metricTone)}>
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-80">Revenue</span>
+                        <span className="mt-0.5 text-[0.9rem] font-semibold leading-none">
+                          {company.revenue ? `$${Math.round(Number(company.revenue) / 1000)}k` : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="relative mt-3 overflow-hidden rounded-[1rem] border border-border/60 bg-white/75 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Contacts</p>
+                          <p className="mt-0.5 text-[0.95rem] font-semibold leading-none text-foreground">
+                            {company.contactCount || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Hierarchy</p>
+                          <p className="mt-0.5 truncate text-[12px] font-medium text-foreground/80">
+                            {company.childCompanyCount || 0} subsidiaries
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Phone size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{company.phone || "No phone provided"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Mail size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{company.email || company.website || "No email or website"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Target size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{location}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                      <button
+                        onClick={() => {
+                          setSelectedCompany(company);
+                          setIsInsightsOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/80 px-2.5 py-1.5 text-[10px] font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                      >
+                        <Icons.Activity size={13} />
+                        View profile
+                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setSelectedCompany(company);
+                            setIsFormOpen(true);
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                          aria-label="Edit company"
+                        >
+                          <Icons.Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedCompany(company);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                          aria-label="Delete company"
+                        >
+                          <Icons.Trash size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "quickbooks" })}
+                        disabled={!company.id || erpSyncMutation.isPending}
+                        className="inline-flex h-8 items-center justify-center rounded-full border border-border/70 bg-white/80 px-3 text-[10px] font-medium text-foreground transition-colors disabled:opacity-50 hover:border-primary/30 hover:bg-primary/5"
+                      >
+                        Sync QuickBooks
+                      </button>
+                      <button
+                        onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "xero" })}
+                        disabled={!company.id || erpSyncMutation.isPending}
+                        className="inline-flex h-8 items-center justify-center rounded-full border border-border/70 bg-white/80 px-3 text-[10px] font-medium text-foreground transition-colors disabled:opacity-50 hover:border-primary/30 hover:bg-primary/5"
+                      >
+                        Sync Xero
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

@@ -331,7 +331,7 @@ export default function CampaignsPage() {
                   >
                     <td className="px-3 py-2.5">
                       <div>
-                        <p className="font-medium text-foreground">{campaign.name}</p>
+                        <p className="text-sm font-medium text-foreground">{campaign.name}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {campaign.channel.replaceAll("_", " ")} · {campaign.targetAudience || "General audience"}
                         </p>

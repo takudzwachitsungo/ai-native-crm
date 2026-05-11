@@ -438,7 +438,7 @@ export default function DealsPage() {
                   <div key={item.dealId} className="rounded-lg border border-amber-200 bg-white p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-foreground">{item.dealName}</p>
+                        <p className="text-sm font-medium text-foreground">{item.dealName}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {item.companyName || "No account"} • {item.stage.replaceAll("_", " ")}
                         </p>
@@ -489,7 +489,7 @@ export default function DealsPage() {
                   <div key={item.dealId} className="rounded-lg border border-red-200 bg-white p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-foreground">{item.dealName}</p>
+                        <p className="text-sm font-medium text-foreground">{item.dealName}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {item.companyName || "No account"} • {item.stage.replaceAll("_", " ")}
                         </p>
@@ -752,84 +752,168 @@ export default function DealsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border/70 bg-card p-3.5 md:grid-cols-2 lg:grid-cols-3">
-          {filteredDeals.map((deal) => (
-            <div key={deal.id} className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
-              <div className="flex items-start justify-between mb-2.5">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-foreground truncate">{deal.name}</h3>
-                  <p className="text-xs text-muted-foreground truncate">{deal.companyName || "N/A"}</p>
-                </div>
-                <span className={cn("px-2 py-1 text-xs font-medium rounded", getStageColor(deal.stage))}>
-                  {deal.stage.split("_").map((part) => part.charAt(0) + part.slice(1).toLowerCase()).join(" ")}
-                </span>
-              </div>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Value:</span>
-                  <span className="font-medium text-foreground">${(deal.value || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Probability:</span>
-                  <span className="font-medium text-foreground">{deal.probability || 0}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Risk:</span>
-                  <span className={cn("px-2 py-0.5 rounded text-xs font-medium", getRiskBadgeColor(deal.riskLevel))}>{deal.riskLevel || "AUTO"}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Territory:</span>
-                  <span className="text-right text-foreground">{deal.territory || "N/A"}</span>
-                </div>
-                {deal.territoryMismatch && (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-700">
-                    Owner territory {deal.ownerTerritory || "Unknown"} does not match this deal.
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Approval:</span>
-                  <span className={cn("px-2 py-0.5 rounded text-xs font-medium", getApprovalBadgeColor(deal))}>
-                    {getApprovalLabel(deal)}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-border">
-                  <div className="text-xs text-muted-foreground">Next step</div>
-                  <div className="text-sm text-foreground">{deal.nextStep || "No next step set"}</div>
-                  <div className="text-xs text-muted-foreground">{deal.nextStepDueDate || "No due date"}</div>
-                </div>
-                {deal.buyingCommitteeSummary && (
-                  <div className="pt-2 border-t border-border">
-                    <div className="text-xs text-muted-foreground">Buying committee</div>
-                    <div className="text-sm text-foreground line-clamp-2">{deal.buyingCommitteeSummary}</div>
-                  </div>
-                )}
-                {(deal.approvalRequestedByName || deal.approvedByName || deal.rejectedByName) && (
-                  <div className="pt-2 border-t border-border">
-                    <div className="text-xs text-muted-foreground">Governance</div>
-                    <div className="text-sm text-foreground">
-                      {deal.approvedByName
-                        ? `Approved by ${deal.approvedByName}`
-                        : deal.rejectedByName
-                          ? `Rejected by ${deal.rejectedByName}`
-                          : `Requested by ${deal.approvalRequestedByName}`}
+        <div className="grid grid-cols-1 gap-3 rounded-[1.35rem] border border-border/70 bg-card/70 p-3 md:grid-cols-2 xl:grid-cols-4">
+          {filteredDeals.map((deal) => {
+            const probability = deal.probability || 0;
+            const metricTone =
+              probability >= 75
+                ? "border-emerald-200/80 bg-emerald-50 text-emerald-700"
+                : probability >= 45
+                  ? "border-amber-200/80 bg-amber-50 text-amber-700"
+                  : "border-rose-200/80 bg-rose-50 text-rose-700";
+            const stageTone = cn(
+              "border",
+              deal.stage === "PROSPECTING" && "border-slate-200/80 bg-slate-100 text-slate-700",
+              deal.stage === "QUALIFICATION" && "border-sky-200/80 bg-sky-50 text-sky-700",
+              deal.stage === "PROPOSAL" && "border-violet-200/80 bg-violet-50 text-violet-700",
+              deal.stage === "NEGOTIATION" && "border-amber-200/80 bg-amber-50 text-amber-700",
+              deal.stage === "CLOSED_WON" && "border-emerald-200/80 bg-emerald-50 text-emerald-700",
+              deal.stage === "CLOSED_LOST" && "border-rose-200/80 bg-rose-50 text-rose-700"
+            );
+            const initials = deal.name
+              .split(" ")
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((part) => part.charAt(0))
+              .join("")
+              .toUpperCase() || "?";
+            const governanceLabel = deal.approvedByName
+              ? `Approved by ${deal.approvedByName}`
+              : deal.rejectedByName
+                ? `Rejected by ${deal.rejectedByName}`
+                : deal.approvalRequestedByName
+                  ? `Requested by ${deal.approvalRequestedByName}`
+                  : getApprovalLabel(deal);
+
+            return (
+              <div
+                key={deal.id}
+                className="group relative overflow-hidden rounded-[1.1rem] border border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.92))] shadow-[0_18px_40px_-34px_rgba(15,23,42,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_24px_50px_-34px_rgba(37,99,235,0.35)]"
+              >
+                <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_60%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_52%)]" />
+                <div className="absolute right-3 top-3 h-12 w-12 rounded-full bg-primary/6 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+
+                <div className="relative flex h-full flex-col p-3">
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-white/70 bg-white/80 text-[11px] font-semibold text-primary shadow-[0_10px_24px_-18px_rgba(37,99,235,0.55)] backdrop-blur">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h3 className="truncate text-[14px] font-semibold leading-tight text-foreground">
+                            {deal.name}
+                          </h3>
+                          <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]", stageTone)}>
+                            {deal.stage.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">{deal.companyName || "No account yet"}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          {deal.ownerName && (
+                            <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                              Owner {deal.ownerName}
+                            </span>
+                          )}
+                          {deal.territory && (
+                            <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                              {deal.territory}
+                            </span>
+                          )}
+                          {deal.territoryMismatch && (
+                            <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
+                              Territory mismatch
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          {getDealBadges(deal).map((badge, idx) => (
+                            <InsightBadge key={idx} type={badge.type} label={badge.label} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={cn("inline-flex min-w-[3.1rem] flex-col items-center rounded-[0.95rem] border px-1.5 py-1 text-center shadow-sm", metricTone)}>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-80">Prob</span>
+                      <span className="mt-0.5 text-[1rem] font-semibold leading-none">{probability}%</span>
                     </div>
                   </div>
-                )}
-                <div className="pt-2 border-t border-border flex items-center gap-2 flex-wrap">
-                  {renderApprovalActions(deal)}
-                  <button
-                    onClick={() => {
-                      setSelectedItem(deal);
-                      setIsFormOpen(true);
-                    }}
-                    className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary transition-colors"
-                  >
-                    Edit
-                  </button>
+
+                  <div className="relative mt-3 overflow-hidden rounded-[1rem] border border-border/60 bg-white/75 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Value</p>
+                        <p className="mt-0.5 text-[0.95rem] font-semibold leading-none text-foreground">
+                          ${(deal.value || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Weighted</p>
+                        <p className="mt-0.5 truncate text-[12px] font-medium text-foreground/80">
+                          ${(deal.weightedValue || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                      <Icons.AlertCircle size={14} className="shrink-0 text-primary/80" />
+                      <span className="truncate text-[11px]">Risk {deal.riskLevel || "AUTO"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                      <Icons.CheckCircle size={14} className="shrink-0 text-primary/80" />
+                      <span className="truncate text-[11px]">{governanceLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                      <Icons.Target size={14} className="shrink-0 text-primary/80" />
+                      <span className="truncate text-[11px]">{deal.nextStep || "No next step set"}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-[0.95rem] border border-border/60 bg-background/60 px-2.5 py-2">
+                    <div className="flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/45">
+                      <span>Deal context</span>
+                      <span>{deal.nextStepDueDate || deal.expectedCloseDate || "No due date"}</span>
+                    </div>
+                    <div className="mt-1.5 text-[11px] text-foreground/80">
+                      {deal.contactName || deal.buyingCommitteeSummary || deal.competitorName || "No contact or committee notes"}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {renderApprovalActions(deal)}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          setSelectedItem(deal);
+                          setIsFormOpen(true);
+                        }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                        aria-label="Edit deal"
+                      >
+                        <Icons.Edit size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedItem(deal);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                        aria-label="Delete deal"
+                      >
+                        <Icons.Trash size={14} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
