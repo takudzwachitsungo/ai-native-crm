@@ -1,15 +1,15 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any, AsyncGenerator
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import uuid
 import json
 import base64
 import asyncio
-
+import time
 from app.agents.crm_agent import CRMAgent
 from app.agents.lead_scoring_agent import LeadScoringAgent
 from app.agents.autonomous_lead_scorer import autonomous_scorer
@@ -21,6 +21,10 @@ from app.services.insights_service import InsightsService
 from app.services.report_definition_store import ReportDefinitionStore
 from app.services.report_delivery_service import ReportDeliveryService
 from app.services.forecast_submission_store import ForecastSubmissionStore
+from app.services.ai_audit_store import AIAuditStore
+from app.services.ai_action_service import AIActionService
+from app.services.ai_approval_store import AIApprovalStore
+from app.services.insight_state_store import InsightStateStore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,7 +63,24 @@ insights_monitor = None  # Will be initialized after agent startup
 report_definition_store = ReportDefinitionStore(settings.REPORT_DEFINITIONS_PATH)
 forecast_submission_store = ForecastSubmissionStore(settings.FORECAST_SUBMISSIONS_PATH)
 report_delivery_service = ReportDeliveryService()
+ai_audit_store = AIAuditStore(settings.DATABASE_URL, settings.AI_AUDIT_FALLBACK_PATH)
+ai_action_service = AIActionService(crm_agent.crm_client)
+ai_approval_store = AIApprovalStore(settings.AI_APPROVAL_STORE_PATH)
+insight_state_store = InsightStateStore(settings.AI_INSIGHT_STATE_PATH)
 report_scheduler_task: Optional[asyncio.Task] = None
+rag_scheduler_task: Optional[asyncio.Task] = None
+rag_scheduler_state: Dict[str, Any] = {
+    "enabled": settings.AI_RAG_SCHEDULER_ENABLED,
+    "configured": bool(settings.AI_RAG_SCHEDULER_ACCESS_TOKEN or (settings.AI_RAG_SERVICE_ACCOUNT_EMAIL and settings.AI_RAG_SERVICE_ACCOUNT_PASSWORD)),
+    "running": False,
+    "last_run_at": None,
+    "last_success_at": None,
+    "last_failure_at": None,
+    "last_result": None,
+    "last_error": None,
+    "run_count": 0,
+    "failure_count": 0,
+}
 
 
 def _extract_bearer_token(authorization: Optional[str]) -> str:
@@ -91,6 +112,140 @@ def _build_report_scope_key(user_id: str, tenant_id: Optional[str]) -> str:
     if tenant_id and isinstance(tenant_id, str):
         return f"{tenant_id}:{user_id}"
     return user_id
+
+
+def _runtime_capabilities() -> Dict[str, Any]:
+    return {
+        "provider": "groq" if settings.GROQ_API_KEY else "not_configured",
+        "model": settings.CHAT_MODEL,
+        "embedding_model": settings.EMBEDDING_MODEL,
+        "temperature": settings.TEMPERATURE,
+        "max_tokens": settings.MAX_TOKENS,
+        "streaming": True,
+        "rag": {
+            "enabled": True,
+            "embedding_dimensions": settings.EMBEDDING_DIMENSIONS,
+            "similarity_threshold": settings.SIMILARITY_THRESHOLD,
+            "top_k_results": settings.TOP_K_RESULTS,
+        },
+        "storage": {
+            "conversation_store": "vector_redis_with_jsonl_fallback",
+            "audit_store": "postgres_with_jsonl_fallback",
+            "insight_state_store": "json_file",
+        },
+        "cost_tracking": {
+            "enabled": settings.AI_INPUT_TOKEN_COST_PER_1M > 0 or settings.AI_OUTPUT_TOKEN_COST_PER_1M > 0,
+            "currency": "USD",
+            "input_token_cost_per_1m": settings.AI_INPUT_TOKEN_COST_PER_1M,
+            "output_token_cost_per_1m": settings.AI_OUTPUT_TOKEN_COST_PER_1M,
+        },
+        "alert_thresholds": {
+            "failure_rate_percent": settings.AI_FAILURE_RATE_ALERT_THRESHOLD,
+            "fallback_rate_percent": settings.AI_FALLBACK_RATE_ALERT_THRESHOLD,
+            "latency_p95_ms": settings.AI_LATENCY_P95_ALERT_MS,
+            "provider_errors": settings.AI_PROVIDER_ERROR_ALERT_THRESHOLD,
+        },
+        "secrets": {
+            "groq_configured": bool(settings.GROQ_API_KEY),
+            "smtp_configured": bool(settings.SMTP_HOST and settings.SMTP_USERNAME and settings.SMTP_PASSWORD),
+        },
+    }
+
+
+def _rag_scheduler_domains() -> List[str]:
+    return [
+        domain.strip()
+        for domain in settings.AI_RAG_SCHEDULER_DOMAINS.split(",")
+        if domain.strip()
+    ] or ["documents", "emails", "cases", "tasks"]
+
+
+def _scheduler_token_rotation_status() -> Dict[str, Any]:
+    """Expose rotation readiness without ever returning the scheduler token."""
+    auth_mode = (settings.AI_RAG_SCHEDULER_AUTH_MODE or "jwt").lower()
+    service_account_configured = bool(settings.AI_RAG_SERVICE_ACCOUNT_EMAIL and settings.AI_RAG_SERVICE_ACCOUNT_PASSWORD)
+    expires_at = settings.AI_RAG_SCHEDULER_TOKEN_EXPIRES_AT
+    if auth_mode == "service_account":
+        cached_expiry = crm_agent.crm_client.service_account_token_expires_at
+        return {
+            "status": "ok" if service_account_configured else "not_configured",
+            "auth_mode": "service_account",
+            "expires_at": datetime.utcfromtimestamp(cached_expiry).isoformat() if cached_expiry else None,
+            "rotation_required": False,
+            "rotation_warning": False,
+            "warning_days": settings.AI_RAG_SCHEDULER_TOKEN_ROTATION_WARNING_DAYS,
+            "refresh_buffer_seconds": settings.AI_RAG_SERVICE_ACCOUNT_REFRESH_BUFFER_SECONDS,
+        }
+
+    if not settings.AI_RAG_SCHEDULER_ACCESS_TOKEN:
+        return {
+            "status": "not_configured",
+            "auth_mode": "jwt",
+            "expires_at": expires_at,
+            "rotation_required": False,
+            "rotation_warning": False,
+            "warning_days": settings.AI_RAG_SCHEDULER_TOKEN_ROTATION_WARNING_DAYS,
+        }
+
+    if not expires_at:
+        return {
+            "status": "expiry_not_configured",
+            "auth_mode": "jwt",
+            "expires_at": None,
+            "rotation_required": True,
+            "rotation_warning": True,
+            "warning_days": settings.AI_RAG_SCHEDULER_TOKEN_ROTATION_WARNING_DAYS,
+        }
+
+    try:
+        normalized = expires_at.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is not None:
+            parsed = parsed.replace(tzinfo=None)
+    except ValueError:
+        return {
+            "status": "invalid_expiry",
+            "auth_mode": "jwt",
+            "expires_at": expires_at,
+            "rotation_required": True,
+            "rotation_warning": True,
+            "warning_days": settings.AI_RAG_SCHEDULER_TOKEN_ROTATION_WARNING_DAYS,
+        }
+
+    now = datetime.utcnow()
+    warning_at = parsed - timedelta(days=max(settings.AI_RAG_SCHEDULER_TOKEN_ROTATION_WARNING_DAYS, 1))
+    if parsed <= now:
+        status = "expired"
+    elif warning_at <= now:
+        status = "rotation_due"
+    else:
+        status = "ok"
+    return {
+        "status": status,
+        "auth_mode": "jwt",
+        "expires_at": parsed.isoformat(),
+        "rotation_required": status in {"expired", "invalid_expiry"},
+        "rotation_warning": status in {"expired", "rotation_due"},
+        "warning_days": settings.AI_RAG_SCHEDULER_TOKEN_ROTATION_WARNING_DAYS,
+        "warning_at": warning_at.isoformat(),
+    }
+
+
+def _estimate_ai_cost(usage: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    usage = usage or {}
+    input_tokens = int(usage.get("input_tokens") or 0)
+    output_tokens = int(usage.get("output_tokens") or 0)
+    input_rate = settings.AI_INPUT_TOKEN_COST_PER_1M
+    output_rate = settings.AI_OUTPUT_TOKEN_COST_PER_1M
+    configured = input_rate > 0 or output_rate > 0
+    estimated_usd = None
+    if configured:
+        estimated_usd = round(((input_tokens / 1_000_000) * input_rate) + ((output_tokens / 1_000_000) * output_rate), 6)
+    return {
+        "currency": "USD",
+        "estimated_usd": estimated_usd,
+        "pricing_configured": configured,
+    }
 
 
 async def _require_authenticated_identity(token: str) -> Dict[str, str]:
@@ -195,12 +350,90 @@ async def _report_scheduler_loop() -> None:
         await asyncio.sleep(max(settings.REPORT_SCHEDULER_INTERVAL_SECONDS, 30))
 
 
+async def _run_rag_index_job(
+    *,
+    token: str,
+    domains: Optional[List[str]] = None,
+    limit: Optional[int] = None,
+    trigger: str = "manual",
+) -> Dict[str, Any]:
+    global rag_scheduler_state
+    if rag_scheduler_state.get("running"):
+        raise RuntimeError("RAG indexing is already running")
+
+    rag_scheduler_state["running"] = True
+    started_at = datetime.utcnow()
+    try:
+        identity = await _require_authenticated_identity(token)
+        token_handle = crm_agent.crm_client.set_user_token(token)
+        try:
+            result = await crm_agent.embedding_service.index_knowledge_domains(
+                domains or _rag_scheduler_domains(),
+                tenant_id=identity["tenant_id"],
+                limit=max(1, min(limit or settings.AI_RAG_SCHEDULER_LIMIT, 500)),
+            )
+        finally:
+            crm_agent.crm_client.reset_user_token(token_handle)
+
+        completed_at = datetime.utcnow().isoformat()
+        rag_scheduler_state.update({
+            "running": False,
+            "last_run_at": started_at.isoformat(),
+            "last_success_at": completed_at if not result.get("errors") else rag_scheduler_state.get("last_success_at"),
+            "last_failure_at": completed_at if result.get("errors") else rag_scheduler_state.get("last_failure_at"),
+            "last_result": result,
+            "last_error": result.get("errors") or None,
+            "run_count": int(rag_scheduler_state.get("run_count") or 0) + 1,
+            "failure_count": int(rag_scheduler_state.get("failure_count") or 0) + (1 if result.get("errors") else 0),
+        })
+        ai_audit_store.record(
+            event_type="rag_index_completed",
+            user_id=identity["user_id"],
+            tenant_id=identity["tenant_id"] or None,
+            outcome="success" if not result.get("errors") else "partial",
+            action="rag_index",
+            metadata={**result, "trigger": trigger, "scheduler": True},
+        )
+        return result
+    except Exception as exc:
+        rag_scheduler_state.update({
+            "running": False,
+            "last_run_at": started_at.isoformat(),
+            "last_failure_at": datetime.utcnow().isoformat(),
+            "last_error": str(exc),
+            "failure_count": int(rag_scheduler_state.get("failure_count") or 0) + 1,
+        })
+        raise
+
+
+async def _rag_scheduler_loop() -> None:
+    while True:
+        try:
+            if settings.AI_RAG_SCHEDULER_ENABLED:
+                scheduler_token = await crm_agent.crm_client.get_rag_scheduler_token()
+                await _run_rag_index_job(
+                    token=scheduler_token,
+                    domains=_rag_scheduler_domains(),
+                    limit=settings.AI_RAG_SCHEDULER_LIMIT,
+                    trigger="scheduled",
+                )
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.error("Scheduled RAG indexing failed: %s", exc)
+        await asyncio.sleep(max(settings.AI_RAG_SCHEDULER_INTERVAL_SECONDS, 300))
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
-    global conversation_store, insights_service, report_scheduler_task
+    global conversation_store, insights_service, report_scheduler_task, rag_scheduler_task
+    ai_audit_store.initialize()
     # Initialize conversation store with embedding service
-    conversation_store = VectorConversationStore(crm_agent.embedding_service)
+    conversation_store = VectorConversationStore(
+        crm_agent.embedding_service,
+        fallback_path=settings.CONVERSATION_FALLBACK_PATH,
+    )
     # Initialize insights service (doesn't need LLM for rule-based insights)
     insights_service = InsightsService(crm_agent.crm_client, None)
     # Start autonomous lead scorer
@@ -208,19 +441,27 @@ async def startup_event():
     # Start autonomous forecasting service
     await autonomous_forecasting.start()
     report_scheduler_task = asyncio.create_task(_report_scheduler_loop())
+    if settings.AI_RAG_SCHEDULER_ENABLED:
+        rag_scheduler_task = asyncio.create_task(_rag_scheduler_loop())
     logger.info("AI Service started with vector conversation storage, insights service, autonomous lead scorer, and autonomous forecasting")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global report_scheduler_task
+    global report_scheduler_task, rag_scheduler_task
     await autonomous_scorer.stop()
     await autonomous_forecasting.stop()
     if report_scheduler_task:
         report_scheduler_task.cancel()
         try:
             await report_scheduler_task
+        except asyncio.CancelledError:
+            pass
+    if rag_scheduler_task:
+        rag_scheduler_task.cancel()
+        try:
+            await rag_scheduler_task
         except asyncio.CancelledError:
             pass
     logger.info("AI Service stopped")
@@ -245,6 +486,42 @@ class ChatResponse(BaseModel):
     sources: Optional[List[Dict[str, Any]]] = None
     degraded_mode: bool = False
     degraded_reason: Optional[str] = None
+
+
+class AIActionProposalRequest(BaseModel):
+    intent: str
+    action_type: Optional[str] = None
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    payload: Optional[Dict[str, Any]] = None
+
+
+class AIActionExecuteRequest(BaseModel):
+    action_type: str
+    payload: Dict[str, Any]
+    confirmed: bool = False
+    proposal_id: Optional[str] = None
+
+
+class AIApprovalCreateRequest(BaseModel):
+    proposal: Dict[str, Any]
+    reason: Optional[str] = None
+
+
+class AIApprovalReviewRequest(BaseModel):
+    note: Optional[str] = None
+
+
+class InsightLifecycleUpdateRequest(BaseModel):
+    status: str
+    assigned_to: Optional[str] = None
+    snoozed_until: Optional[str] = None
+    note: Optional[str] = None
+
+
+class RagIndexRequest(BaseModel):
+    domains: Optional[List[str]] = None
+    limit: int = 100
 
 
 @app.get("/")
@@ -286,24 +563,25 @@ async def chat(request: ChatRequest, authorization: Optional[str] = Header(None)
     
     try:
         logger.info(f"Processing chat request with {len(request.messages)} messages")
-        authenticated_user_id = await _require_authenticated_user(authorization)
-        
-        # Extract user token from Authorization header
-        user_token = None
-        if authorization and authorization.startswith('Bearer '):
-            user_token = authorization[7:]  # Remove 'Bearer ' prefix
+        request_id = str(uuid.uuid4())
+        user_token = _extract_bearer_token(authorization)
+        identity = await _require_authenticated_identity(user_token)
         
         # Always bind conversations to the authenticated user so tenants cannot
         # accidentally or intentionally write chat history under another id.
-        user_id = authenticated_user_id
+        user_id = identity["user_id"]
+        tenant_id = identity["tenant_id"] or None
         conversation_id = request.conversation_id or "default"
+        agent_context = dict(request.context or {})
+        agent_context.update({"tenant_id": tenant_id, "user_id": user_id})
         
         # Load conversation history from Redis if not provided
         if not request.messages[:-1] and user_id:
             stored_history = await conversation_store.get_conversation(
                 user_id=user_id,
                 conversation_id=conversation_id,
-                limit=10  # Last 10 messages for context
+                limit=10,  # Last 10 messages for context
+                tenant_id=tenant_id
             )
             history = stored_history
         else:
@@ -320,21 +598,47 @@ async def chat(request: ChatRequest, authorization: Optional[str] = Header(None)
         await conversation_store.save_message(
             user_id=user_id,
             conversation_id=conversation_id,
+            tenant_id=tenant_id,
             message={"role": "user", "content": user_message}
         )
         
         # Run agent with full context and user token
+        started_at = time.perf_counter()
         result = await crm_agent.process_query(
             query=user_message,
             history=history,
-            context=request.context,
+            context=agent_context,
             user_token=user_token  # Pass user's JWT token to agent
+        )
+        latency_ms = round((time.perf_counter() - started_at) * 1000, 1)
+        ai_audit_store.record(
+            event_type="chat_completion",
+            user_id=user_id,
+            tenant_id=tenant_id,
+            outcome="success",
+            conversation_id=conversation_id,
+            request_id=request_id,
+            prompt=user_message,
+            metadata={
+                "tool_calls": result.get("tool_calls") or [],
+                "sources_count": len(result.get("sources") or []),
+                "degraded_mode": result.get("degraded_mode", False),
+                "latency_ms": latency_ms,
+                "history_messages": len(history),
+                "response_characters": len(result.get("message") or ""),
+                "runtime_provider": "groq" if settings.GROQ_API_KEY else "not_configured",
+                "runtime_model": settings.CHAT_MODEL,
+                "usage": result.get("usage") or {},
+                "cost": _estimate_ai_cost(result.get("usage") or {}),
+                "provider_errors": result.get("provider_errors") or [],
+            },
         )
         
         # Save assistant response
         await conversation_store.save_message(
             user_id=user_id,
             conversation_id=conversation_id,
+            tenant_id=tenant_id,
             message={
                 "role": "assistant",
                 "content": result["message"],
@@ -351,6 +655,8 @@ async def chat(request: ChatRequest, authorization: Optional[str] = Header(None)
             degraded_reason=result.get("degraded_reason"),
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -376,22 +682,23 @@ async def chat_stream(request: ChatRequest, authorization: Optional[str] = Heade
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
             logger.info(f"Processing streaming chat request")
-            authenticated_user_id = await _require_authenticated_user(authorization)
+            request_id = str(uuid.uuid4())
+            user_token = _extract_bearer_token(authorization)
+            identity = await _require_authenticated_identity(user_token)
             
-            # Extract user token
-            user_token = None
-            if authorization and authorization.startswith('Bearer '):
-                user_token = authorization[7:]
-            
-            user_id = authenticated_user_id
+            user_id = identity["user_id"]
+            tenant_id = identity["tenant_id"] or None
             conversation_id = request.conversation_id or "default"
+            agent_context = dict(request.context or {})
+            agent_context.update({"tenant_id": tenant_id, "user_id": user_id})
             
             # Load history
             if not request.messages[:-1] and user_id:
                 stored_history = await conversation_store.get_conversation(
                     user_id=user_id,
                     conversation_id=conversation_id,
-                    limit=10
+                    limit=10,
+                    tenant_id=tenant_id
                 )
                 history = stored_history
             else:
@@ -406,20 +713,24 @@ async def chat_stream(request: ChatRequest, authorization: Optional[str] = Heade
             await conversation_store.save_message(
                 user_id=user_id,
                 conversation_id=conversation_id,
+                tenant_id=tenant_id,
                 message={"role": "user", "content": user_message}
             )
             
             # Stream agent processing
             full_response = ""
+            started_at = time.perf_counter()
+            streamed_tool_events = 0
             async for event in crm_agent.process_query_stream(
                 query=user_message,
                 history=history,
-                context=request.context,
+                context=agent_context,
                 user_token=user_token
             ):
                 event_type = event.get("type")
                 
                 if event_type == "tool_start":
+                    streamed_tool_events += 1
                     yield f"data: {json.dumps(event)}\n\n"
                 
                 elif event_type == "tool_end":
@@ -435,12 +746,36 @@ async def chat_stream(request: ChatRequest, authorization: Optional[str] = Heade
                     await conversation_store.save_message(
                         user_id=user_id,
                         conversation_id=conversation_id,
+                        tenant_id=tenant_id,
                         message={
                             "role": "assistant",
                             "content": full_response,
                             "tool_calls": event.get("tool_calls"),
                             "sources": event.get("sources")
                         }
+                    )
+                    ai_audit_store.record(
+                        event_type="chat_stream_completion",
+                        user_id=user_id,
+                        tenant_id=tenant_id,
+                        outcome="success",
+                        conversation_id=conversation_id,
+                        request_id=request_id,
+                        prompt=user_message,
+                        metadata={
+                            "tool_calls": event.get("tool_calls") or [],
+                            "sources_count": len(event.get("sources") or []),
+                            "degraded_mode": event.get("degraded_mode", False),
+                            "latency_ms": round((time.perf_counter() - started_at) * 1000, 1),
+                            "history_messages": len(history),
+                            "response_characters": len(full_response),
+                            "streamed_tool_events": streamed_tool_events,
+                            "runtime_provider": "groq" if settings.GROQ_API_KEY else "not_configured",
+                            "runtime_model": settings.CHAT_MODEL,
+                            "usage": event.get("usage") or {},
+                            "cost": _estimate_ai_cost(event.get("usage") or {}),
+                            "provider_errors": event.get("provider_errors") or [],
+                        },
                     )
                     yield f"data: {json.dumps(event)}\n\n"
         
@@ -463,44 +798,466 @@ async def chat_stream(request: ChatRequest, authorization: Optional[str] = Heade
 
 
 @app.post("/embeddings/generate")
-async def generate_embeddings(entity_type: str, entity_id: str):
+async def generate_embeddings(
+    entity_type: str,
+    entity_id: str,
+    authorization: Optional[str] = Header(None),
+):
     """Generate embeddings for a CRM entity"""
+    user_token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(user_token)
+    token_handle = crm_agent.crm_client.set_user_token(user_token)
     try:
         await crm_agent.embedding_service.generate_entity_embedding(
             entity_type=entity_type,
-            entity_id=entity_id
+            entity_id=entity_id,
+            tenant_id=identity["tenant_id"] or None,
         )
         return {"status": "success", "entity_type": entity_type, "entity_id": entity_id}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating embeddings: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        crm_agent.crm_client.reset_user_token(token_handle)
 
 
 @app.post("/search/semantic")
 async def semantic_search(
     query: str,
     entity_type: str,
-    limit: int = 5
+    limit: int = 5,
+    authorization: Optional[str] = Header(None),
 ):
     """Semantic search across CRM entities using RAG"""
+    user_token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(user_token)
     try:
         results = await crm_agent.embedding_service.semantic_search(
             query=query,
             entity_type=entity_type,
-            limit=limit
+            limit=limit,
+            tenant_id=identity["tenant_id"] or None,
         )
         return {"results": results}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in semantic search: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/rag/index")
+async def index_rag_knowledge(request: RagIndexRequest, authorization: Optional[str] = Header(None)):
+    """Batch-index richer CRM knowledge into the semantic retrieval store."""
+    user_token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(user_token)
+    token_handle = crm_agent.crm_client.set_user_token(user_token)
+    try:
+        result = await crm_agent.embedding_service.index_knowledge_domains(
+            request.domains or ["documents", "emails", "cases", "tasks"],
+            tenant_id=identity["tenant_id"],
+            limit=max(1, min(request.limit, 500)),
+        )
+        ai_audit_store.record(
+            event_type="rag_index_completed",
+            user_id=identity["user_id"],
+            tenant_id=identity["tenant_id"] or None,
+            outcome="success" if not result.get("errors") else "partial",
+            action="rag_index",
+            metadata=result,
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        ai_audit_store.record(
+            event_type="rag_index_completed",
+            user_id=identity["user_id"],
+            tenant_id=identity["tenant_id"] or None,
+            outcome="failed",
+            action="rag_index",
+            metadata={"error": str(exc), "domains": request.domains or []},
+        )
+        raise HTTPException(status_code=500, detail=str(exc))
+    finally:
+        crm_agent.crm_client.reset_user_token(token_handle)
+
+
+@app.get("/rag/index/status")
+async def rag_index_status(authorization: Optional[str] = Header(None)):
+    """Return indexed semantic record counts for the authenticated workspace."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    counts = await crm_agent.embedding_service.count_embeddings_by_type(identity["tenant_id"] or None)
+    return {
+        "counts": counts,
+        "total": sum(counts.values()),
+        "domains": ["documents", "emails", "cases", "tasks", "leads", "deals", "contacts"],
+    }
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+async def ai_metrics():
+    """Prometheus-compatible operational metrics for external monitoring."""
+    events = ai_audit_store.list_recent(limit=1000)
+    total = len(events)
+    failed = sum(1 for event in events if event.get("outcome") == "failed")
+    degraded = sum(1 for event in events if (event.get("metadata") or {}).get("degraded_mode") is True)
+    provider_errors = 0
+    latencies: List[float] = []
+    llm_calls = 0
+    total_tokens = 0
+    for event in events:
+        metadata = event.get("metadata") or {}
+        provider_errors += len(metadata.get("provider_errors") or [])
+        latency = metadata.get("latency_ms")
+        if isinstance(latency, (int, float)):
+            latencies.append(float(latency))
+        usage = metadata.get("usage") or {}
+        if isinstance(usage, dict):
+            llm_calls += int(usage.get("calls") or 0)
+            total_tokens += int(usage.get("total_tokens") or 0)
+
+    latencies.sort()
+    p95 = latencies[min(len(latencies) - 1, int(len(latencies) * 0.95))] if latencies else 0
+    lines = [
+        "# HELP crm_ai_audit_events_total Recent AI audit events in the metrics window.",
+        "# TYPE crm_ai_audit_events_total gauge",
+        f"crm_ai_audit_events_total {total}",
+        "# HELP crm_ai_failed_events_total Recent failed AI events.",
+        "# TYPE crm_ai_failed_events_total gauge",
+        f"crm_ai_failed_events_total {failed}",
+        "# HELP crm_ai_degraded_events_total Recent degraded AI responses.",
+        "# TYPE crm_ai_degraded_events_total gauge",
+        f"crm_ai_degraded_events_total {degraded}",
+        "# HELP crm_ai_provider_errors_total Recent provider errors captured by AI audit metadata.",
+        "# TYPE crm_ai_provider_errors_total gauge",
+        f"crm_ai_provider_errors_total {provider_errors}",
+        "# HELP crm_ai_latency_p95_ms P95 latency for audited AI operations.",
+        "# TYPE crm_ai_latency_p95_ms gauge",
+        f"crm_ai_latency_p95_ms {round(p95, 1)}",
+        "# HELP crm_ai_llm_calls_total Recent audited LLM calls.",
+        "# TYPE crm_ai_llm_calls_total gauge",
+        f"crm_ai_llm_calls_total {llm_calls}",
+        "# HELP crm_ai_tokens_total Recent audited LLM tokens.",
+        "# TYPE crm_ai_tokens_total gauge",
+        f"crm_ai_tokens_total {total_tokens}",
+        "# HELP crm_ai_rag_scheduler_configured Whether the RAG scheduler credential path is configured.",
+        "# TYPE crm_ai_rag_scheduler_configured gauge",
+        f"crm_ai_rag_scheduler_configured {1 if rag_scheduler_state.get('configured') else 0}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+@app.get("/rag/scheduler/status")
+async def rag_scheduler_status(authorization: Optional[str] = Header(None)):
+    """Return scheduler configuration and last-run state without exposing secrets."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    counts = await crm_agent.embedding_service.count_embeddings_by_type(identity["tenant_id"] or None)
+    return {
+        **rag_scheduler_state,
+        "configured": bool(settings.AI_RAG_SCHEDULER_ACCESS_TOKEN or (settings.AI_RAG_SERVICE_ACCOUNT_EMAIL and settings.AI_RAG_SERVICE_ACCOUNT_PASSWORD)),
+        "auth_mode": settings.AI_RAG_SCHEDULER_AUTH_MODE,
+        "configured_domains": _rag_scheduler_domains(),
+        "configured_limit": settings.AI_RAG_SCHEDULER_LIMIT,
+        "interval_seconds": settings.AI_RAG_SCHEDULER_INTERVAL_SECONDS,
+        "token_rotation": _scheduler_token_rotation_status(),
+        "counts": counts,
+        "total_indexed": sum(counts.values()),
+    }
+
+
+@app.post("/rag/scheduler/run")
+async def run_rag_scheduler_now(request: RagIndexRequest, authorization: Optional[str] = Header(None)):
+    """Run the same RAG indexing job path used by the background scheduler."""
+    token = _extract_bearer_token(authorization)
+    try:
+        result = await _run_rag_index_job(
+            token=token,
+            domains=request.domains or _rag_scheduler_domains(),
+            limit=request.limit,
+            trigger="manual_scheduler",
+        )
+        return {"result": result, "state": rag_scheduler_state}
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Manual RAG scheduler run failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.get("/tools")
-async def list_tools():
+async def list_tools(authorization: Optional[str] = Header(None)):
     """List all available MCP tools"""
+    await _require_authenticated_identity(_extract_bearer_token(authorization))
     return {
         "tools": crm_agent.get_available_tools()
     }
+
+
+@app.get("/governance/capabilities")
+async def ai_governance_capabilities(authorization: Optional[str] = Header(None)):
+    """Describe AI copilot governance and safe action capabilities."""
+    await _require_authenticated_identity(_extract_bearer_token(authorization))
+    return {
+        "audit_logging": True,
+        "insight_lifecycle": True,
+        "runtime": _runtime_capabilities(),
+        "tool_domains": [
+            "leads",
+            "deals",
+            "contacts",
+            "companies",
+            "tasks",
+            "calendar",
+            "email",
+            "documents",
+            "quotes",
+            "invoices",
+            "products",
+            "campaigns",
+            "support_cases",
+            "contracts",
+            "field_service",
+            "integrations",
+            "revenue_ops",
+        ],
+        "rag_indexing": {
+            "enabled": True,
+            "domains": ["documents", "emails", "cases", "tasks", "leads", "deals", "contacts"],
+            "status_endpoint": "/rag/index/status",
+            "index_endpoint": "/rag/index",
+            "scheduler": {
+                "enabled": settings.AI_RAG_SCHEDULER_ENABLED,
+                "configured": bool(settings.AI_RAG_SCHEDULER_ACCESS_TOKEN or (settings.AI_RAG_SERVICE_ACCOUNT_EMAIL and settings.AI_RAG_SERVICE_ACCOUNT_PASSWORD)),
+                "auth_mode": settings.AI_RAG_SCHEDULER_AUTH_MODE,
+                "interval_seconds": settings.AI_RAG_SCHEDULER_INTERVAL_SECONDS,
+                "domains": _rag_scheduler_domains(),
+                "status_endpoint": "/rag/scheduler/status",
+                "run_endpoint": "/rag/scheduler/run",
+                "token_rotation": _scheduler_token_rotation_status(),
+            },
+        },
+        "observability": {
+            "metrics_endpoint": "/metrics",
+            "metrics_format": "prometheus_text",
+        },
+        "approvals": {
+            "enabled": True,
+            "list_endpoint": "/actions/approvals",
+            "create_endpoint": "/actions/approvals",
+            "approve_endpoint": "/actions/approvals/{approval_id}/approve",
+            "reject_endpoint": "/actions/approvals/{approval_id}/reject",
+        },
+        "tools": crm_agent.get_available_tools(),
+        "actions": ai_action_service.capabilities(),
+    }
+
+
+@app.get("/governance/audit")
+async def list_ai_audit_events(
+    limit: int = 100,
+    event_type: Optional[str] = None,
+    authorization: Optional[str] = Header(None),
+):
+    """List AI audit events for the authenticated user and tenant."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    events = ai_audit_store.list(
+        user_id=identity["user_id"],
+        tenant_id=identity["tenant_id"] or None,
+        limit=limit,
+        event_type=event_type,
+    )
+    return {"events": events, "count": len(events)}
+
+
+@app.get("/governance/summary")
+async def ai_governance_summary(
+    limit: int = 500,
+    authorization: Optional[str] = Header(None),
+):
+    """Summarize recent AI activity for observability dashboards."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    return ai_audit_store.summary(
+        user_id=identity["user_id"],
+        tenant_id=identity["tenant_id"] or None,
+        limit=limit,
+        failure_rate_threshold=settings.AI_FAILURE_RATE_ALERT_THRESHOLD,
+        fallback_rate_threshold=settings.AI_FALLBACK_RATE_ALERT_THRESHOLD,
+        latency_p95_threshold_ms=settings.AI_LATENCY_P95_ALERT_MS,
+        provider_error_threshold=settings.AI_PROVIDER_ERROR_ALERT_THRESHOLD,
+    )
+
+
+@app.post("/actions/propose")
+async def propose_ai_action(request: AIActionProposalRequest, authorization: Optional[str] = Header(None)):
+    """Create a safe action proposal that must be confirmed before execution."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    proposal = ai_action_service.propose(
+        intent=request.intent,
+        action_type=request.action_type,
+        entity_type=request.entity_type,
+        entity_id=request.entity_id,
+        payload=request.payload,
+    )
+    ai_audit_store.record(
+        event_type="action_proposed",
+        user_id=identity["user_id"],
+        tenant_id=identity["tenant_id"] or None,
+        outcome="success",
+        action=proposal["action_type"],
+        prompt=request.intent,
+        metadata={"proposal": proposal},
+    )
+    return proposal
+
+
+@app.post("/actions/execute")
+async def execute_ai_action(request: AIActionExecuteRequest, authorization: Optional[str] = Header(None)):
+    """Execute a confirmed non-destructive AI action through the Java backend."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    token_handle = crm_agent.crm_client.set_user_token(token)
+    started_at = time.perf_counter()
+    try:
+        result = await ai_action_service.execute(
+            action_type=request.action_type,
+            payload=request.payload,
+            confirmed=request.confirmed,
+        )
+        ai_audit_store.record(
+            event_type="action_executed",
+            user_id=identity["user_id"],
+            tenant_id=identity["tenant_id"] or None,
+            outcome="success",
+            action=request.action_type,
+            metadata={
+                "proposal_id": request.proposal_id,
+                "result": result,
+                "latency_ms": round((time.perf_counter() - started_at) * 1000, 1),
+            },
+        )
+        return result
+    except Exception as exc:
+        ai_audit_store.record(
+            event_type="action_executed",
+            user_id=identity["user_id"],
+            tenant_id=identity["tenant_id"] or None,
+            outcome="failed",
+            action=request.action_type,
+            metadata={
+                "proposal_id": request.proposal_id,
+                "error": str(exc),
+                "latency_ms": round((time.perf_counter() - started_at) * 1000, 1),
+            },
+        )
+        raise HTTPException(status_code=400, detail=str(exc))
+    finally:
+        crm_agent.crm_client.reset_user_token(token_handle)
+
+
+@app.post("/actions/approvals")
+async def create_action_approval(request: AIApprovalCreateRequest, authorization: Optional[str] = Header(None)):
+    """Create an approval request for a higher-risk AI action proposal."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    approval = ai_approval_store.create(
+        tenant_id=identity["tenant_id"] or None,
+        requested_by=identity["user_id"],
+        proposal=request.proposal,
+        reason=request.reason,
+    )
+    ai_audit_store.record(
+        event_type="action_approval_requested",
+        user_id=identity["user_id"],
+        tenant_id=identity["tenant_id"] or None,
+        outcome="success",
+        action=request.proposal.get("action_type"),
+        metadata={"approval": approval},
+    )
+    return {"approval": approval}
+
+
+@app.get("/actions/approvals")
+async def list_action_approvals(
+    status: Optional[str] = None,
+    limit: int = 100,
+    authorization: Optional[str] = Header(None),
+):
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    approvals = ai_approval_store.list(
+        tenant_id=identity["tenant_id"] or None,
+        status=status,
+        limit=limit,
+    )
+    return {"approvals": approvals, "count": len(approvals)}
+
+
+@app.post("/actions/approvals/{approval_id}/approve")
+async def approve_action_approval(
+    approval_id: str,
+    request: AIApprovalReviewRequest,
+    authorization: Optional[str] = Header(None),
+):
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    try:
+        approval = ai_approval_store.review(
+            approval_id=approval_id,
+            tenant_id=identity["tenant_id"] or None,
+            reviewed_by=identity["user_id"],
+            status="approved",
+            note=request.note,
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    ai_audit_store.record(
+        event_type="action_approval_reviewed",
+        user_id=identity["user_id"],
+        tenant_id=identity["tenant_id"] or None,
+        outcome="approved",
+        action=(approval.get("proposal") or {}).get("action_type"),
+        metadata={"approval": approval},
+    )
+    return {"approval": approval}
+
+
+@app.post("/actions/approvals/{approval_id}/reject")
+async def reject_action_approval(
+    approval_id: str,
+    request: AIApprovalReviewRequest,
+    authorization: Optional[str] = Header(None),
+):
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    try:
+        approval = ai_approval_store.review(
+            approval_id=approval_id,
+            tenant_id=identity["tenant_id"] or None,
+            reviewed_by=identity["user_id"],
+            status="rejected",
+            note=request.note,
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    ai_audit_store.record(
+        event_type="action_approval_reviewed",
+        user_id=identity["user_id"],
+        tenant_id=identity["tenant_id"] or None,
+        outcome="rejected",
+        action=(approval.get("proposal") or {}).get("action_type"),
+        metadata={"approval": approval},
+    )
+    return {"approval": approval}
 
 
 @app.get("/conversation/history")
@@ -512,14 +1269,18 @@ async def get_conversation_history(
 ):
     """Get conversation history for a user"""
     try:
-        authenticated_user_id = await _require_authenticated_user(authorization)
+        token = _extract_bearer_token(authorization)
+        identity = await _require_authenticated_identity(token)
+        authenticated_user_id = identity["user_id"]
+        tenant_id = identity["tenant_id"] or None
         if user_id and user_id != authenticated_user_id:
             raise HTTPException(status_code=403, detail="Forbidden")
 
         messages = await conversation_store.get_conversation(
             user_id=authenticated_user_id,
             conversation_id=conversation_id,
-            limit=limit
+            limit=limit,
+            tenant_id=tenant_id
         )
         return {"messages": messages}
     except HTTPException:
@@ -537,13 +1298,17 @@ async def clear_conversation(
 ):
     """Clear conversation history"""
     try:
-        authenticated_user_id = await _require_authenticated_user(authorization)
+        token = _extract_bearer_token(authorization)
+        identity = await _require_authenticated_identity(token)
+        authenticated_user_id = identity["user_id"]
+        tenant_id = identity["tenant_id"] or None
         if user_id and user_id != authenticated_user_id:
             raise HTTPException(status_code=403, detail="Forbidden")
 
         success = await conversation_store.clear_conversation(
             user_id=authenticated_user_id,
-            conversation_id=conversation_id
+            conversation_id=conversation_id,
+            tenant_id=tenant_id
         )
         return {"success": success}
     except HTTPException:
@@ -557,11 +1322,14 @@ async def clear_conversation(
 async def list_conversations(user_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
     """List all conversations for a user"""
     try:
-        authenticated_user_id = await _require_authenticated_user(authorization)
+        token = _extract_bearer_token(authorization)
+        identity = await _require_authenticated_identity(token)
+        authenticated_user_id = identity["user_id"]
+        tenant_id = identity["tenant_id"] or None
         if user_id and user_id != authenticated_user_id:
             raise HTTPException(status_code=403, detail="Forbidden")
 
-        conversations = await conversation_store.list_conversations(authenticated_user_id)
+        conversations = await conversation_store.list_conversations(authenticated_user_id, tenant_id)
         return {"conversations": conversations}
     except HTTPException:
         raise
@@ -573,20 +1341,31 @@ async def list_conversations(user_id: Optional[str] = None, authorization: Optio
 @app.get("/insights")
 async def get_insights(
     context: str = "dashboard",
+    include_inactive: bool = False,
     authorization: Optional[str] = Header(None)
 ):
     """Get live AI-powered insights for the authenticated user"""
     try:
-        # Extract token from Authorization header
-        user_token = None
-        if authorization and authorization.startswith("Bearer "):
-            user_token = authorization[7:]
-        
-        if not user_token:
-            raise HTTPException(status_code=401, detail="Authorization token required")
+        user_token = _extract_bearer_token(authorization)
+        identity = await _require_authenticated_identity(user_token)
+        scope_key = _build_report_scope_key(identity["user_id"], identity["tenant_id"] or None)
         
         # Generate contextual insights
         insights = await insights_service.generate_insights(user_token, context)
+        insight_state_store.upsert_insights(scope_key, insights)
+        insights = insight_state_store.apply_to_insights(
+            scope_key,
+            insights,
+            include_inactive=include_inactive,
+        )
+        ai_audit_store.record(
+            event_type="insights_generated",
+            user_id=identity["user_id"],
+            tenant_id=identity["tenant_id"] or None,
+            outcome="success",
+            action="generate_insights",
+            metadata={"context": context, "count": len(insights)},
+        )
         
         return {
             "insights": insights,
@@ -599,6 +1378,72 @@ async def get_insights(
     except Exception as e:
         logger.error(f"Error generating insights: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/insights/inbox")
+async def list_insight_inbox(
+    status: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    limit: int = 100,
+    authorization: Optional[str] = Header(None),
+):
+    """List persisted generated insights for team/admin review."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    scope_key = _build_report_scope_key(identity["user_id"], identity["tenant_id"] or None)
+    result = insight_state_store.list_inbox(
+        scope_key,
+        status=status,
+        assigned_to=assigned_to,
+        limit=limit,
+    )
+    ai_audit_store.record(
+        event_type="insight_inbox_viewed",
+        user_id=identity["user_id"],
+        tenant_id=identity["tenant_id"] or None,
+        outcome="success",
+        action="list_insight_inbox",
+        metadata={
+            "status": status,
+            "assigned_to": assigned_to,
+            "count": result.get("count", 0),
+        },
+    )
+    return result
+
+
+@app.patch("/insights/{insight_id:path}/state")
+async def update_insight_lifecycle(
+    insight_id: str,
+    request: InsightLifecycleUpdateRequest,
+    authorization: Optional[str] = Header(None),
+):
+    """Dismiss, snooze, assign, or reactivate a generated insight."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    scope_key = _build_report_scope_key(identity["user_id"], identity["tenant_id"] or None)
+    try:
+        state = insight_state_store.update(scope_key, insight_id, request.dict())
+        ai_audit_store.record(
+            event_type="insight_state_updated",
+            user_id=identity["user_id"],
+            tenant_id=identity["tenant_id"] or None,
+            outcome="success",
+            action=request.status,
+            metadata={"insight_id": insight_id, "state": state},
+        )
+        return {"state": state}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/insights/state")
+async def list_insight_lifecycle_states(authorization: Optional[str] = Header(None)):
+    """List saved insight lifecycle states for the authenticated user."""
+    token = _extract_bearer_token(authorization)
+    identity = await _require_authenticated_identity(token)
+    scope_key = _build_report_scope_key(identity["user_id"], identity["tenant_id"] or None)
+    return {"states": insight_state_store.list(scope_key)}
 
 
 # ===== LEAD SCORING AGENT ENDPOINTS =====

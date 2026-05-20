@@ -20,6 +20,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    open-in-view: false
     show-sql: false
     properties:
       hibernate:
@@ -93,10 +94,24 @@ spring:
 security:
   jwt:
     secret: ${JWT_SECRET:your-secret-key-change-this-in-production-min-256-bits}
-    access-token-expiration: 86400000  # 24 hours (24 * 60 * 60 * 1000)
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:900000}  # 15 minutes
     refresh-token-expiration: 604800000  # 7 days
+  login-lockout:
+    max-attempts: ${LOGIN_LOCKOUT_MAX_ATTEMPTS:5}
+    lock-minutes: ${LOGIN_LOCKOUT_MINUTES:15}
   two-factor:
     issuer: ${TWO_FACTOR_ISSUER:Cicosy CRM}
+  password-reset:
+    expiration-minutes: ${PASSWORD_RESET_EXPIRATION_MINUTES:30}
+    frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5175}
+    from-address: ${PASSWORD_RESET_FROM_ADDRESS:${MAIL_USERNAME:no-reply@cicosy.local}}
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:5175}
+  security:
+    public-api-docs-enabled: ${APP_PUBLIC_API_DOCS_ENABLED:false}
+    public-actuator-enabled: ${APP_PUBLIC_ACTUATOR_ENABLED:false}
 
 # AI Configuration
 openai:
@@ -115,14 +130,17 @@ rate-limit:
 
 # File Storage
 file-storage:
-  type: ${FILE_STORAGE_TYPE:local}  # local or s3
+  type: ${FILE_STORAGE_TYPE:local}  # local, s3, or minio
   local:
     upload-dir: ${FILE_UPLOAD_DIR:./uploads}
   s3:
-    bucket: ${AWS_S3_BUCKET:}
-    region: ${AWS_REGION:us-east-1}
-    access-key: ${AWS_ACCESS_KEY:}
-    secret-key: ${AWS_SECRET_KEY:}
+    bucket: ${S3_BUCKET:${AWS_S3_BUCKET:}}
+    region: ${S3_REGION:${AWS_REGION:us-east-1}}
+    endpoint: ${S3_ENDPOINT:}
+    access-key: ${S3_ACCESS_KEY:${AWS_ACCESS_KEY:}}
+    secret-key: ${S3_SECRET_KEY:${AWS_SECRET_KEY:}}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+    create-bucket: ${S3_CREATE_BUCKET:false}
 
 # Resilience4j Circuit Breaker
 resilience4j:
@@ -148,6 +166,9 @@ management:
       exposure:
         include: health,prometheus,info,metrics
       base-path: /actuator
+  health:
+    mail:
+      enabled: false
   endpoint:
     health:
       show-details: when-authorized
@@ -166,12 +187,12 @@ management:
 # Logging
 logging:
   level:
-    root: INFO
-    com.crm: DEBUG
-    org.springframework.web: INFO
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.crm: ${LOG_LEVEL_COM_CRM:INFO}
+    org.springframework.web: ${LOG_LEVEL_SPRING_WEB:INFO}
+    org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:INFO}
+    org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:WARN}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${LOG_LEVEL_HIBERNATE_BINDER:WARN}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
@@ -219,6 +240,12 @@ integrations:
     enabled: ${INTEGRATIONS_AUTOMATION_ENABLED:true}
     interval-ms: ${INTEGRATIONS_AUTOMATION_INTERVAL_MS:900000}
     initial-delay-ms: ${INTEGRATIONS_AUTOMATION_INITIAL_DELAY_MS:180000}
+
+web-push:
+  enabled: ${WEB_PUSH_ENABLED:true}
+  public-key: ${WEB_PUSH_PUBLIC_KEY:}
+  private-key: ${WEB_PUSH_PRIVATE_KEY:}
+  subject: ${WEB_PUSH_SUBJECT:mailto:notifications@cicosy.local}
 
 billing:
   portal-base-url: ${BILLING_PORTAL_BASE_URL:}

@@ -93,7 +93,7 @@ public class ContactServiceImpl implements ContactService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "contacts", key = "#id")
+    @Cacheable(value = "contacts", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public ContactResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         

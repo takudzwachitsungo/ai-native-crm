@@ -81,4 +81,11 @@ public class SettingsController {
     public ResponseEntity<WorkspaceIntegrationResponseDTO> refreshIntegrationOAuthToken(@PathVariable String providerKey) {
         return ResponseEntity.ok(workspaceIntegrationService.refreshOAuthToken(providerKey));
     }
+
+    @PostMapping("/integrations/{providerKey}/validate")
+    @PreAuthorize("hasAuthority('WORKSPACE_DATABASE_MANAGE')")
+    @Operation(summary = "Validate workspace integration", description = "Performs a live validation or health check for the selected workspace integration")
+    public ResponseEntity<WorkspaceIntegrationResponseDTO> validateIntegration(@PathVariable String providerKey) {
+        return ResponseEntity.ok(workspaceIntegrationService.validateCurrentTenantIntegration(providerKey));
+    }
 }

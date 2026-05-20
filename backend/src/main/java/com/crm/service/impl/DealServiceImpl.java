@@ -39,6 +39,7 @@ import com.crm.service.AutomationExecutionService;
 import com.crm.service.AutomationExecutionTargets;
 import com.crm.service.AutomationRunService;
 import com.crm.service.DealService;
+import com.crm.service.RealtimeStreamService;
 import com.crm.service.WorkflowRuleService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
@@ -73,6 +74,7 @@ public class DealServiceImpl implements DealService {
     private final AutomationRunService automationRunService;
     private final RecordAccessService recordAccessService;
     private final AutomationExecutionService automationExecutionService;
+    private final RealtimeStreamService realtimeStreamService;
 
     private static final EnumSet<TaskStatus> OPEN_TASK_STATUSES = EnumSet.of(
             TaskStatus.PENDING,
@@ -204,6 +206,7 @@ public class DealServiceImpl implements DealService {
         }
         ensureDealNextStepTask(tenantId, deal);
         log.info("Created deal: {} for tenant: {}", deal.getId(), tenantId);
+        publishDealRealtimeEvent(tenantId, deal, "created");
         
         return findById(deal.getId());
     }
@@ -241,6 +244,7 @@ public class DealServiceImpl implements DealService {
         ensureDealNextStepTask(tenantId, deal);
         
         log.info("Updated deal: {} for tenant: {}", id, tenantId);
+        publishDealRealtimeEvent(tenantId, deal, "updated");
         
         return findById(deal.getId());
     }
@@ -260,6 +264,7 @@ public class DealServiceImpl implements DealService {
         dealRepository.save(deal);
         
         log.info("Deleted (archived) deal: {} for tenant: {}", id, tenantId);
+        publishDealRealtimeEvent(tenantId, deal, "deleted");
     }
 
     @Override
@@ -281,6 +286,7 @@ public class DealServiceImpl implements DealService {
         dealRepository.saveAll(deals);
         
         log.info("Bulk deleted {} deals for tenant: {}", deals.size(), tenantId);
+        publishDashboardRefresh(tenantId, "deal");
     }
 
     @Override
@@ -332,8 +338,43 @@ public class DealServiceImpl implements DealService {
         }
         
         log.info("Updated deal {} stage from {} to {} for tenant: {}", id, oldStage, newStage, tenantId);
+        publishDealRealtimeEvent(tenantId, deal, "stage_changed");
         
         return findById(deal.getId());
+    }
+
+    private void publishDealRealtimeEvent(UUID tenantId, Deal deal, String action) {
+        realtimeStreamService.publishTenantEvent(
+                tenantId,
+                com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                        .eventType("deal.changed")
+                        .entityType("deal")
+                        .entityId(deal.getId() != null ? deal.getId().toString() : null)
+                        .scope("tenant")
+                        .payload(Map.of(
+                                "action", action,
+                                "stage", deal.getStage() != null ? deal.getStage().name() : "",
+                                "ownerId", deal.getOwnerId() != null ? deal.getOwnerId().toString() : "",
+                                "territory", deal.getTerritory() != null ? deal.getTerritory() : "",
+                                "approvalStatus", deal.getApprovalStatus() != null ? deal.getApprovalStatus().name() : ""
+                        ))
+                        .occurredAt(LocalDateTime.now())
+                        .build()
+        );
+        publishDashboardRefresh(tenantId, "deal");
+    }
+
+    private void publishDashboardRefresh(UUID tenantId, String source) {
+        realtimeStreamService.publishTenantEvent(
+                tenantId,
+                com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                        .eventType("dashboard.refresh")
+                        .entityType("dashboard")
+                        .scope("tenant")
+                        .payload(Map.of("source", source))
+                        .occurredAt(LocalDateTime.now())
+                        .build()
+        );
     }
 
     @Override
@@ -532,6 +573,19 @@ public class DealServiceImpl implements DealService {
                 "Reviewed %d deal(s), created %d rescue task(s), %d already covered."
                         .formatted(reviewedDeals, rescueTasksCreated, alreadyCoveredDeals)
         );
+        if (rescueTasksCreated > 0) {
+            realtimeStreamService.publishTenantEvent(
+                    tenantId,
+                    com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                            .eventType("task.changed")
+                            .entityType("task")
+                            .scope("tenant")
+                            .payload(Map.of("action", "automation_created", "count", rescueTasksCreated))
+                            .occurredAt(LocalDateTime.now())
+                            .build()
+            );
+            publishDashboardRefresh(tenantId, "deal");
+        }
         return result;
     }
 

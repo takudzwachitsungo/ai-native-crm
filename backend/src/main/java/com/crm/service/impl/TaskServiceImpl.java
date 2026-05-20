@@ -22,7 +22,9 @@ import com.crm.repository.NurtureJourneyStepRepository;
 import com.crm.repository.TaskRepository;
 import com.crm.repository.UserRepository;
 import com.crm.service.WorkflowRuleService;
+import com.crm.service.RealtimeStreamService;
 import com.crm.service.TaskService;
+import com.crm.service.WebPushService;
 import com.crm.util.SpecificationBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -57,6 +61,8 @@ public class TaskServiceImpl implements TaskService {
     private final NurtureJourneyStepRepository nurtureJourneyStepRepository;
     private final TaskMapper taskMapper;
     private final WorkflowRuleService workflowRuleService;
+    private final WebPushService webPushService;
+    private final RealtimeStreamService realtimeStreamService;
 
     @Override
     @Transactional(readOnly = true)
@@ -116,7 +122,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "tasks", key = "#id")
+    @Cacheable(value = "tasks", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public TaskResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         
@@ -146,6 +152,11 @@ public class TaskServiceImpl implements TaskService {
         
         task = taskRepository.save(task);
         log.info("Created task: {} for tenant: {}", task.getId(), tenantId);
+        if (task.getAssignedTo() != null) {
+            webPushService.notifyTaskAssigned(tenantId, task.getAssignedTo(), task);
+            publishTaskAssignmentNotification(tenantId, task);
+        }
+        publishTaskRealtimeEvent(tenantId, task, "created");
         
         return taskMapper.toDto(task);
     }
@@ -159,6 +170,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(id)
                 .filter(t -> t.getTenantId().equals(tenantId) && !t.getArchived())
                 .orElseThrow(() -> new ResourceNotFoundException("Task", id));
+        UUID previousAssigneeId = task.getAssignedTo();
         
         // Update assigned user if changed
         if (request.getAssignedToId() != null && !request.getAssignedToId().equals(task.getAssignedTo())) {
@@ -170,8 +182,13 @@ public class TaskServiceImpl implements TaskService {
         
         taskMapper.updateEntity(request, task);
         task = taskRepository.save(task);
+        if (task.getAssignedTo() != null && !task.getAssignedTo().equals(previousAssigneeId)) {
+            webPushService.notifyTaskAssigned(tenantId, task.getAssignedTo(), task);
+            publishTaskAssignmentNotification(tenantId, task);
+        }
         
         log.info("Updated task: {} for tenant: {}", id, tenantId);
+        publishTaskRealtimeEvent(tenantId, task, "updated");
         
         return taskMapper.toDto(task);
     }
@@ -190,6 +207,7 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.save(task);
         
         log.info("Deleted (archived) task: {} for tenant: {}", id, tenantId);
+        publishTaskRealtimeEvent(tenantId, task, "deleted");
     }
 
     @Override
@@ -253,8 +271,72 @@ public class TaskServiceImpl implements TaskService {
         triggerJourneyProgressionIfNeeded(tenantId, task);
 
         log.info("Completed task: {} for tenant: {}", id, tenantId);
+        publishTaskRealtimeEvent(tenantId, task, "completed");
         
         return taskMapper.toDto(task);
+    }
+
+    private void publishTaskRealtimeEvent(UUID tenantId, Task task, String action) {
+        realtimeStreamService.publishTenantEvent(
+                tenantId,
+                com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                        .eventType("task.changed")
+                        .entityType("task")
+                        .entityId(task.getId() != null ? task.getId().toString() : null)
+                        .scope("tenant")
+                        .payload(buildTaskPayload(task, action))
+                        .occurredAt(LocalDateTime.now())
+                        .build()
+        );
+        publishDashboardRefresh(tenantId, "task");
+    }
+
+    private void publishTaskAssignmentNotification(UUID tenantId, Task task) {
+        if (task.getAssignedTo() == null) {
+            return;
+        }
+        realtimeStreamService.publishUserEvent(
+                tenantId,
+                task.getAssignedTo(),
+                com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                        .eventType("notification.created")
+                        .entityType("task")
+                        .entityId(task.getId() != null ? task.getId().toString() : null)
+                        .scope("user")
+                        .payload(Map.of(
+                                "title", "New task assigned",
+                                "message", "You were assigned \"" + task.getTitle() + "\"",
+                                "kind", "task_assignment",
+                                "taskId", task.getId() != null ? task.getId().toString() : "",
+                                "priority", task.getPriority() != null ? task.getPriority().name() : TaskPriority.MEDIUM.name()
+                        ))
+                        .occurredAt(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    private void publishDashboardRefresh(UUID tenantId, String source) {
+        realtimeStreamService.publishTenantEvent(
+                tenantId,
+                com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                        .eventType("dashboard.refresh")
+                        .entityType("dashboard")
+                        .scope("tenant")
+                        .payload(Map.of("source", source))
+                        .occurredAt(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    private Map<String, Object> buildTaskPayload(Task task, String action) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("action", action);
+        payload.put("status", task.getStatus() != null ? task.getStatus().name() : null);
+        payload.put("priority", task.getPriority() != null ? task.getPriority().name() : null);
+        payload.put("assignedTo", task.getAssignedTo() != null ? task.getAssignedTo().toString() : null);
+        payload.put("relatedEntityType", task.getRelatedEntityType());
+        payload.put("relatedEntityId", task.getRelatedEntityId() != null ? task.getRelatedEntityId().toString() : null);
+        return payload;
     }
 
     private void triggerJourneyProgressionIfNeeded(UUID tenantId, Task task) {

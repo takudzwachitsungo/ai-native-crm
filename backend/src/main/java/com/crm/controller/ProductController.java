@@ -33,6 +33,7 @@ public class ProductController {
 
     @GetMapping
     @Operation(summary = "Get all products", description = "Get paginated list of products with optional filtering")
+    @PreAuthorize("hasAuthority('PRODUCTS_VIEW')")
     public ResponseEntity<Page<ProductResponseDTO>> getAllProducts(
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable,
             @ModelAttribute ProductFilterDTO filter
@@ -42,20 +43,21 @@ public class ProductController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get product by ID", description = "Get detailed information about a specific product")
+    @PreAuthorize("hasAuthority('PRODUCTS_VIEW')")
     public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable UUID id) {
         return ResponseEntity.ok(productService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new product", description = "Create a new product in the catalog")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('PRODUCTS_WRITE')")
     public ResponseEntity<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update product", description = "Update an existing product")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('PRODUCTS_WRITE')")
     public ResponseEntity<ProductResponseDTO> updateProduct(
             @PathVariable UUID id,
             @Valid @RequestBody ProductRequestDTO request
@@ -65,7 +67,7 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete product", description = "Delete a product (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('PRODUCTS_MANAGE')")
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         productService.delete(id);
         return ResponseEntity.noContent().build();
@@ -73,7 +75,7 @@ public class ProductController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete products", description = "Delete multiple products at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('PRODUCTS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteProducts(@RequestBody List<UUID> ids) {
         productService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -81,14 +83,14 @@ public class ProductController {
 
     @GetMapping("/low-stock")
     @Operation(summary = "Get low stock products", description = "Get products that are low on stock")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('PRODUCTS_VIEW')")
     public ResponseEntity<List<ProductResponseDTO>> getLowStockProducts() {
         return ResponseEntity.ok(productService.findLowStockProducts());
     }
 
     @PatchMapping("/{id}/stock")
     @Operation(summary = "Adjust product stock", description = "Increase or decrease product stock quantity")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('PRODUCTS_MANAGE')")
     public ResponseEntity<ProductResponseDTO> adjustStock(
             @PathVariable UUID id,
             @RequestBody Map<String, Integer> request

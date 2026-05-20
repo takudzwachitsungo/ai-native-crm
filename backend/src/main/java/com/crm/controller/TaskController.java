@@ -32,6 +32,7 @@ public class TaskController {
 
     @GetMapping
     @Operation(summary = "Get all tasks", description = "Get paginated list of tasks with optional filtering")
+    @PreAuthorize("hasAuthority('TASKS_VIEW')")
     public ResponseEntity<Page<TaskResponseDTO>> getAllTasks(
             @PageableDefault(size = 20, sort = "dueDate", direction = Sort.Direction.ASC) Pageable pageable,
             @ModelAttribute TaskFilterDTO filter
@@ -41,20 +42,21 @@ public class TaskController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get task by ID", description = "Get detailed information about a specific task")
+    @PreAuthorize("hasAuthority('TASKS_VIEW')")
     public ResponseEntity<TaskResponseDTO> getTaskById(@PathVariable UUID id) {
         return ResponseEntity.ok(taskService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new task", description = "Create a new task")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('TASKS_WRITE')")
     public ResponseEntity<TaskResponseDTO> createTask(@Valid @RequestBody TaskRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskService.create(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update task", description = "Update an existing task")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('TASKS_WRITE')")
     public ResponseEntity<TaskResponseDTO> updateTask(
             @PathVariable UUID id,
             @Valid @RequestBody TaskRequestDTO request
@@ -64,7 +66,7 @@ public class TaskController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete task", description = "Delete a task (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('TASKS_MANAGE')")
     public ResponseEntity<Void> deleteTask(@PathVariable UUID id) {
         taskService.delete(id);
         return ResponseEntity.noContent().build();
@@ -72,7 +74,7 @@ public class TaskController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete tasks", description = "Delete multiple tasks at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('TASKS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteTasks(@RequestBody List<UUID> ids) {
         taskService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -80,19 +82,21 @@ public class TaskController {
 
     @GetMapping("/overdue")
     @Operation(summary = "Get overdue tasks", description = "Get all tasks that are overdue")
+    @PreAuthorize("hasAuthority('TASKS_VIEW')")
     public ResponseEntity<List<TaskResponseDTO>> getOverdueTasks() {
         return ResponseEntity.ok(taskService.findOverdueTasks());
     }
 
     @GetMapping("/assigned-to/{userId}")
     @Operation(summary = "Get tasks by assignee", description = "Get all tasks assigned to a specific user")
+    @PreAuthorize("hasAuthority('TASKS_VIEW')")
     public ResponseEntity<List<TaskResponseDTO>> getTasksByAssignee(@PathVariable UUID userId) {
         return ResponseEntity.ok(taskService.findByAssignedTo(userId));
     }
 
     @PatchMapping("/{id}/complete")
     @Operation(summary = "Complete task", description = "Mark a task as completed")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('TASKS_WRITE')")
     public ResponseEntity<TaskResponseDTO> completeTask(@PathVariable UUID id) {
         return ResponseEntity.ok(taskService.completeTask(id));
     }

@@ -13,6 +13,7 @@ import { exportToCSV } from '../lib/helpers';
 
 export default function Invoices() {
   const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'pending' | 'overdue' | 'draft'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -84,9 +85,20 @@ export default function Invoices() {
     },
   });
 
-  const filteredInvoices = activeTab === 'all' 
-    ? invoices 
-    : invoices.filter((inv: any) => inv.status?.toLowerCase() === activeTab);
+  const filteredInvoices = invoices.filter((inv: any) => {
+    const matchesTab = activeTab === 'all' || inv.status?.toLowerCase() === activeTab;
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = !query || [
+      inv.invoiceNumber,
+      inv.contactName,
+      inv.companyName,
+      inv.status,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query));
+
+    return matchesTab && matchesSearch;
+  });
 
   // Reset page when tab changes
   React.useEffect(() => {
@@ -113,41 +125,70 @@ export default function Invoices() {
   const overdueRevenue = invoices.filter((inv: any) => inv.status?.toLowerCase() === 'overdue').reduce((sum: number, inv: any) => sum + (inv.total || 0), 0);
 
   return (
-    <PageLayout
-      title="Invoices"
-      subtitle="Billing and invoice management"
-      icon={<Icons.FileText size={20} />}
-      actions={
-        <button
-          onClick={() => {
-            setSelectedItem(null);
-            setIsFormOpen(true);
-          }}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
-        >
-          <Icons.Plus size={16} />
-          Create Invoice
-        </button>
-      }
-    >
-      {/* Stats */}
-      <div className="p-6 border-b border-border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-            <p className="text-2xl font-bold">${totalRevenue.toLocaleString()}</p>
+    <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-[26px] leading-none font-semibold text-foreground">Invoices</h1>
+              <p className="text-[13px] text-muted-foreground mt-1">Billing and invoice management</p>
+            </div>
           </div>
-          <div className="p-4 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Pending</p>
-            <p className="text-2xl font-bold text-yellow-600">${pendingRevenue.toLocaleString()}</p>
-          </div>
-          <div className="p-4 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Overdue</p>
-            <p className="text-2xl font-bold text-red-600">${overdueRevenue.toLocaleString()}</p>
-          </div>
-          <div className="p-4 border border-border rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Total Invoices</p>
-            <p className="text-2xl font-bold">{invoices.length}</p>
+
+          <div className="mt-4 mb-3 flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4">
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                      <Icons.CircleDollarSign size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Revenue</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">${totalRevenue.toLocaleString()}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Collected revenue</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.Timer size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Pending</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">${pendingRevenue.toLocaleString()}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Awaiting payment</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                      <Icons.AlertCircle size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Overdue</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">${overdueRevenue.toLocaleString()}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Needs collection follow-up</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.FileText size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Invoices</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{invoices.length}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Billing records</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -159,94 +200,118 @@ export default function Invoices() {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-border bg-background">
-        <div className="flex px-6">
+      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-5 lg:px-6">
+        <div className="rounded-2xl border border-border bg-background p-2.5 shadow-sm">
+          <div className="flex flex-wrap gap-1.5">
           {(['all', 'paid', 'pending', 'overdue', 'draft'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "px-4 py-3 border-b-2 transition-colors text-sm font-medium capitalize",
+                "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium capitalize transition-colors",
                 activeTab === tab
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70"
               )}
             >
-              {tab} {tab !== 'all' && `(${invoices.filter((inv: any) => inv.status === tab).length})`}
+              <span>{tab === 'all' ? 'All' : tab}</span>
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                activeTab === tab ? "bg-primary-foreground/16 text-primary-foreground" : "bg-secondary text-muted-foreground"
+              )}>
+                {tab === 'all' ? invoices.length : invoices.filter((inv: any) => inv.status === tab).length}
+              </span>
             </button>
           ))}
+          </div>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-1.5 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <div className="relative min-w-0 flex-1 lg:max-w-[720px]">
+            <Icons.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search invoices..."
-              className="pl-9 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-8.5 pr-3.5 text-[13px] border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background shadow-[0_3px_12px_rgba(15,23,42,0.035)]"
             />
-          </div>
-          <button className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 text-sm">
-            <Icons.Filter size={16} />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+          <button className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60">
+            <Icons.Filter size={13} />
             Filter
           </button>
+          <button 
+            onClick={() => {
+              exportToCSV(filteredInvoices, [
+                { header: 'Invoice #', accessor: 'invoiceNumber' },
+                { header: 'Customer', accessor: (i: any) => i.contact?.firstName + ' ' + i.contact?.lastName || '' },
+                { header: 'Company', accessor: (i: any) => i.company?.name || '' },
+                { header: 'Amount', accessor: (i: any) => i.total || i.totalAmount || 0 },
+                { header: 'Status', accessor: 'status' },
+                { header: 'Issue Date', accessor: (i: any) => i.issueDate ? new Date(i.issueDate).toLocaleDateString() : '' },
+                { header: 'Due Date', accessor: (i: any) => i.dueDate ? new Date(i.dueDate).toLocaleDateString() : '' },
+                { header: 'Paid Date', accessor: (i: any) => i.paidAt ? new Date(i.paidAt).toLocaleDateString() : '' },
+              ], 'invoices');
+              showToast(`Exported ${filteredInvoices.length} invoices to CSV`, 'success');
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60"
+          >
+            <Icons.Download size={13} />
+            Export
+          </button>
+          <button
+            onClick={() => {
+              setSelectedItem(null);
+              setIsFormOpen(true);
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors shadow-[0_3px_12px_rgba(37,99,235,0.18)] hover:bg-primary/90"
+          >
+            <Icons.Plus size={13} />
+            Create Invoice
+          </button>
         </div>
-        <button 
-          onClick={() => {
-            exportToCSV(filteredInvoices, [
-              { header: 'Invoice #', accessor: 'invoiceNumber' },
-              { header: 'Customer', accessor: (i: any) => i.contact?.firstName + ' ' + i.contact?.lastName || '' },
-              { header: 'Company', accessor: (i: any) => i.company?.name || '' },
-              { header: 'Amount', accessor: (i: any) => i.total || i.totalAmount || 0 },
-              { header: 'Status', accessor: 'status' },
-              { header: 'Issue Date', accessor: (i: any) => i.issueDate ? new Date(i.issueDate).toLocaleDateString() : '' },
-              { header: 'Due Date', accessor: (i: any) => i.dueDate ? new Date(i.dueDate).toLocaleDateString() : '' },
-              { header: 'Paid Date', accessor: (i: any) => i.paidAt ? new Date(i.paidAt).toLocaleDateString() : '' },
-            ], 'invoices');
-            showToast(`Exported ${filteredInvoices.length} invoices to CSV`, 'success');
-          }}
-          className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 text-sm"
-        >
-          <Icons.Download size={16} />
-          Export
-        </button>
       </div>
 
       {/* Invoice List */}
-      <div className="p-6">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/50">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pb-4 sm:px-5 lg:px-6">
+        <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
               <tr>
-                <th className="text-left p-3 text-xs font-semibold">Invoice #</th>
-                <th className="text-left p-3 text-xs font-semibold">Customer</th>
-                <th className="text-left p-3 text-xs font-semibold">Amount</th>
-                <th className="text-left p-3 text-xs font-semibold">Issued</th>
-                <th className="text-left p-3 text-xs font-semibold">Due Date</th>
-                <th className="text-left p-3 text-xs font-semibold">Status</th>
-                <th className="text-left p-3 text-xs font-semibold">Items</th>
-                <th className="text-right p-3 text-xs font-semibold">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Invoice #</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Customer</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Amount</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Issued</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Due Date</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Items</th>
+                <th className="border-b border-border/60 bg-secondary/50 text-right px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-card">
               {filteredInvoices.map((invoice: any) => (
-                <tr key={invoice.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="p-3">
+                <tr
+                  key={invoice.id}
+                  className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                >
+                  <td className="px-3 py-2.5">
                     <span className="text-sm font-medium text-primary">{invoice.invoiceNumber || 'N/A'}</span>
                   </td>
-                  <td className="p-3">
+                  <td className="px-3 py-2.5">
                     <div>
                       <p className="text-sm font-medium">{invoice.contactName || 'N/A'}</p>
                       <p className="text-xs text-muted-foreground">{invoice.companyName || 'N/A'}</p>
                     </div>
                   </td>
-                  <td className="p-3 text-sm font-semibold">${(invoice.total || 0).toLocaleString()}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A'}</td>
-                  <td className="p-3 text-sm text-muted-foreground">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td>
-                  <td className="p-3">
+                  <td className="px-3 py-2.5 text-sm font-semibold">${(invoice.total || 0).toLocaleString()}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-3 py-2.5">
                     <span className={cn(
                       "text-xs px-2 py-1 border rounded-full capitalize",
                       getStatusColor(invoice.status?.toLowerCase())
@@ -254,8 +319,8 @@ export default function Invoices() {
                       {invoice.status || 'N/A'}
                     </span>
                   </td>
-                  <td className="p-3 text-sm text-muted-foreground">{invoice.lineItems?.length || 0} items</td>
-                  <td className="p-3">
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground">{invoice.lineItems?.length || 0} items</td>
+                  <td className="px-3 py-2.5">
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => {
@@ -294,7 +359,7 @@ export default function Invoices() {
                       <button
                         onClick={() => erpSyncMutation.mutate({ id: invoice.id, providerKey: 'quickbooks' })}
                         disabled={!invoice.id || erpSyncMutation.isPending}
-                        className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                        className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors disabled:opacity-50 hover:bg-secondary"
                         title="Sync to QuickBooks"
                       >
                         QB
@@ -302,7 +367,7 @@ export default function Invoices() {
                       <button
                         onClick={() => erpSyncMutation.mutate({ id: invoice.id, providerKey: 'xero' })}
                         disabled={!invoice.id || erpSyncMutation.isPending}
-                        className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                        className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors disabled:opacity-50 hover:bg-secondary"
                         title="Sync to Xero"
                       >
                         Xero
@@ -313,6 +378,7 @@ export default function Invoices() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {!isLoading && invoices.length === 0 && (
             <div className="text-center py-8">
@@ -323,8 +389,8 @@ export default function Invoices() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5 lg:px-6">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} invoices
         </div>
         <div className="flex items-center gap-2">
@@ -332,7 +398,7 @@ export default function Invoices() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
@@ -349,7 +415,7 @@ export default function Invoices() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum
                     ? "bg-primary text-primary-foreground"
                     : "border border-border hover:bg-secondary"
@@ -363,13 +429,14 @@ export default function Invoices() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
             Next
           </button>
         </div>
+      </div>
       </div>
 
       {/* View Modal */}

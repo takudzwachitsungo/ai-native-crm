@@ -94,7 +94,7 @@ public class QuoteServiceImpl implements QuoteService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "quotes", key = "#id")
+    @Cacheable(value = "quotes", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public QuoteResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         

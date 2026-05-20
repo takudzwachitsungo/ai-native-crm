@@ -6,12 +6,15 @@ import com.crm.dto.request.NotificationPreferenceUpdateRequestDTO;
 import com.crm.dto.request.PasswordChangeRequestDTO;
 import com.crm.dto.request.TwoFactorDisableRequestDTO;
 import com.crm.dto.request.TwoFactorVerificationRequestDTO;
+import com.crm.dto.request.WebPushSubscriptionRequestDTO;
 import com.crm.dto.response.AccountProfileResponseDTO;
 import com.crm.dto.response.BillingPortalResponseDTO;
 import com.crm.dto.response.NotificationPreferenceResponseDTO;
 import com.crm.dto.response.TwoFactorSetupResponseDTO;
 import com.crm.dto.response.TwoFactorStatusResponseDTO;
 import com.crm.dto.response.UserSessionResponseDTO;
+import com.crm.dto.response.WebPushConfigResponseDTO;
+import com.crm.dto.response.WebPushSubscriptionResponseDTO;
 import com.crm.entity.Tenant;
 import com.crm.entity.User;
 import com.crm.entity.UserNotificationPreference;
@@ -25,8 +28,10 @@ import com.crm.repository.UserNotificationPreferenceRepository;
 import com.crm.repository.UserRepository;
 import com.crm.repository.UserSessionRepository;
 import com.crm.security.JwtTokenProvider;
+import com.crm.security.PasswordPolicyService;
 import com.crm.security.TwoFactorTotpService;
 import com.crm.service.AccountSelfService;
+import com.crm.service.WebPushService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,6 +59,8 @@ public class AccountSelfServiceImpl implements AccountSelfService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final TwoFactorTotpService twoFactorTotpService;
+    private final PasswordPolicyService passwordPolicyService;
+    private final WebPushService webPushService;
 
     @Value("${billing.portal-base-url:}")
     private String billingPortalBaseUrl;
@@ -134,6 +141,7 @@ public class AccountSelfServiceImpl implements AccountSelfService {
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is incorrect");
         }
+        passwordPolicyService.validate(request.getNewPassword());
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new BadRequestException("New password must be different from the current password");
         }
@@ -266,6 +274,24 @@ public class AccountSelfServiceImpl implements AccountSelfService {
         user.setTwoFactorEnabledAt(null);
         userRepository.save(user);
         return mapTwoFactorStatus(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WebPushConfigResponseDTO getPushConfig() {
+        return webPushService.getCurrentUserPushConfig();
+    }
+
+    @Override
+    @Transactional
+    public WebPushSubscriptionResponseDTO registerPushSubscription(WebPushSubscriptionRequestDTO request) {
+        return webPushService.registerCurrentUserSubscription(request);
+    }
+
+    @Override
+    @Transactional
+    public void removePushSubscription(String endpoint) {
+        webPushService.removeCurrentUserSubscription(endpoint);
     }
 
     private AccountProfileResponseDTO mapProfile(User user, Tenant tenant) {

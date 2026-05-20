@@ -94,7 +94,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "emails", key = "#id")
+    @Cacheable(value = "emails", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public EmailResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         

@@ -11,11 +11,13 @@ import com.crm.exception.BadRequestException;
 import com.crm.exception.ResourceNotFoundException;
 import com.crm.repository.AutomationRuleRepository;
 import com.crm.repository.AutomationRunRepository;
+import com.crm.repository.StandardReportDefinitionRepository;
 import com.crm.repository.SupportCaseRepository;
 import com.crm.repository.TenantRepository;
 import com.crm.repository.UserRepository;
 import com.crm.repository.WorkflowRuleRepository;
 import com.crm.repository.WorkspaceIntegrationRepository;
+import com.crm.service.RealtimeStreamService;
 import com.crm.service.TenantAdminService;
 import com.crm.service.TenantCredentialCipher;
 import com.crm.service.TenantProvisioningService;
@@ -54,6 +56,8 @@ public class TenantAdminServiceImpl implements TenantAdminService {
     private final AutomationRunRepository automationRunRepository;
     private final SupportCaseRepository supportCaseRepository;
     private final WorkspaceIntegrationRepository workspaceIntegrationRepository;
+    private final StandardReportDefinitionRepository standardReportDefinitionRepository;
+    private final RealtimeStreamService realtimeStreamService;
 
     public TenantAdminServiceImpl(
             @Qualifier("masterDataSource") DataSource masterDataSource,
@@ -66,7 +70,9 @@ public class TenantAdminServiceImpl implements TenantAdminService {
             AutomationRuleRepository automationRuleRepository,
             AutomationRunRepository automationRunRepository,
             SupportCaseRepository supportCaseRepository,
-            WorkspaceIntegrationRepository workspaceIntegrationRepository
+            WorkspaceIntegrationRepository workspaceIntegrationRepository,
+            StandardReportDefinitionRepository standardReportDefinitionRepository,
+            RealtimeStreamService realtimeStreamService
     ) {
         this.masterDataSource = masterDataSource;
         this.tenantRoutingDataSource = tenantRoutingDataSource;
@@ -79,6 +85,8 @@ public class TenantAdminServiceImpl implements TenantAdminService {
         this.automationRunRepository = automationRunRepository;
         this.supportCaseRepository = supportCaseRepository;
         this.workspaceIntegrationRepository = workspaceIntegrationRepository;
+        this.standardReportDefinitionRepository = standardReportDefinitionRepository;
+        this.realtimeStreamService = realtimeStreamService;
     }
 
     @Override
@@ -302,6 +310,9 @@ public class TenantAdminServiceImpl implements TenantAdminService {
                 .syncEnabledIntegrations(syncEnabledIntegrations)
                 .integrationsWithRecentFailures(integrationsWithRecentFailures)
                 .integrationsNeedingReconnect(integrationsNeedingReconnect)
+                .savedStandardReports(standardReportDefinitionRepository.countByTenantIdAndArchivedFalse(tenantId))
+                .activeRealtimeSubscribers(realtimeStreamService.getTenantActiveSubscriberCount(tenantId))
+                .activeRealtimeConnections(realtimeStreamService.getTenantActiveConnectionCount(tenantId))
                 .recentAutomationRuns(recentAutomationRuns)
                 .build();
     }

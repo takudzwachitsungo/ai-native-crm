@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, Bell, User, Settings, LogOut, CreditCard, HelpCircle } from 'lucide-react';
+import { Search, Bell, Calendar, User, Settings, LogOut, CreditCard, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -22,7 +22,7 @@ const notificationTitleMap: Record<string, string> = {
   closing_soon: 'Closing soon',
   stuck: 'Pipeline stalled',
   at_risk: 'Deal at risk',
-  inactive: 'Inactive contact',
+  inactive: 'Inactive record',
 };
 
 export function Header() {
@@ -36,11 +36,11 @@ export function Header() {
   const notifications = useMemo<Notification[]>(
     () =>
       insights.map((insight) => ({
-        id: `${insight.entity_type}:${insight.entity_id}:${insight.type}`,
+        id: insight.id || `${insight.entity_type}:${insight.entity_id}:${insight.type}`,
         title: notificationTitleMap[insight.type] || 'CRM insight',
         message: insight.message,
         time: 'Live',
-        read: readNotificationIds.includes(`${insight.entity_type}:${insight.entity_id}:${insight.type}`),
+        read: readNotificationIds.includes(insight.id || `${insight.entity_type}:${insight.entity_id}:${insight.type}`),
         type:
           insight.severity === 'success'
             ? 'success'
@@ -69,8 +69,8 @@ export function Header() {
   };
 
   return (
-    <header className="h-[70px] px-6 flex justify-between items-center border-b border-border bg-background relative">
-      <div className="flex-1 max-w-md hidden md:block">
+    <header className="relative flex h-[50px] items-center justify-between border-b border-border bg-background px-4 pl-16 sm:px-5 md:px-6 md:pl-6">
+      <div className="hidden flex-1 max-w-md md:block">
         <div className="relative">
           <label htmlFor="global-search" className="sr-only">Search</label>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} aria-hidden="true" />
@@ -82,11 +82,24 @@ export function Header() {
             readOnly
             onFocus={openCommandPalette}
             onClick={openCommandPalette}
-            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full pl-9 pr-3 py-1 text-[13px] border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          onClick={() => {
+            navigate('/calendar');
+            setShowNotifications(false);
+            setShowUserMenu(false);
+          }}
+          className="h-7 w-7 flex items-center justify-center hover:bg-secondary rounded-lg transition-colors"
+          aria-label="Open calendar"
+          title="Calendar"
+        >
+          <Calendar size={16} />
+        </button>
+
         {/* Notifications Dropdown */}
         <div className="relative">
           <button 
@@ -94,10 +107,10 @@ export function Header() {
               setShowNotifications(!showNotifications);
               setShowUserMenu(false);
             }}
-            className="h-9 w-9 flex items-center justify-center hover:bg-secondary rounded-lg transition-colors relative"
+            className="h-7 w-7 flex items-center justify-center hover:bg-secondary rounded-lg transition-colors relative"
             aria-label="View notifications"
           >
-            <Bell size={18} />
+            <Bell size={16} />
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
             )}
@@ -109,7 +122,7 @@ export function Header() {
                 className="fixed inset-0 z-40" 
                 onClick={() => setShowNotifications(false)}
               />
-              <div className="absolute right-0 mt-2 w-96 bg-card border border-border rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-96 bg-card border border-border rounded-lg shadow-lg z-50">
                 <div className="p-4 border-b border-border flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold">Notifications</h3>
@@ -171,7 +184,7 @@ export function Header() {
               setShowUserMenu(!showUserMenu);
               setShowNotifications(false);
             }}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 hover:ring-2 hover:ring-primary/20 transition-all"
+            className="w-6.5 h-6.5 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 hover:ring-2 hover:ring-primary/20 transition-all"
             aria-label="User menu"
           />
 
@@ -181,7 +194,7 @@ export function Header() {
                 className="fixed inset-0 z-40" 
                 onClick={() => setShowUserMenu(false)}
               />
-              <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-64 bg-card border border-border rounded-lg shadow-lg z-50">
                 <div className="p-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400" />

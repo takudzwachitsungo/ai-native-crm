@@ -63,8 +63,23 @@ public class TenantRoutingDataSource extends AbstractDataSource implements Dispo
 
         return tenantDatabaseConfigRegistry.findByTenantId(tenantId)
                 .filter(this::isDedicatedDatabaseConfigured)
-                .map(config -> dedicatedDataSources.computeIfAbsent(tenantId, ignored -> buildDedicatedDataSource(config)))
+                .map(config -> resolveDedicatedDataSource(tenantId, config))
                 .orElse(defaultDataSource);
+    }
+
+    private DataSource resolveDedicatedDataSource(UUID tenantId, TenantDatabaseConfig config) {
+        try {
+            return dedicatedDataSources.computeIfAbsent(tenantId, ignored -> buildDedicatedDataSource(config));
+        } catch (RuntimeException ex) {
+            dedicatedDataSources.remove(tenantId);
+            log.warn(
+                    "Dedicated datasource for tenant {} is unavailable; falling back to primary datasource. " +
+                            "Revalidate workspace database settings before enabling dedicated routing again.",
+                    tenantId,
+                    ex
+            );
+            return defaultDataSource;
+        }
     }
 
     private boolean isDedicatedDatabaseConfigured(TenantDatabaseConfig config) {
@@ -86,11 +101,12 @@ public class TenantRoutingDataSource extends AbstractDataSource implements Dispo
                 hasText(config.getDatabaseDriverClassName()) ? config.getDatabaseDriverClassName() : "org.postgresql.Driver"
         );
         hikariConfig.setPoolName("tenant-" + config.getTenantId());
-        hikariConfig.setMaximumPoolSize(5);
+        hikariConfig.setMaximumPoolSize(10);
         hikariConfig.setMinimumIdle(1);
         hikariConfig.setConnectionTimeout(30000);
         hikariConfig.setIdleTimeout(600000);
         hikariConfig.setMaxLifetime(1800000);
+        hikariConfig.setLeakDetectionThreshold(15000);
 
         return new HikariDataSource(hikariConfig);
     }

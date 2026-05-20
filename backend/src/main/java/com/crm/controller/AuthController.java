@@ -1,6 +1,8 @@
 package com.crm.controller;
 
 import com.crm.dto.request.LoginRequest;
+import com.crm.dto.request.PasswordResetConfirmRequestDTO;
+import com.crm.dto.request.PasswordResetRequestDTO;
 import com.crm.dto.request.RefreshTokenRequest;
 import com.crm.dto.request.RegisterRequest;
 import com.crm.dto.response.AuthResponse;
@@ -36,5 +38,19 @@ public class AuthController {
     @Operation(summary = "Refresh token", description = "Generate new access token using refresh token")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request password reset", description = "Send a password reset link when a matching user can be resolved")
+    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequestDTO request) {
+        authService.requestPasswordReset(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password", description = "Reset password using a valid password reset token")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody PasswordResetConfirmRequestDTO request) {
+        authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 }

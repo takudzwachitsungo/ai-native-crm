@@ -41,9 +41,11 @@ public class DashboardController {
     @GetMapping("/stats")
     @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     @Operation(summary = "Get dashboard statistics", description = "Retrieve overall statistics for the dashboard")
-    public ResponseEntity<DashboardStatsDTO> getStats() {
-        log.info("Fetching dashboard statistics");
-        DashboardStatsDTO stats = dashboardService.getStats();
+    public ResponseEntity<DashboardStatsDTO> getStats(
+            @RequestParam(defaultValue = "1y") String period
+    ) {
+        log.info("Fetching dashboard statistics for period {}", period);
+        DashboardStatsDTO stats = dashboardService.getStats(period);
         return ResponseEntity.ok(stats);
     }
 

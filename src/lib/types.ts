@@ -20,6 +20,16 @@ export interface LoginRequest {
   otpCode?: string;
 }
 
+export interface PasswordResetRequest {
+  email: string;
+  workspaceSlug?: string;
+}
+
+export interface PasswordResetConfirmRequest {
+  token: string;
+  newPassword: string;
+}
+
 export interface RegisterRequest {
   firstName: string;
   lastName: string;
@@ -48,6 +58,15 @@ export interface AuthResponse {
   dataScopes?: string[];
 }
 
+export interface ApiErrorResponse {
+  timestamp?: string;
+  status?: number;
+  error?: string;
+  code?: string;
+  message?: string;
+  path?: string;
+}
+
 export type TenantTier = 'FREE' | 'PRO' | 'ENTERPRISE';
 
 export interface TenantSummary {
@@ -67,6 +86,8 @@ export interface User {
   tenantName: string;
   tenantSlug: string;
   tenantTier: TenantTier;
+  permissions?: string[];
+  dataScopes?: string[];
   tenant: TenantSummary;
 }
 
@@ -115,6 +136,34 @@ export interface TenantDatabaseSettings {
   lastValidatedAt?: string | null;
   lastValidationSucceeded?: boolean | null;
   lastValidationMessage?: string | null;
+}
+
+export interface WorkspaceOperationsSummary {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  tenantTier: TenantTier;
+  routingMode: "SHARED" | "DEDICATED";
+  dedicatedDatabaseReady?: boolean | null;
+  lastValidationSucceeded?: boolean | null;
+  lastValidatedAt?: string | null;
+  uptimeSeconds?: number | null;
+  observedAt?: string | null;
+  activeUsers: number;
+  activeWorkflowRules: number;
+  activeAutomationRules: number;
+  activeSupportCases: number;
+  automationRunsLast24Hours: number;
+  failedAutomationRunsLast24Hours: number;
+  configuredIntegrations: number;
+  connectedIntegrations: number;
+  syncEnabledIntegrations: number;
+  integrationsWithRecentFailures: number;
+  integrationsNeedingReconnect: number;
+  savedStandardReports?: number;
+  activeRealtimeSubscribers?: number;
+  activeRealtimeConnections?: number;
+  recentAutomationRuns: AutomationRun[];
 }
 
 export type IntegrationCapabilityStatus =
@@ -187,6 +236,29 @@ export interface NotificationPreferenceUpdateRequest {
   taskRemindersEnabled?: boolean;
   teamMentionsEnabled?: boolean;
   weeklyReportsEnabled?: boolean;
+}
+
+export interface WebPushConfig {
+  enabled: boolean;
+  publicKey?: string | null;
+  serviceWorkerPath: string;
+}
+
+export interface WebPushSubscriptionRequest {
+  endpoint: string;
+  expirationTimeEpochMs?: number | null;
+  p256dhKey?: string | null;
+  authKey?: string | null;
+  userAgent?: string | null;
+}
+
+export interface WebPushSubscription {
+  deviceToken: string;
+  endpoint: string;
+  registeredAt?: string | null;
+  lastSeenAt?: string | null;
+  lastPushSucceeded?: boolean | null;
+  lastPushStatus?: string | null;
 }
 
 export interface UserSessionSummary {

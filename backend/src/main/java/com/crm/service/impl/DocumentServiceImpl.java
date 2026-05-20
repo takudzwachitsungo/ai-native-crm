@@ -86,7 +86,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "documents", key = "#id")
+    @Cacheable(value = "documents", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public DocumentResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         

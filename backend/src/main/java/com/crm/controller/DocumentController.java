@@ -38,6 +38,7 @@ public class DocumentController {
 
     @GetMapping
     @Operation(summary = "Get all documents", description = "Get paginated list of documents with optional filtering")
+    @PreAuthorize("hasAuthority('DOCUMENTS_VIEW')")
     public ResponseEntity<Page<DocumentResponseDTO>> getAllDocuments(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @ModelAttribute DocumentFilterDTO filter
@@ -47,27 +48,28 @@ public class DocumentController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get document by ID", description = "Get detailed information about a specific document")
+    @PreAuthorize("hasAuthority('DOCUMENTS_VIEW')")
     public ResponseEntity<DocumentResponseDTO> getDocumentById(@PathVariable UUID id) {
         return ResponseEntity.ok(documentService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new document", description = "Create a new document record")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DOCUMENTS_WRITE')")
     public ResponseEntity<DocumentResponseDTO> createDocument(@Valid @RequestBody DocumentRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(documentService.create(request));
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload document", description = "Upload a document file and create its metadata record")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DOCUMENTS_WRITE')")
     public ResponseEntity<DocumentResponseDTO> uploadDocument(@Valid @ModelAttribute DocumentUploadRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(documentService.upload(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update document", description = "Update an existing document")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('DOCUMENTS_WRITE')")
     public ResponseEntity<DocumentResponseDTO> updateDocument(
             @PathVariable UUID id,
             @Valid @RequestBody DocumentRequestDTO request
@@ -77,7 +79,7 @@ public class DocumentController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete document", description = "Delete a document (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DOCUMENTS_MANAGE')")
     public ResponseEntity<Void> deleteDocument(@PathVariable UUID id) {
         documentService.delete(id);
         return ResponseEntity.noContent().build();
@@ -85,7 +87,7 @@ public class DocumentController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete documents", description = "Delete multiple documents at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('DOCUMENTS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteDocuments(@RequestBody List<UUID> ids) {
         documentService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -93,6 +95,7 @@ public class DocumentController {
 
     @GetMapping("/{id}/download")
     @Operation(summary = "Download document", description = "Download a stored document file")
+    @PreAuthorize("hasAuthority('DOCUMENTS_VIEW')")
     public ResponseEntity<org.springframework.core.io.Resource> downloadDocument(@PathVariable UUID id) {
         DocumentDownloadDTO download = documentService.download(id);
         MediaType mediaType;
@@ -117,6 +120,7 @@ public class DocumentController {
 
     @GetMapping("/related")
     @Operation(summary = "Get documents by related entity", description = "Get all documents related to a specific entity")
+    @PreAuthorize("hasAuthority('DOCUMENTS_VIEW')")
     public ResponseEntity<List<DocumentResponseDTO>> getDocumentsByRelatedEntity(
             @RequestParam String entityType,
             @RequestParam UUID entityId

@@ -86,7 +86,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "events", key = "#id")
+    @Cacheable(value = "events", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public EventResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         

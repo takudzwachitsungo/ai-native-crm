@@ -17,6 +17,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 import logging
 import httpx
+import json
+import re
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -99,6 +101,61 @@ class ForecastingAgent:
         self.workflow = self._build_workflow()
         
         logger.info("Forecasting Agent initialized")
+
+    @staticmethod
+    def _parse_llm_json(content: str) -> Dict[str, Any]:
+        cleaned = content.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            cleaned = "\n".join(lines).strip()
+            if cleaned.lower().startswith("json"):
+                cleaned = cleaned[4:].strip()
+
+        try:
+            parsed = json.loads(cleaned)
+        except json.JSONDecodeError:
+            match = re.search(r"\{[\s\S]*\}", cleaned)
+            if not match:
+                raise
+            parsed = json.loads(match.group(0))
+
+        if isinstance(parsed, dict):
+            return parsed
+        raise ValueError("Expected JSON object from LLM response")
+
+    @staticmethod
+    def _normalize_probability_adjustments(parsed: Dict[str, Any]) -> Dict[str, float]:
+        normalized: Dict[str, float] = {}
+
+        for key, value in parsed.items():
+            if isinstance(value, (int, float)):
+                normalized[str(key)] = float(value)
+            elif isinstance(value, dict):
+                adjustment = value.get("adjustment") or value.get("multiplier") or value.get("score")
+                if isinstance(adjustment, (int, float)):
+                    normalized[str(key)] = float(adjustment)
+
+        if normalized:
+            return normalized
+
+        deals = parsed.get("deals")
+        if isinstance(deals, list):
+            for item in deals:
+                if not isinstance(item, dict):
+                    continue
+                deal_id = item.get("id") or item.get("deal_id")
+                adjustment = item.get("adjustment") or item.get("multiplier") or item.get("score")
+                if deal_id and isinstance(adjustment, (int, float)):
+                    normalized[str(deal_id)] = float(adjustment)
+
+        if normalized:
+            return normalized
+
+        raise ValueError("No probability adjustments found in LLM response")
     
     def _build_workflow(self) -> StateGraph:
         """Build LangGraph workflow for forecasting"""
@@ -321,7 +378,7 @@ class ForecastingAgent:
 5. Activity: Recent updates indicate active deals
 
 Provide probability adjustments as multipliers (0.5 = reduce by 50%, 1.5 = increase by 50%, 1.0 = no change).
-Return JSON with deal_id as key and adjustment multiplier as value."""
+Return only valid JSON with deal_id as key and adjustment multiplier as value. Do not include markdown fences or commentary."""
         
         # Build deal summaries for AI
         deal_summaries = []
@@ -361,9 +418,9 @@ Provide probability adjustment multipliers for each deal."""
             
             response = await self.llm.ainvoke(messages)
             
-            # Parse AI adjustments
-            import json
-            adjustments = json.loads(response.content)
+            adjustments = self._normalize_probability_adjustments(
+                self._parse_llm_json(response.content)
+            )
             
             # Calculate final probabilities
             probabilities = {}

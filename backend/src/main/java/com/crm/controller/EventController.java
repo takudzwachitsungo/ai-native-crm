@@ -39,6 +39,7 @@ public class EventController {
 
     @GetMapping
     @Operation(summary = "Get all events", description = "Get paginated list of events with optional filtering")
+    @PreAuthorize("hasAuthority('EVENTS_VIEW')")
     public ResponseEntity<Page<EventResponseDTO>> getAllEvents(
             @PageableDefault(size = 20, sort = "startDateTime", direction = Sort.Direction.ASC) Pageable pageable,
             @ModelAttribute EventFilterDTO filter
@@ -48,20 +49,21 @@ public class EventController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get event by ID", description = "Get detailed information about a specific event")
+    @PreAuthorize("hasAuthority('EVENTS_VIEW')")
     public ResponseEntity<EventResponseDTO> getEventById(@PathVariable UUID id) {
         return ResponseEntity.ok(eventService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new event", description = "Create a new calendar event")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('EVENTS_WRITE')")
     public ResponseEntity<EventResponseDTO> createEvent(@Valid @RequestBody EventRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(eventService.create(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update event", description = "Update an existing event")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('EVENTS_WRITE')")
     public ResponseEntity<EventResponseDTO> updateEvent(
             @PathVariable UUID id,
             @Valid @RequestBody EventRequestDTO request
@@ -71,7 +73,7 @@ public class EventController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete event", description = "Delete an event (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('EVENTS_MANAGE')")
     public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
         eventService.delete(id);
         return ResponseEntity.noContent().build();
@@ -79,7 +81,7 @@ public class EventController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete events", description = "Delete multiple events at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('EVENTS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteEvents(@RequestBody List<UUID> ids) {
         eventService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -87,6 +89,7 @@ public class EventController {
 
     @GetMapping("/calendar")
     @Operation(summary = "Get events by date range", description = "Get events between specified dates")
+    @PreAuthorize("hasAuthority('EVENTS_VIEW')")
     public ResponseEntity<List<EventResponseDTO>> getEventsBetween(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime
@@ -96,6 +99,7 @@ public class EventController {
 
     @GetMapping("/upcoming")
     @Operation(summary = "Get upcoming events", description = "Get events scheduled in the next N days")
+    @PreAuthorize("hasAuthority('EVENTS_VIEW')")
     public ResponseEntity<List<EventResponseDTO>> getUpcomingEvents(
             @RequestParam(defaultValue = "7") int days
     ) {

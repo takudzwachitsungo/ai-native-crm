@@ -22,6 +22,14 @@ public class TenantContext {
         return currentTenant.get();
     }
 
+    public static UUID requireTenantId() {
+        UUID tenantId = currentTenant.get();
+        if (tenantId == null) {
+            throw new IllegalStateException("Tenant context is required for this operation");
+        }
+        return tenantId;
+    }
+
     public static void clear() {
         log.debug("Clearing tenant context");
         currentTenant.remove();

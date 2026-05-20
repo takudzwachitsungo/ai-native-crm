@@ -105,7 +105,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "invoices", key = "#id")
+    @Cacheable(value = "invoices", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public InvoiceResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         

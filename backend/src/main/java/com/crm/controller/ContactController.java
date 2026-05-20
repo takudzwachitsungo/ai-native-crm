@@ -32,6 +32,7 @@ public class ContactController {
 
     @GetMapping
     @Operation(summary = "Get all contacts", description = "Get paginated list of contacts with optional filtering")
+    @PreAuthorize("hasAuthority('CONTACTS_VIEW')")
     public ResponseEntity<Page<ContactResponseDTO>> getAllContacts(
             @PageableDefault(size = 20, sort = "lastName", direction = Sort.Direction.ASC) Pageable pageable,
             @ModelAttribute ContactFilterDTO filter
@@ -41,20 +42,21 @@ public class ContactController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get contact by ID", description = "Get detailed information about a specific contact")
+    @PreAuthorize("hasAuthority('CONTACTS_VIEW')")
     public ResponseEntity<ContactResponseDTO> getContactById(@PathVariable UUID id) {
         return ResponseEntity.ok(contactService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new contact", description = "Create a new contact")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('CONTACTS_WRITE')")
     public ResponseEntity<ContactResponseDTO> createContact(@Valid @RequestBody ContactRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(contactService.create(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update contact", description = "Update an existing contact")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('CONTACTS_WRITE')")
     public ResponseEntity<ContactResponseDTO> updateContact(
             @PathVariable UUID id,
             @Valid @RequestBody ContactRequestDTO request
@@ -64,7 +66,7 @@ public class ContactController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete contact", description = "Delete a contact (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('CONTACTS_MANAGE')")
     public ResponseEntity<Void> deleteContact(@PathVariable UUID id) {
         contactService.delete(id);
         return ResponseEntity.noContent().build();
@@ -72,7 +74,7 @@ public class ContactController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete contacts", description = "Delete multiple contacts at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('CONTACTS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteContacts(@RequestBody List<UUID> ids) {
         contactService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -80,12 +82,14 @@ public class ContactController {
 
     @GetMapping("/by-company/{companyId}")
     @Operation(summary = "Get contacts by company", description = "Get all contacts for a specific company")
+    @PreAuthorize("hasAuthority('CONTACTS_VIEW')")
     public ResponseEntity<List<ContactResponseDTO>> getContactsByCompany(@PathVariable UUID companyId) {
         return ResponseEntity.ok(contactService.findByCompany(companyId));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Search contacts", description = "Search contacts by name or email")
+    @PreAuthorize("hasAuthority('CONTACTS_VIEW')")
     public ResponseEntity<List<ContactResponseDTO>> searchContacts(@RequestParam String query) {
         return ResponseEntity.ok(contactService.searchContacts(query));
     }

@@ -37,6 +37,7 @@ public class EmailController {
 
     @GetMapping
     @Operation(summary = "Get all emails", description = "Get paginated list of emails with optional filtering")
+    @PreAuthorize("hasAuthority('EMAILS_VIEW')")
     public ResponseEntity<Page<EmailResponseDTO>> getAllEmails(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @ModelAttribute EmailFilterDTO filter
@@ -46,20 +47,21 @@ public class EmailController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get email by ID", description = "Get detailed information about a specific email")
+    @PreAuthorize("hasAuthority('EMAILS_VIEW')")
     public ResponseEntity<EmailResponseDTO> getEmailById(@PathVariable UUID id) {
         return ResponseEntity.ok(emailService.findById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new email", description = "Create a new email or draft")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('EMAILS_WRITE')")
     public ResponseEntity<EmailResponseDTO> createEmail(@Valid @RequestBody EmailRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(emailService.create(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update email", description = "Update an existing email (only drafts)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('EMAILS_WRITE')")
     public ResponseEntity<EmailResponseDTO> updateEmail(
             @PathVariable UUID id,
             @Valid @RequestBody EmailRequestDTO request
@@ -69,7 +71,7 @@ public class EmailController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete email", description = "Delete an email (soft delete)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('EMAILS_MANAGE')")
     public ResponseEntity<Void> deleteEmail(@PathVariable UUID id) {
         emailService.delete(id);
         return ResponseEntity.noContent().build();
@@ -77,7 +79,7 @@ public class EmailController {
 
     @PostMapping("/bulk-delete")
     @Operation(summary = "Bulk delete emails", description = "Delete multiple emails at once")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAuthority('EMAILS_MANAGE')")
     public ResponseEntity<Void> bulkDeleteEmails(@RequestBody List<UUID> ids) {
         emailService.bulkDelete(ids);
         return ResponseEntity.noContent().build();
@@ -85,25 +87,28 @@ public class EmailController {
 
     @PostMapping("/{id}/send")
     @Operation(summary = "Send email", description = "Send an email or draft")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SALES_REP')")
+    @PreAuthorize("hasAuthority('EMAILS_WRITE')")
     public ResponseEntity<EmailResponseDTO> sendEmail(@PathVariable UUID id) {
         return ResponseEntity.ok(emailService.sendEmail(id));
     }
 
     @PatchMapping("/{id}/mark-read")
     @Operation(summary = "Mark email as read", description = "Mark an email as read")
+    @PreAuthorize("hasAuthority('EMAILS_WRITE')")
     public ResponseEntity<EmailResponseDTO> markEmailAsRead(@PathVariable UUID id) {
         return ResponseEntity.ok(emailService.markAsRead(id));
     }
 
     @PatchMapping("/{id}/mark-unread")
     @Operation(summary = "Mark email as unread", description = "Mark an email as unread")
+    @PreAuthorize("hasAuthority('EMAILS_WRITE')")
     public ResponseEntity<EmailResponseDTO> markEmailAsUnread(@PathVariable UUID id) {
         return ResponseEntity.ok(emailService.markAsUnread(id));
     }
 
     @PatchMapping("/{id}/move")
     @Operation(summary = "Move email to folder", description = "Move an email to a different folder")
+    @PreAuthorize("hasAuthority('EMAILS_WRITE')")
     public ResponseEntity<EmailResponseDTO> moveEmailToFolder(
             @PathVariable UUID id,
             @RequestParam String folder

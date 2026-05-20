@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class SearchController {
 
     @GetMapping("/hybrid")
     @Operation(summary = "Hybrid search", description = "Search using semantic similarity and keyword matching")
+    @PreAuthorize("hasAuthority('SEARCH_VIEW')")
     public ResponseEntity<List<Map<String, Object>>> hybridSearch(
             @RequestParam String query,
             @RequestParam String entityType,

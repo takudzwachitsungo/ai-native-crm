@@ -1,12 +1,14 @@
 import { cn } from '../lib/utils';
+import type { InsightBadgeType } from '../hooks/useInsights';
 
 interface InsightBadgeProps {
-  type: 'overdue' | 'hot' | 'stuck' | 'inactive' | 'closing_soon' | 'at_risk';
+  type: InsightBadgeType;
   label?: string;
   className?: string;
+  title?: string;
 }
 
-export function InsightBadge({ type, label, className }: InsightBadgeProps) {
+export function InsightBadge({ type, label, className, title }: InsightBadgeProps) {
   const config = {
     overdue: {
       label: label || 'Overdue',
@@ -38,6 +40,7 @@ export function InsightBadge({ type, label, className }: InsightBadgeProps) {
 
   return (
     <span
+      title={title}
       className={cn(
         'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border',
         colors,

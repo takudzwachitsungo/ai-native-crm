@@ -1,0 +1,52 @@
+groups:
+  - name: crm-ai-service
+    rules:
+      - alert: CRMAIServiceMissingMetrics
+        expr: up{job="crm-ai-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: crm-ai-service
+        annotations:
+          summary: CRM AI service metrics are unreachable
+          description: Prometheus has not been able to scrape the AI service /metrics endpoint for more than 2 minutes.
+
+      - alert: CRMAIProviderErrors
+        expr: increase(crm_ai_provider_errors_total[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: crm-ai-service
+        annotations:
+          summary: AI provider errors detected
+          description: The AI audit stream recorded provider errors in the last 10 minutes.
+
+      - alert: CRMAIFailedEventsHigh
+        expr: increase(crm_ai_failed_events_total[15m]) >= 3
+        for: 5m
+        labels:
+          severity: warning
+          service: crm-ai-service
+        annotations:
+          summary: AI failed events are elevated
+          description: Three or more failed AI events were recorded in a 15 minute window.
+
+      - alert: CRMAILatencyP95High
+        expr: crm_ai_latency_p95_ms > 15000
+        for: 10m
+        labels:
+          severity: warning
+          service: crm-ai-service
+        annotations:
+          summary: AI P95 latency is high
+          description: AI operation P95 latency has stayed above 15 seconds for 10 minutes.
+
+      - alert: CRMAIRagSchedulerNotConfigured
+        expr: crm_ai_rag_scheduler_configured == 0
+        for: 30m
+        labels:
+          severity: info
+          service: crm-ai-service
+        annotations:
+          summary: RAG scheduler is not configured
+          description: The AI RAG scheduler does not have a configured scheduler token or service account.

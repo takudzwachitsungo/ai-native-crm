@@ -68,6 +68,22 @@ services:
     networks:
       - crm-dev-network
 
+  # S3-compatible object storage for local document uploads
+  minio:
+    image: minio/minio:latest
+    container_name: crm-minio-dev
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-crm_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-crm_minio_secret}
+    ports:
+      - "${MINIO_API_PORT:-9010}:9000"
+      - "${MINIO_CONSOLE_PORT:-9011}:9001"
+    volumes:
+      - minio_dev_data:/data
+    networks:
+      - crm-dev-network
+
   # Jaeger Tracing
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -86,6 +102,7 @@ volumes:
   postgres_dev_data:
   redis_dev_data:
   rabbitmq_dev_data:
+  minio_dev_data:
 
 networks:
   crm-dev-network:

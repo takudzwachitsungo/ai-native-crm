@@ -6,5 +6,6 @@ public enum CampaignSegmentType {
     PERSONA,
     ACCOUNT_BASED,
     LIFECYCLE,
+    CUSTOMER_TIER,
     CUSTOM
 }

@@ -31,7 +31,7 @@ public class EmbeddingService {
     @Async
     @Transactional
     public void createEmbedding(String entityType, UUID entityId, String content, Map<String, Object> metadata) {
-        UUID tenantId = TenantContext.getTenantId();
+        UUID tenantId = TenantContext.requireTenantId();
         
         try {
             // Generate embedding using OpenAI

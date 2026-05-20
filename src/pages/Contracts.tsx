@@ -102,6 +102,7 @@ function ContractForm({
   contacts,
   quotes,
   users,
+  isEdit,
 }: {
   formState: ContractFormState;
   onChange: React.Dispatch<React.SetStateAction<ContractFormState>>;
@@ -109,61 +110,147 @@ function ContractForm({
   contacts: Contact[];
   quotes: Quote[];
   users: TenantUser[];
+  isEdit?: boolean;
 }) {
+  const [activeTab, setActiveTab] = useState<'details' | 'terms' | 'notes'>('details');
+
+  const inputClass = "w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150";
+  const selectClass = `${inputClass} bg-white dark:bg-gray-800/50`;
+  const labelClass = "block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5";
+
+  const tabHeaders: Record<string, string> = {
+    details: isEdit ? 'Update contract details below.' : 'Create a new contract — set the account, value, and owner.',
+    terms: 'Define the contract timeline and renewal settings.',
+    notes: 'Anything else worth remembering? Jot it down here.',
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField label="Contract Number">
-        <input value={formState.contractNumber} onChange={(e) => onChange((c) => ({ ...c, contractNumber: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Owner">
-        <select value={formState.ownerId} onChange={(e) => onChange((c) => ({ ...c, ownerId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">Unassigned</option>
-          {users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Title">
-        <input value={formState.title} onChange={(e) => onChange((c) => ({ ...c, title: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Contract Value">
-        <input type="number" min="0" step="0.01" value={formState.contractValue} onChange={(e) => onChange((c) => ({ ...c, contractValue: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Company">
-        <select value={formState.companyId} onChange={(e) => onChange((c) => ({ ...c, companyId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">Select company</option>
-          {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Contact">
-        <select value={formState.contactId} onChange={(e) => onChange((c) => ({ ...c, contactId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">No contact</option>
-          {contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Source Quote">
-        <select value={formState.quoteId} onChange={(e) => onChange((c) => ({ ...c, quoteId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background">
-          <option value="">No quote</option>
-          {quotes.map((quote) => <option key={quote.id} value={quote.id}>{quote.quoteNumber} · {quote.companyName || quote.contactName || 'Unknown'}</option>)}
-        </select>
-      </FormField>
-      <FormField label="Renewal Notice Days">
-        <input type="number" min="0" value={formState.renewalNoticeDays} onChange={(e) => onChange((c) => ({ ...c, renewalNoticeDays: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="Start Date">
-        <input type="date" value={formState.startDate} onChange={(e) => onChange((c) => ({ ...c, startDate: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <FormField label="End Date">
-        <input type="date" value={formState.endDate} onChange={(e) => onChange((c) => ({ ...c, endDate: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-      </FormField>
-      <div className="md:col-span-2">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={formState.autoRenew} onChange={(e) => onChange((c) => ({ ...c, autoRenew: e.target.checked }))} />
-          Enable auto-renewal
-        </label>
+    <div className="space-y-5">
+      {/* Conversational header per tab */}
+      <div className="flex items-center gap-2">
+        <div className="h-1 w-1 rounded-full bg-teal-500" />
+        <p className="text-[0.8rem] text-gray-500 dark:text-gray-400">{tabHeaders[activeTab]}</p>
       </div>
-      <div className="md:col-span-2">
-        <FormField label="Notes">
-          <textarea value={formState.notes} onChange={(e) => onChange((c) => ({ ...c, notes: e.target.value }))} rows={4} className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
-        </FormField>
+
+      {/* Segment Control */}
+      <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 gap-0.5">
+        {(['details', 'terms', 'notes'] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-1 text-[0.75rem] font-medium rounded-md transition-all duration-150 capitalize
+              ${activeTab === tab
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content — fixed height so modal doesn't resize */}
+      <div className="min-h-[20rem]">
+        {/* Details Tab */}
+        {activeTab === 'details' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Contract Number</label>
+                <input value={formState.contractNumber} onChange={(e) => onChange((c) => ({ ...c, contractNumber: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Title</label>
+                <input value={formState.title} onChange={(e) => onChange((c) => ({ ...c, title: e.target.value }))} className={inputClass} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Company</label>
+                <select value={formState.companyId} onChange={(e) => onChange((c) => ({ ...c, companyId: e.target.value }))} className={selectClass}>
+                  <option value="">Select company</option>
+                  {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Contact</label>
+                <select value={formState.contactId} onChange={(e) => onChange((c) => ({ ...c, contactId: e.target.value }))} className={selectClass}>
+                  <option value="">No contact</option>
+                  {contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Contract Value</label>
+                <input type="number" min="0" step="0.01" value={formState.contractValue} onChange={(e) => onChange((c) => ({ ...c, contractValue: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Owner</label>
+                <select value={formState.ownerId} onChange={(e) => onChange((c) => ({ ...c, ownerId: e.target.value }))} className={selectClass}>
+                  <option value="">Unassigned</option>
+                  {users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Source Quote</label>
+                <select value={formState.quoteId} onChange={(e) => onChange((c) => ({ ...c, quoteId: e.target.value }))} className={selectClass}>
+                  <option value="">No quote</option>
+                  {quotes.map((quote) => <option key={quote.id} value={quote.id}>{quote.quoteNumber} · {quote.companyName || quote.contactName || 'Unknown'}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Terms Tab */}
+        {activeTab === 'terms' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Start Date</label>
+                <input type="date" value={formState.startDate} onChange={(e) => onChange((c) => ({ ...c, startDate: e.target.value }))} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>End Date</label>
+                <input type="date" value={formState.endDate} onChange={(e) => onChange((c) => ({ ...c, endDate: e.target.value }))} className={inputClass} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <div>
+                <label className={labelClass}>Renewal Notice Days</label>
+                <input type="number" min="0" value={formState.renewalNoticeDays} onChange={(e) => onChange((c) => ({ ...c, renewalNoticeDays: e.target.value }))} className={inputClass} />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formState.autoRenew}
+                    onChange={(e) => onChange((c) => ({ ...c, autoRenew: e.target.checked }))}
+                    className="rounded border-gray-300 text-teal-600 focus:ring-teal-500/20"
+                  />
+                  <span className="text-[0.8125rem] text-gray-700 dark:text-gray-300">Enable auto-renewal</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notes Tab */}
+        {activeTab === 'notes' && (
+          <div>
+            <label className={labelClass}>Notes</label>
+            <textarea
+              value={formState.notes}
+              onChange={(e) => onChange((c) => ({ ...c, notes: e.target.value }))}
+              rows={6}
+              className="w-full px-2.5 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150 resize-none"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -332,39 +419,81 @@ export default function ContractsPage() {
   };
 
   return (
-    <PageLayout
-      title="Contracts"
-      subtitle="Quote conversion, lifecycle management, renewals, and contract visibility for QA."
-      icon={<Icons.FileText size={20} />}
-      actions={
-        <div className="flex items-center gap-2">
-          <button onClick={() => setIsConversionOpen(true)} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2">
-            <Icons.ArrowRight size={16} />
-            Convert Quote
-          </button>
-          <button onClick={() => { setSelectedContract(null); setFormState(buildInitialForm()); setIsFormOpen(true); }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
-            <Icons.Plus size={16} />
-            New Contract
-          </button>
-        </div>
-      }
-    >
-      <div className="p-6 border-b border-border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Total Contracts</p><p className="text-2xl font-semibold">{stats.total}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Active</p><p className="text-2xl font-semibold text-green-600">{stats.active}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Renewal Due</p><p className="text-2xl font-semibold text-amber-600">{stats.renewalDue}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Contract Value</p><p className="text-2xl font-semibold">{formatCurrency(stats.value)}</p></div>
+    <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-[26px] leading-none font-semibold text-foreground">Contracts</h1>
+              <p className="text-[13px] text-muted-foreground mt-1">Quote conversion, lifecycle management, renewals, and contract visibility for QA.</p>
+            </div>
+          </div>
+
+          <div className="mt-4 mb-3 flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4">
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                      <Icons.FileText size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Contracts</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{stats.total}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">All agreements</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.CheckCircle size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Active</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{stats.active}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Currently in force</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                      <Icons.RefreshCw size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Renewal Due</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{stats.renewalDue}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Needs follow-up</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="group relative min-w-0 px-2.5 py-2">
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                      <Icons.CircleDollarSign size={14} className="text-blue-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Contract Value</p>
+                      <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{formatCurrency(stats.value)}</p>
+                      <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Portfolio value</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="p-4 border-b border-border flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-2 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search contracts..." className="w-full pl-9 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <select value={statusFilter || 'ALL'} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="px-3 py-2 border border-border rounded-lg bg-background">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-1.5 px-4 pb-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <div className="relative min-w-0 flex-1 lg:max-w-[720px]">
+          <Icons.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search contracts..." className="w-full h-9 pl-8.5 pr-3.5 text-[13px] border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background shadow-[0_3px_12px_rgba(15,23,42,0.035)]" />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+          <select value={statusFilter || 'ALL'} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="h-8 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium shadow-[0_3px_12px_rgba(15,23,42,0.035)] focus:outline-none focus:ring-2 focus:ring-primary/20">
             <option value="ALL">All statuses</option>
             <option value="DRAFT">Draft</option>
             <option value="ACTIVE">Active</option>
@@ -372,72 +501,86 @@ export default function ContractsPage() {
             <option value="EXPIRED">Expired</option>
             <option value="TERMINATED">Terminated</option>
           </select>
+          <button onClick={() => setIsConversionOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60">
+            <Icons.ArrowRight size={13} />
+            Convert Quote
+          </button>
+          <button
+            onClick={() => {
+              exportToCSV(filteredContracts, [
+                { header: 'Contract #', accessor: 'contractNumber' },
+                { header: 'Title', accessor: (item) => item.title || '' },
+                { header: 'Company', accessor: (item) => item.companyName || '' },
+                { header: 'Quote', accessor: (item) => item.quoteNumber || '' },
+                { header: 'Status', accessor: (item) => item.status || '' },
+                { header: 'Start Date', accessor: (item) => item.startDate },
+                { header: 'End Date', accessor: (item) => item.endDate },
+                { header: 'Value', accessor: (item) => item.contractValue || 0 },
+              ], 'contracts');
+              showToast(`Exported ${filteredContracts.length} contracts`, 'success');
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60"
+          >
+            <Icons.Download size={13} />
+            Export
+          </button>
+          <button onClick={() => { setSelectedContract(null); setFormState(buildInitialForm()); setIsFormOpen(true); }} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors shadow-[0_3px_12px_rgba(37,99,235,0.18)] hover:bg-primary/90">
+            <Icons.Plus size={13} />
+            New Contract
+          </button>
         </div>
-        <button
-          onClick={() => {
-            exportToCSV(filteredContracts, [
-              { header: 'Contract #', accessor: 'contractNumber' },
-              { header: 'Title', accessor: (item) => item.title || '' },
-              { header: 'Company', accessor: (item) => item.companyName || '' },
-              { header: 'Quote', accessor: (item) => item.quoteNumber || '' },
-              { header: 'Status', accessor: (item) => item.status || '' },
-              { header: 'Start Date', accessor: (item) => item.startDate },
-              { header: 'End Date', accessor: (item) => item.endDate },
-              { header: 'Value', accessor: (item) => item.contractValue || 0 },
-            ], 'contracts');
-            showToast(`Exported ${filteredContracts.length} contracts`, 'success');
-          }}
-          className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2"
-        >
-          <Icons.Download size={16} />
-          Export
-        </button>
       </div>
 
-      <div className="p-6">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/40 border-b border-border">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pb-4 sm:px-5 lg:px-6">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Contract</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Account</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Term</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Value</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Actions</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Contract</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Account</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Term</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Value</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="bg-card">
               {filteredContracts.map((contract) => (
-                <tr key={contract.id} className="hover:bg-muted/20">
-                  <td className="px-4 py-4"><div><p className="font-semibold text-primary">{contract.contractNumber}</p><p className="text-xs text-muted-foreground">{contract.title || 'Untitled contract'}</p></div></td>
-                  <td className="px-4 py-4"><div><p className="font-medium">{contract.companyName || 'Unassigned company'}</p><p className="text-xs text-muted-foreground">{contract.contactName || 'No contact'}{contract.quoteNumber ? ` · ${contract.quoteNumber}` : ''}</p></div></td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground"><div>{contract.startDate} → {contract.endDate}</div><div className="text-xs">Renewal {contract.autoRenew ? 'auto' : 'manual'}</div></td>
-                  <td className="px-4 py-4"><div className="font-semibold">{formatCurrency(contract.contractValue)}</div><div className="text-xs text-muted-foreground">{contract.ownerName || 'No owner'}</div></td>
-                  <td className="px-4 py-4"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[contract.status || 'DRAFT'])}>{(contract.status || 'DRAFT').replace('_', ' ')}</span></td>
-                  <td className="px-4 py-4">
+                <tr
+                  key={contract.id}
+                  className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                >
+                  <td className="px-3 py-2.5"><div><p className="text-sm font-semibold text-primary">{contract.contractNumber}</p><p className="text-xs text-muted-foreground">{contract.title || 'Untitled contract'}</p></div></td>
+                  <td className="px-3 py-2.5"><div><p className="text-sm font-medium">{contract.companyName || 'Unassigned company'}</p><p className="text-xs text-muted-foreground">{contract.contactName || 'No contact'}{contract.quoteNumber ? ` · ${contract.quoteNumber}` : ''}</p></div></td>
+                  <td className="px-3 py-2.5 text-sm text-muted-foreground"><div>{contract.startDate} → {contract.endDate}</div><div className="text-xs">Renewal {contract.autoRenew ? 'auto' : 'manual'}</div></td>
+                  <td className="px-3 py-2.5"><div className="font-semibold">{formatCurrency(contract.contractValue)}</div><div className="text-xs text-muted-foreground">{contract.ownerName || 'No owner'}</div></td>
+                  <td className="px-3 py-2.5"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[contract.status || 'DRAFT'])}>{(contract.status || 'DRAFT').replace('_', ' ')}</span></td>
+                  <td className="px-3 py-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={() => { setSelectedContract(contract); setFormState(buildInitialForm(contract)); setIsFormOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Edit</button>
-                      {(contract.status === 'DRAFT' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'activate', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Activate</button>}
-                      {contract.status === 'ACTIVE' && <button onClick={() => lifecycleMutation.mutate({ action: 'renewal-due', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Renewal Due</button>}
+                      <button onClick={() => { setSelectedContract(contract); setFormState(buildInitialForm(contract)); setIsFormOpen(true); }} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Edit</button>
+                      {(contract.status === 'DRAFT' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'activate', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Activate</button>}
+                      {contract.status === 'ACTIVE' && <button onClick={() => lifecycleMutation.mutate({ action: 'renewal-due', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Renewal Due</button>}
                       {contract.status === 'RENEWAL_DUE' && <>
-                        <button onClick={() => lifecycleMutation.mutate({ action: 'invoice', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Renewal Invoice</button>
-                        <button onClick={() => lifecycleMutation.mutate({ action: 'renew', contract })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Renew</button>
+                        <button onClick={() => lifecycleMutation.mutate({ action: 'invoice', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Renewal Invoice</button>
+                        <button onClick={() => lifecycleMutation.mutate({ action: 'renew', contract })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Renew</button>
                       </>}
-                      {(contract.status === 'ACTIVE' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'terminate', contract })} className="px-2 py-1 text-xs border border-red-200 text-red-700 rounded hover:bg-red-50">Terminate</button>}
-                      <button onClick={() => { setSelectedContract(contract); setIsDeleteModalOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Delete</button>
+                      {(contract.status === 'ACTIVE' || contract.status === 'RENEWAL_DUE') && <button onClick={() => lifecycleMutation.mutate({ action: 'terminate', contract })} className="rounded-full border border-red-200 px-2.5 py-1 text-[10px] font-medium text-red-700 hover:bg-red-50">Terminate</button>}
+                      <button onClick={() => { setSelectedContract(contract); setIsDeleteModalOpen(true); }} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           {!isLoading && filteredContracts.length === 0 && <div className="py-10 text-center text-muted-foreground">No contracts found yet.</div>}
         </div>
       </div>
+      </div>
 
-      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedContract(null); }} title={selectedContract ? 'Edit Contract' : 'Create Contract'} size="lg" footer={<><button onClick={() => { setIsFormOpen(false); setSelectedContract(null); }} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary">Cancel</button><button onClick={handleSaveContract} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">{selectedContract ? 'Save Changes' : 'Create Contract'}</button></>}>
-        <ContractForm formState={formState} onChange={setFormState} companies={companies} contacts={contacts} quotes={quotes} users={users} />
+      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedContract(null); }} title={selectedContract ? 'Edit Contract' : 'Create Contract'} size="xl" footer={<><button onClick={() => { setIsFormOpen(false); setSelectedContract(null); }} className="px-4 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[0.8125rem] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150">Cancel</button><button onClick={handleSaveContract} className="px-5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[0.8125rem] font-medium hover:bg-primary/90 focus:ring-2 focus:ring-ring/30 focus:ring-offset-1 transition-all duration-150 shadow-sm">{selectedContract ? 'Save Changes' : 'Create Contract'}</button></>}>
+        <ContractForm formState={formState} onChange={setFormState} companies={companies} contacts={contacts} quotes={quotes} users={users} isEdit={!!selectedContract} />
       </Modal>
 
       <Modal isOpen={isConversionOpen} onClose={() => { setIsConversionOpen(false); setConversionState(buildInitialConversion()); setSearchParams((params) => { params.delete('convertQuoteId'); return params; }); }} title="Convert Accepted Quote" size="lg" footer={<><button onClick={() => setIsConversionOpen(false)} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary">Cancel</button><button onClick={() => convertMutation.mutate(conversionState)} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">Convert Quote</button></>}>

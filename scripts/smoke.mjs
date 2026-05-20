@@ -3926,19 +3926,21 @@ async function main() {
       return `Weighted pipeline ${data.weighted_pipeline ?? 0}`;
     });
 
-    await runCheck("AI report generation", async () => {
+    await runCheck("AI custom report generation", async () => {
       const { response, data } = await requestJson(`${aiUrl}/reports/generate`, {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({
-          report_type: "sales_pipeline",
-          parameters: {},
+          report_type: "custom",
+          report_mode: "SUMMARY",
+          custom_query: "Summarize my current pipeline health and highlight the top open deals",
         }),
       });
       assert(response.ok, `Expected 200 OK, got ${response.status}`);
       assert(data && data.success === true, `Expected success=true, got ${JSON.stringify(data)}`);
       assert(Array.isArray(data.insights), "Expected insights array");
-      return `Generated ${data.insights.length} report insights`;
+      assert(typeof data.summary === "string" && data.summary.length > 0, "Expected non-empty report summary");
+      return `Generated ${data.insights.length} custom report insights`;
     });
 
     if (firstLeadId) {

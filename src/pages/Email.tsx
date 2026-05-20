@@ -144,11 +144,11 @@ export default function EmailPage() {
     }
 
     return (
-      <div className="flex h-[calc(100vh-190px)]">
+      <div className="mx-auto flex min-h-[28rem] w-full max-w-[1600px] flex-col overflow-hidden rounded-2xl border border-border/70 bg-card lg:h-[calc(100dvh-210px)] lg:flex-row">
         <div
           className={cn(
-            'border-r border-border overflow-y-auto',
-            selectedEmail ? 'w-2/5' : 'w-full'
+            'border-border overflow-y-auto lg:border-r',
+            selectedEmail ? 'hidden lg:block lg:w-2/5' : 'w-full'
           )}
         >
           {filteredEmails.map((email) => (
@@ -156,7 +156,7 @@ export default function EmailPage() {
               key={email.id}
               onClick={() => handleEmailClick(email)}
               className={cn(
-                'p-4 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors',
+                'px-3 py-2.5 border-b border-border cursor-pointer hover:bg-muted/30 transition-colors',
                 !email.isRead && 'bg-primary/5',
                 selectedEmail?.id === email.id && 'bg-muted'
               )}
@@ -187,11 +187,11 @@ export default function EmailPage() {
         </div>
 
         {selectedEmail && (
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h2 className="text-xl font-semibold mb-1">{selectedEmail.subject || '(No Subject)'}</h2>
+                  <h2 className="text-lg font-semibold mb-1">{selectedEmail.subject || '(No Subject)'}</h2>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="font-medium">From: {selectedEmail.fromEmail}</span>
                     <span>&bull;</span>
@@ -220,23 +220,23 @@ export default function EmailPage() {
                 <div className="whitespace-pre-wrap">{selectedEmail.body}</div>
               </div>
 
-              <div className="flex gap-2 mt-6">
+              <div className="flex gap-2 mt-5">
                 {selectedEmail.isDraft && (
                   <button
                     onClick={() => selectedEmail.id && sendMutation.mutate(selectedEmail.id)}
                     disabled={sendMutation.isPending}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors disabled:opacity-50 hover:bg-primary/90"
                   >
-                    <Icons.Send size={16} />
+                    <Icons.Send size={14} />
                     {sendMutation.isPending ? 'Sending...' : 'Send Now'}
                   </button>
                 )}
                 <button
                   onClick={() => selectedEmail.id && deleteMutation.mutate(selectedEmail.id)}
                   disabled={deleteMutation.isPending}
-                  className="px-4 py-2 border border-border rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors disabled:opacity-50 hover:bg-destructive hover:text-destructive-foreground"
                 >
-                  <Icons.Trash size={16} />
+                  <Icons.Trash size={14} />
                   {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
@@ -253,45 +253,45 @@ export default function EmailPage() {
       subtitle="Manage communications"
       icon={<Icons.Mail size={20} />}
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => syncGoogleWorkspaceMutation.mutate()}
             disabled={syncGoogleWorkspaceMutation.isPending}
-            className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors disabled:opacity-50 hover:border-primary/30 hover:bg-secondary/60"
           >
-            <Icons.Download size={16} />
+            <Icons.Download size={14} />
             {syncGoogleWorkspaceMutation.isPending ? 'Syncing Gmail...' : 'Sync Gmail'}
           </button>
           <button
             onClick={() => syncMicrosoft365Mutation.mutate()}
             disabled={syncMicrosoft365Mutation.isPending}
-            className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors disabled:opacity-50 hover:border-primary/30 hover:bg-secondary/60"
           >
-            <Icons.Download size={16} />
+            <Icons.Download size={14} />
             {syncMicrosoft365Mutation.isPending ? 'Syncing Outlook...' : 'Sync Outlook'}
           </button>
           <button
             onClick={() => setIsComposeOpen(true)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            <Icons.Plus size={16} />
+            <Icons.Plus size={14} />
             Compose
           </button>
         </div>
       }
     >
-      <div className="border-b border-border bg-background">
-        <div className="flex px-6">
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
+        <div className="flex flex-wrap gap-1.5 rounded-2xl border border-border bg-background p-2.5 shadow-sm">
           <button
             onClick={() => {
               setActiveTab('INBOX');
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'INBOX'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Inbox
@@ -302,10 +302,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'SENT'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Sent
@@ -316,10 +316,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'DRAFTS'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Drafts
@@ -330,10 +330,10 @@ export default function EmailPage() {
               setSelectedEmail(null);
             }}
             className={cn(
-              'px-4 py-3 border-b-2 transition-colors text-sm font-medium',
+              'inline-flex h-7.5 items-center rounded-full border px-2.5 text-[11px] font-medium transition-colors',
               activeTab === 'TEMPLATES'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70'
             )}
           >
             Templates

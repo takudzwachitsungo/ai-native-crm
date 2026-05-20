@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 import { useAuth } from './contexts/AuthContext';
+import { OnboardingProvider, useOnboarding } from './contexts/OnboardingContext';
 import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Contacts from './pages/Contacts';
@@ -26,10 +27,14 @@ import Reports from './pages/Reports';
 import Forecasting from './pages/Forecasting';
 import RevenueOps from './pages/RevenueOps';
 import FieldService from './pages/FieldService';
+import AIGovernance from './pages/AIGovernance';
 import Settings from './pages/Settings';
 import Chat from './pages/Chat';
 import IntegrationOAuthCallback from './pages/IntegrationOAuthCallback';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Onboarding from './pages/Onboarding';
+import ResetPassword from './pages/ResetPassword';
 import './index.css';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -46,9 +51,55 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-function App() {
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+function ProtectedApp() {
+  const { isComplete } = useOnboarding();
   const { isAuthenticated } = useAuth();
+
+  if (!isComplete) {
+    return <Onboarding />;
+  }
+
+  return (
+    <div className="flex h-app overflow-hidden">
+      <Sidebar />
+      <main className="min-w-0 flex-1 overflow-y-auto bg-background md:ml-[70px]">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/leads" element={<Leads />} />
+          <Route path="/contacts" element={<Contacts />} />
+          <Route path="/companies" element={<Companies />} />
+          <Route path="/campaigns" element={<Campaigns />} />
+          <Route path="/cases" element={<Cases />} />
+          <Route path="/deals" element={<Deals />} />
+          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/quotes" element={<Quotes />} />
+          <Route path="/contracts" element={<Contracts />} />
+          <Route path="/invoices" element={<Invoices />} />
+          <Route path="/documents" element={<Documents />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/email" element={<Email />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/forecasting" element={<Forecasting />} />
+          <Route path="/revenue-ops" element={<RevenueOps />} />
+          <Route path="/field-service" element={<FieldService />} />
+          <Route path="/ai-governance" element={<AIGovernance />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/integrations/:provider/callback" element={<IntegrationOAuthCallback />} />
+          <Route path="/chat" element={<Chat />} />
+        </Routes>
+      </main>
+      <ChatAssistant />
+      {isAuthenticated && (
+        <CommandPaletteHost />
+      )}
+    </div>
+  );
+}
+
+function CommandPaletteHost() {
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -69,56 +120,33 @@ function App() {
   }, []);
 
   return (
+    <CommandPalette
+      isOpen={isCommandPaletteOpen}
+      onClose={() => setIsCommandPaletteOpen(false)}
+    />
+  );
+}
+
+function App() {
+  return (
     <ErrorBoundary>
       <ToastProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <div className="flex h-screen overflow-hidden">
-                    <Sidebar />
-                    <main className="flex-1 md:ml-[70px] overflow-y-auto bg-background">
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/leads" element={<Leads />} />
-                        <Route path="/contacts" element={<Contacts />} />
-                        <Route path="/companies" element={<Companies />} />
-                        <Route path="/campaigns" element={<Campaigns />} />
-                        <Route path="/cases" element={<Cases />} />
-                        <Route path="/deals" element={<Deals />} />
-                        <Route path="/pipeline" element={<Pipeline />} />
-                        <Route path="/products" element={<Products />} />
-                        <Route path="/quotes" element={<Quotes />} />
-                        <Route path="/contracts" element={<Contracts />} />
-                        <Route path="/invoices" element={<Invoices />} />
-                        <Route path="/documents" element={<Documents />} />
-                        <Route path="/tasks" element={<Tasks />} />
-                        <Route path="/calendar" element={<Calendar />} />
-                        <Route path="/email" element={<Email />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/forecasting" element={<Forecasting />} />
-                        <Route path="/revenue-ops" element={<RevenueOps />} />
-                        <Route path="/field-service" element={<FieldService />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/settings/integrations/:provider/callback" element={<IntegrationOAuthCallback />} />
-                        <Route path="/chat" element={<Chat />} />
-                      </Routes>
-                    </main>
-                    <ChatAssistant />
-                    {isAuthenticated && (
-                      <CommandPalette
-                        isOpen={isCommandPaletteOpen}
-                        onClose={() => setIsCommandPaletteOpen(false)}
-                      />
-                    )}
-                  </div>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
+          <OnboardingProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <ProtectedApp />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </OnboardingProvider>
         </BrowserRouter>
       </ToastProvider>
     </ErrorBoundary>

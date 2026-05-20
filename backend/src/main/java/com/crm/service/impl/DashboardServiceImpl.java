@@ -3,14 +3,12 @@ package com.crm.service.impl;
 import com.crm.config.TenantContext;
 import com.crm.dto.response.AutomationRunResponseDTO;
 import com.crm.dto.response.DashboardStatsDTO;
-import com.crm.dto.response.DealStatsDTO;
 import com.crm.dto.response.GovernanceAutomationResultDTO;
 import com.crm.dto.response.GovernanceDigestAutomationResultDTO;
 import com.crm.dto.response.GovernanceDigestHistoryItemDTO;
 import com.crm.dto.response.GovernanceInboxItemDTO;
 import com.crm.dto.response.GovernanceInboxSummaryDTO;
 import com.crm.dto.response.GovernanceTaskAcknowledgementResultDTO;
-import com.crm.dto.response.LeadStatsDTO;
 import com.crm.dto.response.QuotaRiskAlertItemDTO;
 import com.crm.dto.response.QuotaRiskAlertSummaryDTO;
 import com.crm.dto.response.QuotaRiskAutomationResultDTO;
@@ -32,6 +30,7 @@ import com.crm.entity.Territory;
 import com.crm.entity.User;
 import com.crm.entity.WorkflowRule;
 import com.crm.entity.enums.DealStage;
+import com.crm.entity.enums.DealRiskLevel;
 import com.crm.entity.enums.LeadStatus;
 import com.crm.entity.enums.TaskPriority;
 import com.crm.entity.enums.TaskStatus;
@@ -43,8 +42,6 @@ import com.crm.repository.TaskRepository;
 import com.crm.repository.TerritoryRepository;
 import com.crm.repository.UserRepository;
 import com.crm.service.DashboardService;
-import com.crm.service.DealService;
-import com.crm.service.LeadService;
 import com.crm.service.AutomationRunService;
 import com.crm.service.WorkflowRuleService;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +53,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -74,8 +72,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
-    private final LeadService leadService;
-    private final DealService dealService;
     private final UserRepository userRepository;
     private final LeadRepository leadRepository;
     private final CompanyRepository companyRepository;
@@ -136,21 +132,71 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
-    public DashboardStatsDTO getStats() {
-        log.debug("Calculating dashboard statistics");
+    public DashboardStatsDTO getStats(String period) {
+        log.debug("Calculating dashboard statistics for period {}", period);
 
-        LeadStatsDTO leadStats = leadService.getStatistics();
-        DealStatsDTO dealStats = dealService.getStatistics();
+        UUID tenantId = TenantContext.getTenantId();
+        LocalDateTime periodStart = dashboardPeriodStart(period);
+        WorkflowRule rescueWorkflow = workflowRuleService.resolveDealRescueWorkflow(tenantId);
+
+        List<Lead> periodLeads = leadRepository.findByTenantIdAndArchivedFalse(tenantId, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .filter(lead -> isInDashboardPeriod(lead.getCreatedAt(), periodStart))
+                .toList();
+
+        List<Deal> periodDeals = dealRepository.findByTenantIdAndArchivedFalse(tenantId, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .filter(deal -> isInDashboardPeriod(deal.getCreatedAt(), periodStart))
+                .toList();
+
+        List<Deal> periodClosedDeals = dealRepository.findByTenantIdAndArchivedFalse(tenantId, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .filter(deal -> deal.getStage() == DealStage.CLOSED_WON || deal.getStage() == DealStage.CLOSED_LOST)
+                .filter(deal -> isInDashboardPeriod(resolveDealCloseDate(deal), periodStart))
+                .toList();
+
+        long totalLeads = periodLeads.size();
+        long convertedLeads = periodLeads.stream()
+                .filter(lead -> lead.getStatus() == LeadStatus.CONVERTED)
+                .count();
+        double conversionRate = totalLeads > 0 ? (convertedLeads * 100.0) / totalLeads : 0.0;
+
+        long wonDeals = periodClosedDeals.stream()
+                .filter(deal -> deal.getStage() == DealStage.CLOSED_WON)
+                .count();
+        long lostDeals = periodClosedDeals.stream()
+                .filter(deal -> deal.getStage() == DealStage.CLOSED_LOST)
+                .count();
+        double winRate = wonDeals + lostDeals > 0 ? (wonDeals * 100.0) / (wonDeals + lostDeals) : 0.0;
+
+        BigDecimal totalRevenue = periodClosedDeals.stream()
+                .filter(deal -> deal.getStage() == DealStage.CLOSED_WON)
+                .map(Deal::getValue)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long activeDeals = periodDeals.stream()
+                .filter(this::isActiveDeal)
+                .count();
+        long stalledDealCount = periodDeals.stream()
+                .filter(deal -> isStalledDeal(deal, rescueWorkflow))
+                .count();
+        long dealsNeedingAttention = periodDeals.stream()
+                .filter(deal -> needsAttention(deal, rescueWorkflow))
+                .count();
 
         return DashboardStatsDTO.builder()
-                .totalLeads(leadStats.getTotalLeads())
-                .totalDeals(dealStats.getTotalDeals())
-                .totalRevenue(dealStats.getWonValueThisMonth() != null ? dealStats.getWonValueThisMonth() : BigDecimal.ZERO)
-                .conversionRate(leadStats.getConversionRate() != null ? leadStats.getConversionRate() : 0.0)
-                .winRate(dealStats.getWinRate() != null ? dealStats.getWinRate() : 0.0)
-                .activeDeals(dealStats.getActiveDeals() != null ? dealStats.getActiveDeals() : 0L)
-                .stalledDealCount(dealStats.getStalledDealCount() != null ? dealStats.getStalledDealCount() : 0L)
-                .dealsNeedingAttention(dealStats.getDealsNeedingAttention() != null ? dealStats.getDealsNeedingAttention() : 0L)
+                .totalLeads(totalLeads)
+                .totalDeals((long) periodDeals.size())
+                .totalRevenue(totalRevenue)
+                .conversionRate(conversionRate)
+                .winRate(winRate)
+                .activeDeals(activeDeals)
+                .stalledDealCount(stalledDealCount)
+                .dealsNeedingAttention(dealsNeedingAttention)
                 .build();
     }
 
@@ -1178,6 +1224,60 @@ public class DashboardServiceImpl implements DashboardService {
 
     private boolean isActiveDeal(Deal deal) {
         return deal.getStage() != DealStage.CLOSED_WON && deal.getStage() != DealStage.CLOSED_LOST;
+    }
+
+    private LocalDateTime dashboardPeriodStart(String period) {
+        LocalDate today = LocalDate.now();
+        return switch (period == null ? "1y" : period) {
+            case "1m" -> today.minusMonths(1).atStartOfDay();
+            case "3m" -> today.minusMonths(3).atStartOfDay();
+            case "6m" -> today.minusMonths(6).atStartOfDay();
+            default -> today.minusYears(1).atStartOfDay();
+        };
+    }
+
+    private boolean isInDashboardPeriod(LocalDateTime value, LocalDateTime periodStart) {
+        return value != null && !value.isBefore(periodStart);
+    }
+
+    private boolean isInDashboardPeriod(LocalDate value, LocalDateTime periodStart) {
+        return value != null && !value.isBefore(periodStart.toLocalDate());
+    }
+
+    private LocalDate resolveDealCloseDate(Deal deal) {
+        if (deal.getActualCloseDate() != null) {
+            return deal.getActualCloseDate();
+        }
+        if (deal.getExpectedCloseDate() != null) {
+            return deal.getExpectedCloseDate();
+        }
+        return deal.getCreatedAt() != null ? deal.getCreatedAt().toLocalDate() : null;
+    }
+
+    private boolean isStalledDeal(Deal deal, WorkflowRule rescueWorkflow) {
+        return isActiveDeal(deal)
+                && rescueWorkflow != null
+                && Boolean.TRUE.equals(rescueWorkflow.getReviewStalledDeals())
+                && deal.getStageChangedAt() != null
+                && deal.getStageChangedAt().isBefore(LocalDateTime.now().minusDays(rescueWorkflow.getStalledDealDays()));
+    }
+
+    private boolean isOverdueNextStep(Deal deal, WorkflowRule rescueWorkflow) {
+        return isActiveDeal(deal)
+                && rescueWorkflow != null
+                && Boolean.TRUE.equals(rescueWorkflow.getReviewOverdueNextSteps())
+                && deal.getNextStepDueDate() != null
+                && deal.getNextStepDueDate().isBefore(LocalDate.now());
+    }
+
+    private boolean needsAttention(Deal deal, WorkflowRule rescueWorkflow) {
+        if (!isActiveDeal(deal) || rescueWorkflow == null || !Boolean.TRUE.equals(rescueWorkflow.getIsActive())) {
+            return false;
+        }
+        return isStalledDeal(deal, rescueWorkflow)
+                || isOverdueNextStep(deal, rescueWorkflow)
+                || (Boolean.TRUE.equals(rescueWorkflow.getReviewHighRiskDeals()) && deal.getRiskLevel() == DealRiskLevel.HIGH)
+                || (Boolean.TRUE.equals(rescueWorkflow.getReviewTerritoryMismatch()) && hasDealTerritoryMismatch(deal));
     }
 
     private BigDecimal sum(List<BigDecimal> values) {

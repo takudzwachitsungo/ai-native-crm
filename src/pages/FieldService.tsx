@@ -51,14 +51,13 @@ function buildInitialForm(order?: WorkOrder | null): WorkOrderFormState {
   };
 }
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-sm font-medium mb-1">{label}</span>
-      {children}
-    </label>
-  );
-}
+type WOTab = 'details' | 'schedule' | 'notes';
+const woTabs: WOTab[] = ['details', 'schedule', 'notes'];
+const woTabHeaders: Record<WOTab, { create: string; edit: string }> = {
+  details: { create: 'Define the work order basics and assign resources.', edit: 'Update work order details and assignments.' },
+  schedule: { create: 'Set the service location and schedule window.', edit: 'Adjust location and timing for this work order.' },
+  notes: { create: 'Add a description or special instructions.', edit: 'Update work order description and notes.' },
+};
 
 export default function FieldServicePage() {
   const [searchParams] = useSearchParams();
@@ -71,6 +70,7 @@ export default function FieldServicePage() {
   const [isFormOpen, setIsFormOpen] = useState(createRequested);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [formState, setFormState] = useState<WorkOrderFormState>(buildInitialForm());
+  const [woActiveTab, setWoActiveTab] = useState<WOTab>('details');
 
   const { data: workOrdersData, isLoading } = useQuery({ queryKey: ['work-orders'], queryFn: () => workOrdersApi.getAll({ page: 0, size: 1000 }) });
   const { data: workOrderStats } = useQuery({ queryKey: ['work-orders', 'stats'], queryFn: () => workOrdersApi.getStatistics() });
@@ -172,131 +172,276 @@ export default function FieldServicePage() {
   };
 
   return (
-    <PageLayout
-      title="Field Service"
-      subtitle="Work orders, dispatch, technician assignment, and service workload visibility."
-      icon={<Icons.Briefcase size={20} />}
-      actions={
-        <button onClick={() => { setSelectedOrder(null); setFormState(buildInitialForm()); setIsFormOpen(true); }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
-          <Icons.Plus size={16} />
-          New Work Order
-        </button>
-      }
-    >
-      <div className="p-6 border-b border-border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Total Work Orders</p><p className="text-2xl font-semibold">{workOrderStats?.totalWorkOrders || 0}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Active</p><p className="text-2xl font-semibold text-blue-600">{workOrderStats?.activeWorkOrders || 0}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Scheduled</p><p className="text-2xl font-semibold text-indigo-600">{workOrderStats?.scheduledWorkOrders || 0}</p></div>
-          <div className="p-4 border border-border rounded-lg"><p className="text-sm text-muted-foreground mb-1">Overdue Scheduled</p><p className="text-2xl font-semibold text-red-600">{workOrderStats?.overdueScheduledWorkOrders || 0}</p></div>
-        </div>
-      </div>
+    <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="px-4 py-3 sm:px-5">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h1 className="text-[26px] leading-none font-semibold text-foreground">Field Service</h1>
+                <p className="text-[13px] text-muted-foreground mt-1">Work orders, dispatch, technician assignment, and service workload visibility.</p>
+              </div>
+            </div>
 
-      <div className="p-4 border-b border-border flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-2 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search work orders..." className="w-full pl-9 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <select value={statusFilter || 'ALL'} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="px-3 py-2 border border-border rounded-lg bg-background">
-            <option value="ALL">All statuses</option>
-            <option value="OPEN">Open</option>
-            <option value="SCHEDULED">Scheduled</option>
-            <option value="DISPATCHED">Dispatched</option>
-            <option value="IN_PROGRESS">In progress</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELED">Canceled</option>
-          </select>
-        </div>
-        <button onClick={() => { exportToCSV(filteredOrders, [{ header: 'Order #', accessor: (item) => item.orderNumber || '' }, { header: 'Title', accessor: 'title' }, { header: 'Status', accessor: (item) => item.status || '' }, { header: 'Priority', accessor: (item) => item.priority || '' }, { header: 'Company', accessor: (item) => item.companyName || '' }, { header: 'Technician', accessor: (item) => item.assignedTechnicianName || '' }, { header: 'Scheduled Start', accessor: (item) => item.scheduledStartAt || '' }], 'field-service-work-orders'); showToast(`Exported ${filteredOrders.length} work orders`, 'success'); }} className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors flex items-center gap-2">
-          <Icons.Download size={16} />
-          Export
-        </button>
-      </div>
-
-      <div className="p-6 space-y-6">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Work Order</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Customer</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Schedule</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Technician</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left text-xs uppercase tracking-wider text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-muted/20">
-                  <td className="px-4 py-4"><div><p className="font-semibold text-primary">{order.orderNumber || 'Pending number'}</p><p className="text-xs text-muted-foreground">{order.title}</p></div></td>
-                  <td className="px-4 py-4"><div><p className="font-medium">{order.companyName || 'No company'}</p><p className="text-xs text-muted-foreground">{order.contactName || 'No contact'}{order.supportCaseNumber ? ` · ${order.supportCaseNumber}` : ''}</p></div></td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground"><div>{order.scheduledStartAt ? new Date(order.scheduledStartAt).toLocaleString() : 'Unscheduled'}</div><div className="text-xs">{order.serviceAddress || order.territory || 'No service location'}</div></td>
-                  <td className="px-4 py-4"><div className="font-medium">{order.assignedTechnicianName || 'Unassigned'}</div><div className="text-xs text-muted-foreground">{order.priority || 'MEDIUM'} · {order.workType || 'OTHER'}</div></td>
-                  <td className="px-4 py-4"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[order.status || 'OPEN'])}>{(order.status || 'OPEN').replace('_', ' ')}</span></td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={() => { setSelectedOrder(order); setFormState(buildInitialForm(order)); setIsFormOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Edit</button>
-                      {(order.status === 'OPEN' || order.status === 'SCHEDULED') && <button onClick={() => lifecycleMutation.mutate({ action: 'dispatch', order })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Dispatch</button>}
-                      {order.status === 'DISPATCHED' && <button onClick={() => lifecycleMutation.mutate({ action: 'start', order })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Start</button>}
-                      {order.status === 'IN_PROGRESS' && <button onClick={() => lifecycleMutation.mutate({ action: 'complete', order })} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Complete</button>}
-                      <button onClick={() => { setSelectedOrder(order); setIsDeleteModalOpen(true); }} className="px-2 py-1 text-xs border border-border rounded hover:bg-secondary">Delete</button>
+            <div className="mt-4 mb-3 flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4">
+                  <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                    <div className="relative flex items-start gap-2.5">
+                      <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                        <Icons.Briefcase size={14} className="text-blue-700" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Work Orders</p>
+                        <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{workOrderStats?.totalWorkOrders || 0}</p>
+                        <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Service jobs logged</p>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!isLoading && filteredOrders.length === 0 && <div className="py-10 text-center text-muted-foreground">No work orders found yet.</div>}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="border border-border rounded-lg p-4">
-            <h2 className="font-semibold mb-3">Technician Workload</h2>
-            <div className="space-y-3">
-              {(workOrderStats?.technicianWorkloads || []).map((technician) => (
-                <div key={technician.technicianId} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{technician.technicianName || 'Unassigned technician'}</p>
-                    <p className="text-xs text-muted-foreground">{technician.territory || 'No territory'}</p>
                   </div>
-                  <div className="text-right text-sm">
-                    <p>{technician.activeWorkOrders || 0} active</p>
-                    <p className="text-muted-foreground">{technician.urgentWorkOrders || 0} urgent</p>
+                  <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                    <div className="relative flex items-start gap-2.5">
+                      <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                        <Icons.Activity size={14} className="text-blue-700" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Active</p>
+                        <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{workOrderStats?.activeWorkOrders || 0}</p>
+                        <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Open and in motion</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                    <div className="relative flex items-start gap-2.5">
+                      <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                        <Icons.CalendarDays size={14} className="text-blue-700" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Scheduled</p>
+                        <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{workOrderStats?.scheduledWorkOrders || 0}</p>
+                        <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Booked service visits</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="group relative min-w-0 px-2.5 py-2">
+                    <div className="relative flex items-start gap-2.5">
+                      <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                        <Icons.AlertCircle size={14} className="text-blue-700" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Overdue Scheduled</p>
+                        <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{workOrderStats?.overdueScheduledWorkOrders || 0}</p>
+                        <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Needs dispatch attention</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-          <div className="border border-border rounded-lg p-4">
-            <h2 className="font-semibold mb-3">Priority Mix</h2>
-            <div className="space-y-2 text-sm">
-              {Object.entries(workOrderStats?.workOrdersByPriority || {}).map(([priority, count]) => (
-                <div key={priority} className="flex items-center justify-between">
-                  <span>{priority}</span>
-                  <span className="font-medium">{count}</span>
-                </div>
-              ))}
+        </div>
+
+        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-1.5 pb-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative min-w-0 flex-1 lg:max-w-[720px]">
+            <Icons.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search work orders..." className="w-full h-9 pl-8.5 pr-3.5 text-[13px] border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background shadow-[0_3px_12px_rgba(15,23,42,0.035)]" />
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+            <select value={statusFilter || 'ALL'} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="h-8 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium shadow-[0_3px_12px_rgba(15,23,42,0.035)] focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="ALL">All statuses</option>
+              <option value="OPEN">Open</option>
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="DISPATCHED">Dispatched</option>
+              <option value="IN_PROGRESS">In progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELED">Canceled</option>
+            </select>
+            <button onClick={() => { exportToCSV(filteredOrders, [{ header: 'Order #', accessor: (item) => item.orderNumber || '' }, { header: 'Title', accessor: 'title' }, { header: 'Status', accessor: (item) => item.status || '' }, { header: 'Priority', accessor: (item) => item.priority || '' }, { header: 'Company', accessor: (item) => item.companyName || '' }, { header: 'Technician', accessor: (item) => item.assignedTechnicianName || '' }, { header: 'Scheduled Start', accessor: (item) => item.scheduledStartAt || '' }], 'field-service-work-orders'); showToast(`Exported ${filteredOrders.length} work orders`, 'success'); }} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60">
+              <Icons.Download size={13} />
+              Export
+            </button>
+            <button onClick={() => { setSelectedOrder(null); setFormState(buildInitialForm()); setIsFormOpen(true); }} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors shadow-[0_3px_12px_rgba(37,99,235,0.18)] hover:bg-primary/90">
+              <Icons.Plus size={13} />
+              New Work Order
+            </button>
+          </div>
+        </div>
+
+        <div className="mx-auto w-full max-w-[1600px] space-y-4 pb-4">
+          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Work Order</th>
+                    <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Customer</th>
+                    <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Schedule</th>
+                    <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Technician</th>
+                    <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                    <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-card">
+                  {filteredOrders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                    >
+                      <td className="px-3 py-2.5"><div><p className="text-sm font-semibold text-primary">{order.orderNumber || 'Pending number'}</p><p className="text-xs text-muted-foreground">{order.title}</p></div></td>
+                      <td className="px-3 py-2.5"><div><p className="font-medium">{order.companyName || 'No company'}</p><p className="text-xs text-muted-foreground">{order.contactName || 'No contact'}{order.supportCaseNumber ? ` · ${order.supportCaseNumber}` : ''}</p></div></td>
+                      <td className="px-3 py-2.5 text-sm text-muted-foreground"><div>{order.scheduledStartAt ? new Date(order.scheduledStartAt).toLocaleString() : 'Unscheduled'}</div><div className="text-xs">{order.serviceAddress || order.territory || 'No service location'}</div></td>
+                      <td className="px-3 py-2.5"><div className="font-medium">{order.assignedTechnicianName || 'Unassigned'}</div><div className="text-xs text-muted-foreground">{order.priority || 'MEDIUM'} · {order.workType || 'OTHER'}</div></td>
+                      <td className="px-3 py-2.5"><span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border', statusClasses[order.status || 'OPEN'])}>{(order.status || 'OPEN').replace('_', ' ')}</span></td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button onClick={() => { setSelectedOrder(order); setFormState(buildInitialForm(order)); setIsFormOpen(true); }} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Edit</button>
+                          {(order.status === 'OPEN' || order.status === 'SCHEDULED') && <button onClick={() => lifecycleMutation.mutate({ action: 'dispatch', order })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Dispatch</button>}
+                          {order.status === 'DISPATCHED' && <button onClick={() => lifecycleMutation.mutate({ action: 'start', order })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Start</button>}
+                          {order.status === 'IN_PROGRESS' && <button onClick={() => lifecycleMutation.mutate({ action: 'complete', order })} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Complete</button>}
+                          <button onClick={() => { setSelectedOrder(order); setIsDeleteModalOpen(true); }} className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium hover:bg-secondary">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!isLoading && filteredOrders.length === 0 && <div className="py-10 text-center text-muted-foreground">No work orders found yet.</div>}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="border border-border rounded-lg bg-card p-4">
+              <h2 className="font-semibold mb-3">Technician Workload</h2>
+              <div className="space-y-3">
+                {(workOrderStats?.technicianWorkloads || []).map((technician) => (
+                  <div key={technician.technicianId} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{technician.technicianName || 'Unassigned technician'}</p>
+                      <p className="text-xs text-muted-foreground">{technician.territory || 'No territory'}</p>
+                    </div>
+                    <div className="text-right text-sm">
+                      <p>{technician.activeWorkOrders || 0} active</p>
+                      <p className="text-muted-foreground">{technician.urgentWorkOrders || 0} urgent</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="border border-border rounded-lg bg-card p-4">
+              <h2 className="font-semibold mb-3">Priority Mix</h2>
+              <div className="space-y-2 text-sm">
+                {Object.entries(workOrderStats?.workOrdersByPriority || {}).map(([priority, count]) => (
+                  <div key={priority} className="flex items-center justify-between">
+                    <span>{priority}</span>
+                    <span className="font-medium">{count}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedOrder(null); }} title={selectedOrder ? 'Edit Work Order' : 'Create Work Order'} size="lg" footer={<><button onClick={() => { setIsFormOpen(false); setSelectedOrder(null); }} className="px-4 py-2 border border-border rounded-lg hover:bg-secondary">Cancel</button><button onClick={handleSaveWorkOrder} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">{selectedOrder ? 'Save Changes' : 'Create Work Order'}</button></>}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Title"><input value={formState.title} onChange={(e) => setFormState((c) => ({ ...c, title: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <FormField label="Priority"><select value={formState.priority} onChange={(e) => setFormState((c) => ({ ...c, priority: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></FormField>
-          <FormField label="Work Type"><select value={formState.workType} onChange={(e) => setFormState((c) => ({ ...c, workType: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="INSTALLATION">Installation</option><option value="MAINTENANCE">Maintenance</option><option value="REPAIR">Repair</option><option value="INSPECTION">Inspection</option><option value="DELIVERY">Delivery</option><option value="OTHER">Other</option></select></FormField>
-          <FormField label="Technician"><select value={formState.assignedTechnicianId} onChange={(e) => setFormState((c) => ({ ...c, assignedTechnicianId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">Unassigned</option>{users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}</select></FormField>
-          <FormField label="Company"><select value={formState.companyId} onChange={(e) => setFormState((c) => ({ ...c, companyId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">No company</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></FormField>
-          <FormField label="Contact"><select value={formState.contactId} onChange={(e) => setFormState((c) => ({ ...c, contactId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">No contact</option>{contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}</select></FormField>
-          <FormField label="Support Case"><select value={formState.supportCaseId} onChange={(e) => setFormState((c) => ({ ...c, supportCaseId: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background"><option value="">No support case</option>{supportCases.map((supportCase: SupportCase) => <option key={supportCase.id} value={supportCase.id}>{supportCase.caseNumber} · {supportCase.title}</option>)}</select></FormField>
-          <FormField label="Territory"><input value={formState.territory} onChange={(e) => setFormState((c) => ({ ...c, territory: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <FormField label="Scheduled Start"><input type="datetime-local" value={formState.scheduledStartAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledStartAt: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <FormField label="Scheduled End"><input type="datetime-local" value={formState.scheduledEndAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledEndAt: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField>
-          <div className="md:col-span-2"><FormField label="Service Address"><input value={formState.serviceAddress} onChange={(e) => setFormState((c) => ({ ...c, serviceAddress: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField></div>
-          <div className="md:col-span-2"><FormField label="Description"><textarea value={formState.description} onChange={(e) => setFormState((c) => ({ ...c, description: e.target.value }))} rows={4} className="w-full px-3 py-2 border border-border rounded-lg bg-background" /></FormField></div>
+      <Modal isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedOrder(null); }} title={selectedOrder ? 'Edit Work Order' : 'Create Work Order'} size="xl" footer={
+        <div className="flex justify-end gap-3">
+          <button onClick={() => { setIsFormOpen(false); setSelectedOrder(null); }} className="px-4 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[0.8125rem] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150">Cancel</button>
+          <button onClick={handleSaveWorkOrder} className="px-5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[0.8125rem] font-medium hover:bg-primary/90 focus:ring-2 focus:ring-ring/30 focus:ring-offset-1 transition-all duration-150 shadow-sm">{selectedOrder ? 'Save Changes' : 'Create Work Order'}</button>
+        </div>
+      }>
+        <div className="space-y-5">
+          {/* Segment Control */}
+          <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 gap-0.5">
+            {woTabs.map((tab) => (
+              <button key={tab} type="button" onClick={() => setWoActiveTab(tab)} className={`px-4 py-1 text-[0.75rem] font-medium rounded-md transition-all duration-150 capitalize ${woActiveTab === tab ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>{tab}</button>
+            ))}
+          </div>
+
+          {/* Tab Header */}
+          <div className="flex items-center gap-2">
+            <div className="h-1 w-1 rounded-full bg-teal-500" />
+            <p className="text-[0.8rem] text-gray-500 dark:text-gray-400">{woTabHeaders[woActiveTab][selectedOrder ? 'edit' : 'create']}</p>
+          </div>
+
+          {/* Tab Content */}
+          <div className="min-h-[20rem]">
+            {woActiveTab === 'details' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Title *</label>
+                    <input value={formState.title} onChange={(e) => setFormState((c) => ({ ...c, title: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Priority</label>
+                    <select value={formState.priority} onChange={(e) => setFormState((c) => ({ ...c, priority: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Work Type</label>
+                    <select value={formState.workType} onChange={(e) => setFormState((c) => ({ ...c, workType: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="INSTALLATION">Installation</option><option value="MAINTENANCE">Maintenance</option><option value="REPAIR">Repair</option><option value="INSPECTION">Inspection</option><option value="DELIVERY">Delivery</option><option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Technician</label>
+                    <select value={formState.assignedTechnicianId} onChange={(e) => setFormState((c) => ({ ...c, assignedTechnicianId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">Unassigned</option>{users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Company</label>
+                    <select value={formState.companyId} onChange={(e) => setFormState((c) => ({ ...c, companyId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">No company</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Contact</label>
+                    <select value={formState.contactId} onChange={(e) => setFormState((c) => ({ ...c, contactId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">No contact</option>{contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Support Case</label>
+                    <select value={formState.supportCaseId} onChange={(e) => setFormState((c) => ({ ...c, supportCaseId: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150">
+                      <option value="">No support case</option>{supportCases.map((supportCase: SupportCase) => <option key={supportCase.id} value={supportCase.id}>{supportCase.caseNumber} · {supportCase.title}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {woActiveTab === 'schedule' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Territory</label>
+                    <input value={formState.territory} onChange={(e) => setFormState((c) => ({ ...c, territory: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Service Address</label>
+                    <input value={formState.serviceAddress} onChange={(e) => setFormState((c) => ({ ...c, serviceAddress: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Scheduled Start</label>
+                    <input type="datetime-local" value={formState.scheduledStartAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledStartAt: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Scheduled End</label>
+                    <input type="datetime-local" value={formState.scheduledEndAt} onChange={(e) => setFormState((c) => ({ ...c, scheduledEndAt: e.target.value }))} className="w-full h-9 px-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {woActiveTab === 'notes' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[0.75rem] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
+                  <textarea value={formState.description} onChange={(e) => setFormState((c) => ({ ...c, description: e.target.value }))} rows={6} className="w-full px-2.5 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-[0.8125rem] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-150 resize-none" placeholder="Work order details, special instructions..." />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 

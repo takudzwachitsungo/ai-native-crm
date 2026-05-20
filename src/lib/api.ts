@@ -3,6 +3,8 @@ import type {
   AccountProfile,
   AccountProfileUpdateRequest,
   LoginRequest,
+  PasswordResetConfirmRequest,
+  PasswordResetRequest,
   RegisterRequest,
   AuthResponse,
   Lead,
@@ -38,6 +40,7 @@ import type {
   TenantUser,
   TenantDatabaseSettings,
   TenantDatabaseSettingsUpdateRequest,
+  WorkspaceOperationsSummary,
   SettingsCapabilityOverview,
   NotificationPreferences,
   NotificationPreferenceUpdateRequest,
@@ -45,6 +48,9 @@ import type {
   BillingPortalSummary,
   TwoFactorStatus,
   TwoFactorSetup,
+  WebPushConfig,
+  WebPushSubscription,
+  WebPushSubscriptionRequest,
   ForecastSubmissionSummary,
   WorkspaceIntegration,
   WorkspaceIntegrationOAuthExchangeRequest,
@@ -106,6 +112,14 @@ export const authApi = {
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
     const response = await apiClient.post('/api/v1/auth/register', data);
     return response.data;
+  },
+
+  requestPasswordReset: async (data: PasswordResetRequest): Promise<void> => {
+    await apiClient.post('/api/v1/auth/forgot-password', data);
+  },
+
+  resetPassword: async (data: PasswordResetConfirmRequest): Promise<void> => {
+    await apiClient.post('/api/v1/auth/reset-password', data);
   },
 
   logout: () => {
@@ -199,6 +213,22 @@ export const accountApi = {
   ): Promise<NotificationPreferences> => {
     const response = await apiClient.put('/api/v1/account/notifications', data);
     return response.data;
+  },
+
+  getPushConfig: async (): Promise<WebPushConfig> => {
+    const response = await apiClient.get('/api/v1/account/push/config');
+    return response.data;
+  },
+
+  registerPushSubscription: async (data: WebPushSubscriptionRequest): Promise<WebPushSubscription> => {
+    const response = await apiClient.put('/api/v1/account/push/subscription', data);
+    return response.data;
+  },
+
+  removePushSubscription: async (endpoint: string): Promise<void> => {
+    await apiClient.delete('/api/v1/account/push/subscription', {
+      params: { endpoint },
+    });
   },
 
   changePassword: async (data: {
@@ -807,7 +837,7 @@ export const emailsApi = {
 
 // Dashboard API
 export const dashboardApi = {
-  getStats: async (): Promise<{
+  getStats: async (period: string = '1y'): Promise<{
     totalLeads: number;
     totalDeals: number;
     totalRevenue: number;
@@ -817,7 +847,9 @@ export const dashboardApi = {
     stalledDealCount: number;
     dealsNeedingAttention: number;
   }> => {
-    const response = await apiClient.get('/api/v1/dashboard/stats');
+    const response = await apiClient.get('/api/v1/dashboard/stats', {
+      params: { period },
+    });
     return response.data;
   },
 
@@ -924,6 +956,11 @@ export const tenantAdminApi = {
     return response.data;
   },
 
+  getOperationsSummary: async (): Promise<WorkspaceOperationsSummary> => {
+    const response = await apiClient.get('/api/v1/workspace/operations');
+    return response.data;
+  },
+
   updateDatabaseSettings: async (
     data: TenantDatabaseSettingsUpdateRequest
   ): Promise<TenantDatabaseSettings> => {
@@ -976,6 +1013,11 @@ export const settingsApi = {
 
   refreshIntegrationOAuth: async (providerKey: string): Promise<WorkspaceIntegration> => {
     const response = await apiClient.post(`/api/v1/settings/integrations/${providerKey}/oauth/refresh`);
+    return response.data;
+  },
+
+  validateIntegration: async (providerKey: string): Promise<WorkspaceIntegration> => {
+    const response = await apiClient.post(`/api/v1/settings/integrations/${providerKey}/validate`);
     return response.data;
   },
 };
@@ -1253,6 +1295,26 @@ function normalizeStandardReportResponse(data: any) {
   };
 }
 
+function normalizeStandardReportDefinition(definition: any) {
+  return {
+    id: definition.id,
+    name: definition.name,
+    report_type: definition.reportType,
+    report_mode: definition.reportMode ?? 'SUMMARY',
+    date_range: definition.dateRange
+      ? {
+          start: definition.dateRange.start,
+          end: definition.dateRange.end,
+        }
+      : undefined,
+    filters: definition.filters ?? {},
+    run_count: definition.runCount ?? 0,
+    last_run_at: definition.lastRunAt,
+    created_at: definition.createdAt,
+    updated_at: definition.updatedAt,
+  };
+}
+
 // Reports API
 export const reportsApi = {
   generate: async (params: {
@@ -1307,6 +1369,56 @@ export const reportsApi = {
     return normalizeStandardReportResponse(response.data);
   },
 
+  exportPdf: async (params: {
+    report_type: string;
+    report_mode?: 'TABULAR' | 'SUMMARY' | 'MATRIX';
+    date_range?: { start: string; end: string };
+    filters?: Record<string, any>;
+  }): Promise<{ blob: Blob; fileName: string | null; contentType: string | null }> => {
+    const response = await apiClient.post('/api/v1/reports/export/pdf', {
+      reportType: params.report_type,
+      reportMode: params.report_mode ?? 'SUMMARY',
+      dateRange: params.date_range,
+      filters: params.filters ?? {},
+    }, {
+      responseType: 'blob',
+      headers: {
+        Accept: 'application/pdf',
+      },
+    });
+
+    return {
+      blob: response.data,
+      fileName: parseDownloadFilename(response.headers['content-disposition']),
+      contentType: response.headers['content-type'] ?? null,
+    };
+  },
+
+  exportXlsx: async (params: {
+    report_type: string;
+    report_mode?: 'TABULAR' | 'SUMMARY' | 'MATRIX';
+    date_range?: { start: string; end: string };
+    filters?: Record<string, any>;
+  }): Promise<{ blob: Blob; fileName: string | null; contentType: string | null }> => {
+    const response = await apiClient.post('/api/v1/reports/export/xlsx', {
+      reportType: params.report_type,
+      reportMode: params.report_mode ?? 'SUMMARY',
+      dateRange: params.date_range,
+      filters: params.filters ?? {},
+    }, {
+      responseType: 'blob',
+      headers: {
+        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+    });
+
+    return {
+      blob: response.data,
+      fileName: parseDownloadFilename(response.headers['content-disposition']),
+      contentType: response.headers['content-type'] ?? null,
+    };
+  },
+
   getTemplates: async (): Promise<{
     success: boolean;
     templates: Array<{
@@ -1334,6 +1446,90 @@ export const reportsApi = {
         default_mode: template.defaultMode ?? 'SUMMARY',
       })),
     };
+  },
+
+  listStandardDefinitions: async (): Promise<{
+    success: boolean;
+    definitions: Array<{
+      id: string;
+      name: string;
+      report_type: string;
+      report_mode: 'TABULAR' | 'SUMMARY' | 'MATRIX';
+      date_range?: { start: string; end: string };
+      filters?: Record<string, any>;
+      run_count: number;
+      last_run_at?: string | null;
+      created_at: string;
+      updated_at: string;
+    }>;
+  }> => {
+    const response = await apiClient.get('/api/v1/reports/definitions');
+    return {
+      success: Boolean(response.data?.success),
+      definitions: (response.data?.definitions ?? []).map(normalizeStandardReportDefinition),
+    };
+  },
+
+  saveStandardDefinition: async (params: {
+    name: string;
+    report_type: string;
+    report_mode?: 'TABULAR' | 'SUMMARY' | 'MATRIX';
+    date_range?: { start: string; end: string };
+    filters?: Record<string, any>;
+  }): Promise<{
+    id: string;
+    name: string;
+    report_type: string;
+    report_mode: 'TABULAR' | 'SUMMARY' | 'MATRIX';
+    date_range?: { start: string; end: string };
+    filters?: Record<string, any>;
+    run_count: number;
+    last_run_at?: string | null;
+    created_at: string;
+    updated_at: string;
+  }> => {
+    const response = await apiClient.post('/api/v1/reports/definitions', {
+      name: params.name,
+      reportType: params.report_type,
+      reportMode: params.report_mode ?? 'SUMMARY',
+      dateRange: params.date_range,
+      filters: params.filters ?? {},
+    });
+    return normalizeStandardReportDefinition(response.data);
+  },
+
+  deleteStandardDefinition: async (definitionId: string): Promise<{ success: boolean }> => {
+    const response = await apiClient.delete(`/api/v1/reports/definitions/${definitionId}`);
+    return response.data;
+  },
+
+  runStandardDefinition: async (definitionId: string): Promise<{
+    success: boolean;
+    report_type: string;
+    report_mode?: 'TABULAR' | 'SUMMARY' | 'MATRIX';
+    title: string;
+    summary: string;
+    date_range: { start: string; end: string };
+    metrics: Record<string, any>;
+    charts: Array<{
+      type: string;
+      title: string;
+      data: any;
+      xAxis?: string;
+      yAxis?: string;
+    }>;
+    insights: string[];
+    recommendations: string[];
+    sections: Array<{
+      title: string;
+      type: string;
+      content: any;
+    }>;
+    generated_at: string;
+    error?: string;
+  }> => {
+    const response = await apiClient.post(`/api/v1/reports/definitions/${definitionId}/run`);
+    return normalizeStandardReportResponse(response.data);
   },
 
   listDefinitions: async (): Promise<{

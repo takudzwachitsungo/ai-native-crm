@@ -70,6 +70,7 @@ import {
   HelpCircle,
   AlertCircle,
   Sparkles,
+  ShieldCheck,
   CheckCircle,
   ArrowRight,
   BarChart,
@@ -211,6 +212,7 @@ export const Icons = {
   
   // AI & Actions
   Sparkles: Sparkles,
+  ShieldCheck: ShieldCheck,
   CheckCircle: CheckCircle,
   ArrowRight: ArrowRight,
   ArrowLeft: ArrowLeft,

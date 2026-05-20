@@ -26,6 +26,7 @@
         <bucket4j.version>8.7.0</bucket4j.version>
         <springdoc.version>2.3.0</springdoc.version>
         <testcontainers.version>1.19.3</testcontainers.version>
+        <aws.sdk.version>2.25.70</aws.sdk.version>
     </properties>
 
     <dependencies>
@@ -168,6 +169,11 @@
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${aws.sdk.version}</version>
         </dependency>
 
         <!-- API Documentation -->

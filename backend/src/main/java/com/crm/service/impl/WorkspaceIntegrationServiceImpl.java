@@ -12,6 +12,7 @@ import com.crm.service.TenantCredentialCipher;
 import com.crm.service.WorkspaceIntegrationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,18 +38,21 @@ public class WorkspaceIntegrationServiceImpl implements WorkspaceIntegrationServ
     private final TenantCredentialCipher tenantCredentialCipher;
     private final Environment environment;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     public WorkspaceIntegrationServiceImpl(
             WorkspaceIntegrationRepository workspaceIntegrationRepository,
             TenantCredentialCipher tenantCredentialCipher,
             Environment environment,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            MeterRegistry meterRegistry
     ) {
         this.workspaceIntegrationRepository = workspaceIntegrationRepository;
         this.tenantCredentialCipher = tenantCredentialCipher;
         this.environment = environment;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -205,6 +209,43 @@ public class WorkspaceIntegrationServiceImpl implements WorkspaceIntegrationServ
         return toResponse(template, saved);
     }
 
+    @Override
+    @Transactional
+    public WorkspaceIntegrationResponseDTO validateCurrentTenantIntegration(String providerKey) {
+        UUID tenantId = requireTenantId();
+        IntegrationTemplate template = requireEditableTemplate(providerKey);
+        WorkspaceIntegration integration = workspaceIntegrationRepository
+                .findByTenantIdAndProviderKeyAndArchivedFalse(tenantId, providerKey)
+                .orElseThrow(() -> new BadRequestException("No integration configuration exists for this provider"));
+
+        integration.setLastValidatedAt(LocalDateTime.now());
+        if (!isConfigured(integration)) {
+            integration.setLastValidationSucceeded(false);
+            integration.setLastValidationMessage("Connector credentials are incomplete. Save the required configuration before validating.");
+            WorkspaceIntegration saved = workspaceIntegrationRepository.save(integration);
+            meterRegistry.counter("crm.integrations.validation.total", "provider", providerKey, "result", "incomplete").increment();
+            return toResponse(template, saved);
+        }
+
+        try {
+            ValidationResult validationResult = validateIntegrationConnection(template, integration);
+            integration.setLastValidationSucceeded(validationResult.success());
+            integration.setLastValidationMessage(validationResult.message());
+            if (validationResult.success() && Boolean.TRUE.equals(integration.getIsActive()) && StringUtils.hasText(integration.getAccessToken()) && integration.getConnectedAt() == null) {
+                integration.setConnectedAt(LocalDateTime.now());
+            }
+            WorkspaceIntegration saved = workspaceIntegrationRepository.save(integration);
+            meterRegistry.counter("crm.integrations.validation.total", "provider", providerKey, "result", validationResult.success() ? "success" : "failure").increment();
+            return toResponse(template, saved);
+        } catch (RuntimeException exception) {
+            integration.setLastValidationSucceeded(false);
+            integration.setLastValidationMessage(exception.getMessage());
+            WorkspaceIntegration saved = workspaceIntegrationRepository.save(integration);
+            meterRegistry.counter("crm.integrations.validation.total", "provider", providerKey, "result", "failure").increment();
+            return toResponse(template, saved);
+        }
+    }
+
     private WorkspaceIntegrationResponseDTO toResponse(IntegrationTemplate template, WorkspaceIntegration integration) {
         boolean connected = integration != null && StringUtils.hasText(integration.getAccessToken()) && integration.getConnectedAt() != null;
         boolean configured = integration != null && isConfigured(integration);
@@ -270,10 +311,74 @@ public class WorkspaceIntegrationServiceImpl implements WorkspaceIntegrationServ
         if (integration == null) {
             return null;
         }
+        if (StringUtils.hasText(integration.getLastValidationMessage())) {
+            return integration.getLastValidationMessage();
+        }
         if (Boolean.TRUE.equals(integration.getLastValidationSucceeded()) && isConfigured(integration)) {
             return buildValidationMessage(template, integration);
         }
         return integration.getLastValidationMessage();
+    }
+
+    private ValidationResult validateIntegrationConnection(IntegrationTemplate template, WorkspaceIntegration integration) {
+        if (!StringUtils.hasText(integration.getAccessToken())) {
+            return new ValidationResult(
+                    false,
+                    template.name() + " is configured, but OAuth is not complete yet. Finish authorization before live validation."
+            );
+        }
+        if (integration.getTokenExpiresAt() != null && integration.getTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            return new ValidationResult(
+                    false,
+                    template.name() + " access token has expired. Refresh the token and validate again."
+            );
+        }
+
+        String probeEndpoint = validationEndpoint(template);
+        if (!StringUtils.hasText(probeEndpoint)) {
+            return new ValidationResult(
+                    true,
+                    template.name() + " credentials are stored and the connector is ready for live sync."
+            );
+        }
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(probeEndpoint))
+                    .header("Authorization", "Bearer " + tenantCredentialCipher.decrypt(integration.getAccessToken()))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                return new ValidationResult(
+                        true,
+                        template.name() + " responded successfully to a live provider validation check."
+                );
+            }
+
+            return new ValidationResult(
+                    false,
+                    template.name() + " validation failed with provider status " + response.statusCode() + "."
+            );
+        } catch (Exception exception) {
+            return new ValidationResult(
+                    false,
+                    template.name() + " validation could not reach the provider endpoint."
+            );
+        }
+    }
+
+    private String validationEndpoint(IntegrationTemplate template) {
+        return switch (template.key()) {
+            case "google-workspace" -> "https://www.googleapis.com/oauth2/v2/userinfo";
+            case "microsoft-365" -> "https://graph.microsoft.com/v1.0/me";
+            case "slack" -> "https://slack.com/api/auth.test";
+            case "hubspot" -> "https://api.hubapi.com/account-info/v3/details";
+            case "salesforce" -> "https://login.salesforce.com/services/oauth2/userinfo";
+            case "quickbooks", "xero" -> null;
+            default -> null;
+        };
     }
 
     private String buildConfiguredDetail(IntegrationTemplate template, WorkspaceIntegration integration) {
@@ -583,6 +688,12 @@ public class WorkspaceIntegrationServiceImpl implements WorkspaceIntegrationServ
             String refreshToken,
             String tokenType,
             LocalDateTime expiresAt
+    ) {
+    }
+
+    private record ValidationResult(
+            boolean success,
+            String message
     ) {
     }
 }

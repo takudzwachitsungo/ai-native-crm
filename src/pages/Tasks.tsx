@@ -9,7 +9,7 @@ import { useToast } from "../components/Toast";
 import { ConfirmModal } from "../components/Modal";
 import { tasksApi } from "../lib/api";
 import type { Task } from "../lib/types";
-import { useInsights } from "../hooks/useInsights";
+import { getInsightBadgesForEntity, useInsights, type InsightBadgeView } from "../hooks/useInsights";
 import { InsightBadge } from "../components/InsightBadge";
 import { exportToCSV } from "../lib/helpers";
 
@@ -46,8 +46,8 @@ export default function TasksPage() {
     }
   }, [searchParams, setSearchParams]);
 
-  // Fetch live insights for tasks
-  useInsights('tasks');
+  // Fetch canonical live insights for task pills.
+  const { insights } = useInsights('tasks');
 
   // Fetch tasks from backend with auto-refresh every 30 seconds
   const { data: tasksData } = useQuery({
@@ -77,8 +77,7 @@ export default function TasksPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Task> }) => 
       tasksApi.update(id, data),
-    onSuccess: (response) => {
-      console.log('Task update successful, response:', response);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setIsFormOpen(false);
       setSelectedItem(null);
@@ -123,8 +122,8 @@ export default function TasksPage() {
   };
 
   // Get insight badges for a task based on its data
-  const getTaskBadges = (task: Task): Array<{ type: 'overdue'; label?: string }> => {
-    const badges: Array<{ type: 'overdue'; label?: string }> = [];
+  const getTaskBadges = (task: Task): InsightBadgeView[] => {
+    const badges: InsightBadgeView[] = [];
     
     // Check if task is overdue
     if (task.dueDate && task.status !== 'COMPLETED') {
@@ -142,13 +141,19 @@ export default function TasksPage() {
     return badges;
   };
 
+  const getCanonicalTaskBadges = (task: Task) => {
+    const aiBadges = getInsightBadgesForEntity(insights, 'task', task.id);
+    return aiBadges.length > 0 ? aiBadges : getTaskBadges(task);
+  };
+
   return (
     <PageLayout>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-foreground">Tasks</h1>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-[26px] leading-none font-semibold text-foreground">Tasks</h1>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => {
@@ -163,13 +168,13 @@ export default function TasksPage() {
                   ], 'tasks');
                   showToast(`Exported ${filteredTasks.length} tasks to CSV`, 'success');
                 }}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60"
               >
-                <Icons.Download size={16} />
+                <Icons.Download size={14} />
                 Export
               </button>
-              <button className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2">
-                <Icons.Filter size={16} />
+              <button className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/60">
+                <Icons.Filter size={14} />
                 Filter
               </button>
               <button
@@ -177,16 +182,16 @@ export default function TasksPage() {
                   setSelectedItem(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Icons.Plus size={16} />
+                <Icons.Plus size={14} />
                 New Task
               </button>
             </div>
           </div>
 
           {/* Search and Filters */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 relative">
               <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <input
@@ -194,14 +199,14 @@ export default function TasksPage() {
                 placeholder="Search tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+                className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "list" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="List view"
@@ -211,7 +216,7 @@ export default function TasksPage() {
               <button
                 onClick={() => setViewMode("board")}
                 className={cn(
-                  "p-2 rounded border",
+                  "inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                   viewMode === "board" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
                 )}
                 aria-label="Board view"
@@ -222,61 +227,71 @@ export default function TasksPage() {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex gap-1 border-b border-border -mb-px">
+          <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
+            <div className="flex flex-wrap gap-1.5">
             {(["all", "todo", "in-progress", "completed"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
                 className={cn(
-                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize",
+                  "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium capitalize transition-colors",
                   filter === status
-                    ? "text-primary border-primary"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70"
                 )}
               >
-                {status === "all" ? "All Tasks" : status.replace("-", " ")}
-                <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-muted">
+                <span>{status === "all" ? "All Tasks" : status.replace("-", " ")}</span>
+                <span className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                  filter === status ? "bg-primary-foreground/16 text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}>
                   {statusCounts[status]}
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="space-y-4">
         {viewMode === "list" ? (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
+          <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                     <input type="checkbox" className="rounded" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Assignee</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Due Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Task</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Assignee</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Due Date</th>
+                  <th className="border-b border-border/60 bg-secondary/50 px-3 py-2 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="bg-card">
                 {filteredTasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4">
+                  <tr
+                    key={task.id}
+                    className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                  >
+                    <td className="px-3 py-2.5">
                       <input type="checkbox" className="rounded" />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{task.title}</span>
-                          {getTaskBadges(task).map((badge, idx) => (
+                          <span className="text-sm font-medium text-foreground">{task.title}</span>
+                          {getCanonicalTaskBadges(task).map((badge, idx) => (
                             <InsightBadge 
                               key={idx}
                               type={badge.type}
                               label={badge.label}
+                              title={badge.title}
                             />
                           ))}
                         </div>
@@ -285,7 +300,7 @@ export default function TasksPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5">
                       {task.assignedTo ? (
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
@@ -297,7 +312,7 @@ export default function TasksPage() {
                         <span className="text-sm text-muted-foreground">Unassigned</span>
                       )}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                         task.status === 'TODO' ? statusColors['todo'] :
@@ -308,7 +323,7 @@ export default function TasksPage() {
                         {task.status.toLowerCase().replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
                         task.priority === 'LOW' ? priorityColors['low'] :
@@ -319,13 +334,13 @@ export default function TasksPage() {
                         {task.priority.toLowerCase()}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5 text-sm text-foreground">
                         <Icons.Calendar size={14} className="text-muted-foreground" />
                         {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -353,31 +368,33 @@ export default function TasksPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             {(["todo", "in-progress", "completed"] as const).map((status) => {
               const statusKey = status === 'in-progress' ? 'IN_PROGRESS' : status.toUpperCase();
               const statusTasks = filteredTasks.filter(t => t.status === statusKey);
               
               return (
-                <div key={status} className="space-y-3">
+                <div key={status} className="space-y-3 rounded-2xl border border-border/70 bg-card p-3.5">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold capitalize">{status.replace("-", " ")}</h3>
                     <span className="text-sm text-muted-foreground">
                       {statusTasks.length}
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {statusTasks.map((task) => (
-                      <div key={task.id} className="bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                      <div key={task.id} className="bg-card border border-border rounded-lg p-3 hover:shadow-sm transition-shadow">
                         <div className="flex items-center gap-2 mb-2">
                           <h4 className="font-medium text-sm flex-1">{task.title}</h4>
-                          {getTaskBadges(task).map((badge, idx) => (
+                          {getCanonicalTaskBadges(task).map((badge, idx) => (
                             <InsightBadge 
                               key={idx}
                               type={badge.type}
                               label={badge.label}
+                              title={badge.title}
                             />
                           ))}
                         </div>
@@ -418,8 +435,8 @@ export default function TasksPage() {
       </div>
 
       {/* Footer Pagination */}
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} tasks
         </div>
         <div className="flex items-center gap-2">
@@ -427,7 +444,7 @@ export default function TasksPage() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
@@ -444,7 +461,7 @@ export default function TasksPage() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum
                     ? "bg-primary text-primary-foreground"
                     : "border border-border hover:bg-secondary"
@@ -458,13 +475,14 @@ export default function TasksPage() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
             Next
           </button>
         </div>
+      </div>
       </div>
 
       {/* Form Modal */}
@@ -475,7 +493,6 @@ export default function TasksPage() {
           setSelectedItem(null);
         }}
         onSubmit={(data) => {
-          console.log('Tasks onSubmit - selectedItem:', selectedItem?.id, 'data:', data);
           if (selectedItem?.id) {
             updateMutation.mutate({ id: selectedItem.id, data });
           } else {

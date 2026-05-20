@@ -159,11 +159,78 @@ export default function CompaniesPage() {
 
   return (
     <PageLayout>
-      <div className="border-b border-border bg-card">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-foreground">Companies</h1>
-            <div className="flex items-center gap-2">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-5 lg:px-6">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="px-4 py-3 sm:px-5">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-[26px] leading-none font-semibold text-foreground">Companies</h1>
+          </div>
+
+          <div className="mt-4 mb-3 w-full overflow-hidden rounded-[1.05rem] border border-border/60 bg-background/55 px-2.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4">
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                    <Icons.Building2 size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Total Accounts</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{totalElements}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Accounts in workspace</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                    <Icons.TrendingUp size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Prospects</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{statusCounts.prospect}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Open expansion targets</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2 2xl:border-r 2xl:border-border/60">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/60">
+                    <Icons.Users size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Top-Level Accounts</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{companies.filter((company) => !company.parentCompanyId).length}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Independent parent records</p>
+                  </div>
+                </div>
+              </div>
+              <div className="group relative min-w-0 px-2.5 py-2">
+                <div className="relative flex items-start gap-2.5">
+                  <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50/80">
+                    <Icons.Kanban size={14} className="text-blue-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[0.52rem] font-semibold uppercase tracking-[0.16em] text-foreground/46">Subsidiaries</p>
+                    <p className="mt-0.5 text-[1.22rem] font-semibold leading-none tracking-[-0.05em] text-foreground">{companies.filter((company) => company.parentCompanyId).length}</p>
+                    <p className="mt-1 text-[0.58rem] font-medium leading-tight text-muted-foreground">Child account records</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-2.5 flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3">
+            <div className="relative min-w-0 flex-1 lg:max-w-[720px]">
+              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+              <input
+                type="text"
+                placeholder="Search companies..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-9 pl-8.5 pr-3.5 text-[13px] border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background shadow-[0_3px_12px_rgba(15,23,42,0.035)]"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
               <button
                 onClick={() => {
                   exportToCSV(
@@ -186,9 +253,9 @@ export default function CompaniesPage() {
                   );
                   showToast(`Exported ${filteredCompanies.length} companies to CSV`, "success");
                 }}
-                className="px-4 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 text-[11px] font-medium text-foreground transition-colors shadow-[0_3px_12px_rgba(15,23,42,0.035)] hover:border-primary/30 hover:bg-secondary/60"
               >
-                <Icons.Download size={16} />
+                <Icons.Download size={13} />
                 Export
               </button>
               <button
@@ -196,108 +263,83 @@ export default function CompaniesPage() {
                   setSelectedCompany(null);
                   setIsFormOpen(true);
                 }}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-colors shadow-[0_3px_12px_rgba(37,99,235,0.18)] hover:bg-primary/90"
               >
-                <Icons.Plus size={16} />
+                <Icons.Plus size={13} />
                 Add Company
               </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Total Accounts</p>
-              <p className="text-xl font-semibold text-foreground">{totalElements}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Prospects</p>
-              <p className="text-xl font-semibold text-foreground">{statusCounts.prospect}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Top-Level Accounts</p>
-              <p className="text-xl font-semibold text-foreground">{companies.filter((company) => !company.parentCompanyId).length}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs text-muted-foreground">Subsidiaries</p>
-              <p className="text-xl font-semibold text-foreground">{companies.filter((company) => company.parentCompanyId).length}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 relative">
-              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-              <input
-                type="text"
-                placeholder="Search companies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
-              />
-            </div>
-            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5 rounded-xl border border-border/70 bg-background p-0.5 shadow-[0_3px_12px_rgba(15,23,42,0.035)]">
               <button
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "p-2 rounded border",
-                  viewMode === "table" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
+                  "inline-flex h-7.5 w-7.5 items-center justify-center rounded-lg transition-colors",
+                  viewMode === "table" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"
                 )}
                 aria-label="Table view"
               >
-                <Icons.List size={16} />
+                <Icons.List size={15} />
               </button>
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "p-2 rounded border",
-                  viewMode === "grid" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"
+                  "inline-flex h-7.5 w-7.5 items-center justify-center rounded-lg transition-colors",
+                  viewMode === "grid" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary"
                 )}
                 aria-label="Grid view"
               >
-                <Icons.Kanban size={16} />
+                <Icons.Kanban size={15} />
               </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-1 border-b border-border -mb-px">
+          <div className="rounded-2xl border border-border bg-background p-2.5 mt-1 shadow-sm">
+            <div className="flex flex-wrap gap-1.5">
             {(["all", "active", "prospect", "inactive"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
                 className={cn(
-                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize",
-                  filter === status ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"
+                  "inline-flex h-7.5 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium capitalize transition-colors",
+                  filter === status
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/70"
                 )}
               >
-                {status === "all" ? "All Companies" : status}
-                <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-muted">
+                <span>{status === "all" ? "All Companies" : status}</span>
+                <span className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
+                  filter === status ? "bg-primary-foreground/16 text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}>
                   {statusCounts[status]}
                 </span>
               </button>
             ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="space-y-4">
         {canManageTerritories && (
-          <div className="mb-6 rounded-lg border border-border bg-card p-5">
-            <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="mb-4 rounded-lg border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-4 mb-3">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Account Territory Governance</h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h2 className="text-base font-semibold text-foreground">Account Territory Governance</h2>
+                <p className="text-xs text-muted-foreground mt-1">
                   Review account owner mismatches and realign workspace coverage before they distort pipeline execution.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground">
+                <div className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
                   {governanceQueue?.mismatchCount ?? 0} mismatched
                 </div>
                 <button
                   onClick={() => reassignGovernanceMutation.mutate(undefined)}
                   disabled={!governanceQueue?.companies?.length || reassignGovernanceMutation.isPending}
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50 hover:bg-primary/90"
                 >
-                  <Icons.ArrowRight size={16} />
+                  <Icons.ArrowRight size={14} />
                   Auto-Reassign Accounts
                 </button>
               </div>
@@ -306,13 +348,13 @@ export default function CompaniesPage() {
             {isGovernanceLoading ? (
               <p className="text-sm text-muted-foreground">Loading governance queue...</p>
             ) : governanceQueue?.companies?.length ? (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {governanceQueue.companies.slice(0, 5).map((item) => (
-                  <div key={item.companyId} className="rounded-lg border border-border bg-background p-4">
+                  <div key={item.companyId} className="rounded-lg border border-border bg-background p-3">
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground">{item.companyName}</p>
+                          <p className=" text-sm font-medium text-foreground">{item.companyName}</p>
                           <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
                             Needs reassignment
                           </span>
@@ -334,7 +376,7 @@ export default function CompaniesPage() {
                         <button
                           onClick={() => reassignGovernanceMutation.mutate([item.companyId])}
                           disabled={!item.suggestedOwnerId || reassignGovernanceMutation.isPending}
-                          className="mt-3 px-3 py-1.5 text-sm border border-border rounded hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="mt-3 h-8 rounded-full border border-border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 hover:bg-secondary"
                         >
                           Reassign Account
                         </button>
@@ -352,41 +394,45 @@ export default function CompaniesPage() {
         )}
 
         {viewMode === "table" ? (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Company</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Industry</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Territory</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Contacts</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Hierarchy</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+          <div className="overflow-hidden rounded-2xl bg-card border border-border/70">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-secondary/50">
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Company</th>
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Industry</th>
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Location</th>
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Territory</th>
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Contacts</th>
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Hierarchy</th>
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="border-b border-border/60 px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="bg-card">
                 {filteredCompanies.map((company) => (
-                  <tr key={company.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
+                  <tr
+                    key={company.id}
+                    className="transition-colors hover:bg-secondary/20 [box-shadow:inset_0_-1px_0_rgba(148,163,184,0.22),0_6px_10px_-12px_rgba(15,23,42,0.45)]"
+                  >
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded bg-primary/10 flex items-center justify-center">
                           <Icons.Building2 size={18} className="text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{company.name}</p>
+                          <p className="text-sm font-medium text-foreground">{company.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : "Top-level account"}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm">{company.industry || "N/A"}</td>
-                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                    <td className="px-3 py-2.5 text-sm">{company.industry || "N/A"}</td>
+                    <td className="px-3 py-2.5 text-sm text-muted-foreground">
                       {company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || "N/A"}
                     </td>
-                    <td className="px-4 py-4 text-sm">
+                    <td className="px-3 py-2.5 text-sm">
                       <div className="text-foreground">{company.territory || company.country || "N/A"}</div>
                       <div className="text-xs text-muted-foreground">
                         {company.ownerTerritory ? `Owner ${company.ownerTerritory}` : "Owner territory unavailable"}
@@ -397,12 +443,12 @@ export default function CompaniesPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-sm">{company.contactCount || 0}</td>
-                    <td className="px-4 py-4 text-sm">
+                    <td className="px-3 py-2.5 text-sm">{company.contactCount || 0}</td>
+                    <td className="px-3 py-2.5 text-sm">
                       <div>{company.dealCount || 0} deals</div>
                       <div className="text-xs text-muted-foreground">{company.childCompanyCount || 0} subsidiaries</div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5">
                       <span
                         className={cn(
                           "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border capitalize",
@@ -412,7 +458,7 @@ export default function CompaniesPage() {
                         {company.status ? `${company.status.charAt(0)}${company.status.slice(1).toLowerCase()}` : "N/A"}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
@@ -447,7 +493,7 @@ export default function CompaniesPage() {
                         <button
                           onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "quickbooks" })}
                           disabled={!company.id || erpSyncMutation.isPending}
-                          className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                          className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors disabled:opacity-50 hover:bg-secondary"
                           title="Sync to QuickBooks"
                         >
                           QB
@@ -455,7 +501,7 @@ export default function CompaniesPage() {
                         <button
                           onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "xero" })}
                           disabled={!company.id || erpSyncMutation.isPending}
-                          className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                          className="rounded-full border border-border px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors disabled:opacity-50 hover:bg-secondary"
                           title="Sync to Xero"
                         >
                           Xero
@@ -466,100 +512,176 @@ export default function CompaniesPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCompanies.map((company) => (
-              <div key={company.id} className="bg-card border border-border rounded-lg p-5 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded bg-primary/10 flex items-center justify-center">
-                      <Icons.Building2 size={20} className="text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{company.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : company.industry || "Top-level account"}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border capitalize",
-                      statusColors[(company.status || "ACTIVE").toLowerCase() as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
-                    )}
-                  >
-                    {company.status ? `${company.status.charAt(0)}${company.status.slice(1).toLowerCase()}` : "N/A"}
-                  </span>
-                </div>
+          <div className="grid grid-cols-1 gap-3 rounded-[1.35rem] border border-border/70 bg-card/70 p-3 md:grid-cols-2 xl:grid-cols-4">
+            {filteredCompanies.map((company) => {
+              const statusTone = cn(
+                "border",
+                company.status === "ACTIVE" && "border-emerald-200/80 bg-emerald-50 text-emerald-700",
+                company.status === "PROSPECT" && "border-sky-200/80 bg-sky-50 text-sky-700",
+                company.status === "INACTIVE" && "border-slate-200/80 bg-slate-100 text-slate-700"
+              );
+              const metricTone =
+                (company.revenue ?? 0) >= 1000000
+                  ? "border-emerald-200/80 bg-emerald-50 text-emerald-700"
+                  : (company.revenue ?? 0) >= 250000
+                    ? "border-amber-200/80 bg-amber-50 text-amber-700"
+                    : "border-slate-200/80 bg-slate-100 text-slate-700";
+              const location = company.city && company.state
+                ? `${company.city}, ${company.state}`
+                : company.city || company.state || company.country || "No location set";
+              const initials = company.name
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part.charAt(0))
+                .join("")
+                .toUpperCase() || "?";
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Phone size={14} />
-                    <span>{company.phone || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Mail size={14} />
-                    <span>{company.email || company.website || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Building2 size={14} />
-                    <span>{company.city && company.state ? `${company.city}, ${company.state}` : company.city || company.state || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Icons.Target size={14} />
-                    <span>{company.territory || company.country || "No territory set"}</span>
-                  </div>
-                  {company.territoryMismatch && (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-700">
-                      Account territory does not match the current owner coverage.
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Revenue</p>
-                    <p className="text-sm font-semibold">{company.revenue ? `$${Number(company.revenue).toLocaleString()}` : "N/A"}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Contacts</p>
-                    <p className="text-sm font-semibold">{company.contactCount || 0}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Subsidiaries</p>
-                    <p className="text-sm font-semibold">{company.childCompanyCount || 0}</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedCompany(company);
-                    setIsInsightsOpen(true);
-                  }}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded border border-border px-3 py-2 text-sm hover:bg-secondary transition-colors"
+              return (
+                <div
+                  key={company.id}
+                  className="group relative overflow-hidden rounded-[1.1rem] border border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.92))] shadow-[0_18px_40px_-34px_rgba(15,23,42,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_24px_50px_-34px_rgba(37,99,235,0.35)]"
                 >
-                  <Icons.Activity size={16} />
-                  View Account Intelligence
-                </button>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "quickbooks" })}
-                    disabled={!company.id || erpSyncMutation.isPending}
-                    className="rounded border border-border px-3 py-2 text-sm hover:bg-secondary transition-colors disabled:opacity-50"
-                  >
-                    Sync QuickBooks
-                  </button>
-                  <button
-                    onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "xero" })}
-                    disabled={!company.id || erpSyncMutation.isPending}
-                    className="rounded border border-border px-3 py-2 text-sm hover:bg-secondary transition-colors disabled:opacity-50"
-                  >
-                    Sync Xero
-                  </button>
+                  <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_60%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_52%)]" />
+                  <div className="absolute right-3 top-3 h-12 w-12 rounded-full bg-primary/6 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+
+                  <div className="relative flex h-full flex-col p-3">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-white/70 bg-white/80 text-[11px] font-semibold text-primary shadow-[0_10px_24px_-18px_rgba(37,99,235,0.55)] backdrop-blur">
+                          {initials}
+                        </div>
+                        <div className="min-w-0 pt-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="truncate text-[14px] font-semibold leading-tight text-foreground">
+                              {company.name}
+                            </h3>
+                            <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]", statusTone)}>
+                              {company.status || "ACTIVE"}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">
+                            {company.parentCompanyName ? `Child of ${company.parentCompanyName}` : company.industry || "Top-level account"}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                            {company.ownerName && (
+                              <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                                Owner {company.ownerName}
+                              </span>
+                            )}
+                            {(company.territory || company.country) && (
+                              <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-1.5 py-0.5 text-[9px] font-medium text-foreground/75">
+                                {company.territory || company.country}
+                              </span>
+                            )}
+                            {company.territoryMismatch && (
+                              <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
+                                Territory mismatch
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={cn("inline-flex min-w-[3.35rem] flex-col items-center rounded-[0.95rem] border px-1.5 py-1 text-center shadow-sm", metricTone)}>
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-80">Revenue</span>
+                        <span className="mt-0.5 text-[0.9rem] font-semibold leading-none">
+                          {company.revenue ? `$${Math.round(Number(company.revenue) / 1000)}k` : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="relative mt-3 overflow-hidden rounded-[1rem] border border-border/60 bg-white/75 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Contacts</p>
+                          <p className="mt-0.5 text-[0.95rem] font-semibold leading-none text-foreground">
+                            {company.contactCount || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Hierarchy</p>
+                          <p className="mt-0.5 truncate text-[12px] font-medium text-foreground/80">
+                            {company.childCompanyCount || 0} subsidiaries
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Phone size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{company.phone || "No phone provided"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Mail size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{company.email || company.website || "No email or website"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-[0.9rem] border border-border/60 bg-background/70 px-2.5 py-1.5">
+                        <Icons.Target size={14} className="shrink-0 text-primary/80" />
+                        <span className="truncate text-[11px]">{location}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                      <button
+                        onClick={() => {
+                          setSelectedCompany(company);
+                          setIsInsightsOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/80 px-2.5 py-1.5 text-[10px] font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                      >
+                        <Icons.Activity size={13} />
+                        View profile
+                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setSelectedCompany(company);
+                            setIsFormOpen(true);
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                          aria-label="Edit company"
+                        >
+                          <Icons.Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedCompany(company);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/80 text-muted-foreground transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                          aria-label="Delete company"
+                        >
+                          <Icons.Trash size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "quickbooks" })}
+                        disabled={!company.id || erpSyncMutation.isPending}
+                        className="inline-flex h-8 items-center justify-center rounded-full border border-border/70 bg-white/80 px-3 text-[10px] font-medium text-foreground transition-colors disabled:opacity-50 hover:border-primary/30 hover:bg-primary/5"
+                      >
+                        Sync QuickBooks
+                      </button>
+                      <button
+                        onClick={() => erpSyncMutation.mutate({ id: company.id!, providerKey: "xero" })}
+                        disabled={!company.id || erpSyncMutation.isPending}
+                        className="inline-flex h-8 items-center justify-center rounded-full border border-border/70 bg-white/80 px-3 text-[10px] font-medium text-foreground transition-colors disabled:opacity-50 hover:border-primary/30 hover:bg-primary/5"
+                      >
+                        Sync Xero
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -576,8 +698,8 @@ export default function CompaniesPage() {
         )}
       </div>
 
-      <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-card">
-        <div className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 sm:px-5">
+        <div className="text-xs text-muted-foreground">
           Showing {Math.min((currentPage * pageSize) + 1, totalElements)} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} companies
         </div>
         <div className="flex items-center gap-2">
@@ -585,7 +707,7 @@ export default function CompaniesPage() {
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 0}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
@@ -602,7 +724,7 @@ export default function CompaniesPage() {
                 key={pageNum}
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  "px-3 py-1.5 text-sm rounded transition-colors",
+                  "h-8 min-w-8 px-3 text-xs font-medium rounded-full transition-colors",
                   currentPage === pageNum ? "bg-primary text-primary-foreground" : "border border-border hover:bg-secondary"
                 )}
               >
@@ -614,13 +736,14 @@ export default function CompaniesPage() {
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage >= totalPages - 1}
             className={cn(
-              "px-3 py-1.5 text-sm border border-border rounded transition-colors",
+              "h-8 px-3 text-xs font-medium border border-border rounded-full transition-colors",
               currentPage >= totalPages - 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-secondary"
             )}
           >
             Next
           </button>
         </div>
+      </div>
       </div>
 
       <CompanyForm

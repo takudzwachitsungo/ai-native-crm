@@ -18,4 +18,6 @@ public interface WorkspaceIntegrationService {
     WorkspaceIntegrationResponseDTO exchangeOAuthCode(String providerKey, WorkspaceIntegrationOAuthExchangeRequestDTO request);
 
     WorkspaceIntegrationResponseDTO refreshOAuthToken(String providerKey);
+
+    WorkspaceIntegrationResponseDTO validateCurrentTenantIntegration(String providerKey);
 }

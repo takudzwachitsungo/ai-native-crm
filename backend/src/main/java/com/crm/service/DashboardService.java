@@ -22,7 +22,7 @@ public interface DashboardService {
     /**
      * Get dashboard statistics
      */
-    DashboardStatsDTO getStats();
+    DashboardStatsDTO getStats(String period);
 
     RevenueOpsSummaryDTO getRevenueOpsSummary();
 

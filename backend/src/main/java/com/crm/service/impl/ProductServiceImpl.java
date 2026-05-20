@@ -86,7 +86,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "products", key = "#id")
+    @Cacheable(value = "products", key = "T(com.crm.config.TenantContext).requireTenantId().toString() + ':' + #id")
     public ProductResponseDTO findById(UUID id) {
         UUID tenantId = TenantContext.getTenantId();
         

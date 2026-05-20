@@ -10,20 +10,20 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, title, subtitle, icon, actions }: PageLayoutProps) {
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full min-w-0 flex-col">
       <Header />
-      <div className="flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {title && (
-          <div className="px-6 py-4 border-b border-border bg-card">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+          <div className="border-b border-border bg-card px-4 py-4 sm:px-5 lg:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
                 {icon && <div className="text-primary">{icon}</div>}
-                <div>
-                  <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+                <div className="min-w-0">
+                  <h1 className="truncate text-xl font-semibold text-foreground sm:text-2xl">{title}</h1>
                   {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
                 </div>
               </div>
-              {actions && <div>{actions}</div>}
+              {actions && <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div>}
             </div>
           </div>
         )}

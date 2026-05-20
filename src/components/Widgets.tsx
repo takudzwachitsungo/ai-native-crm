@@ -9,8 +9,9 @@ import { InsightBadge } from "./InsightBadge";
 import { useNavigate } from 'react-router-dom';
 import { Send, Loader2, X, Plus, Search, Mic } from 'lucide-react';
 import { useChatStore } from '../hooks/useChatStore';
+import { clearConversation } from '../lib/ai-api';
 import { useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { ChatMarkdown } from './chat/ChatMarkdown';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -19,16 +20,40 @@ function getGreeting() {
   return "Evening";
 }
 
-function Customize({ onClick }: { onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
-    >
-      <Icons.Settings size={14} />
-      <span>Customize</span>
-    </button>
-  );
+function getPeriodLabel(period: string) {
+  switch (period) {
+    case "1m":
+      return "Last 1 month";
+    case "3m":
+      return "Last 3 months";
+    case "6m":
+      return "Last 6 months";
+    case "1y":
+    default:
+      return "Last 1 year";
+  }
+}
+
+function getPeriodStart(period: string) {
+  const now = new Date();
+  switch (period) {
+    case "1m":
+      return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    case "3m":
+      return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    case "6m":
+      return new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+    case "1y":
+    default:
+      return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  }
+}
+
+function isInPeriod(value: string | undefined | null, period: string) {
+  if (!value) return false;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return parsed >= getPeriodStart(period);
 }
 
 function MetricsFilter({ period, setPeriod }: { period: string; setPeriod: (p: string) => void }) {
@@ -41,11 +66,11 @@ function MetricsFilter({ period, setPeriod }: { period: string; setPeriod: (p: s
 
   return (
     <div className="relative flex items-center">
-      <Icons.Calendar size={14} className="absolute left-3 text-muted-foreground pointer-events-none" />
+      <Icons.Calendar size={13} className="absolute left-2.5 text-muted-foreground pointer-events-none" />
       <select 
         value={period}
         onChange={(e) => setPeriod(e.target.value)}
-        className="flex items-center gap-2 pl-8 pr-3 py-1.5 text-sm border border-border bg-transparent hover:bg-secondary transition-colors cursor-pointer appearance-none rounded-md"
+        className="h-8 appearance-none rounded-full border border-border/70 bg-card pl-8 pr-7 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-secondary/40 cursor-pointer"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -53,7 +78,7 @@ function MetricsFilter({ period, setPeriod }: { period: string; setPeriod: (p: s
           </option>
         ))}
       </select>
-      <Icons.ChevronDown size={14} className="absolute right-2 text-muted-foreground pointer-events-none" />
+      <Icons.ChevronDown size={12} className="absolute right-2.5 text-muted-foreground pointer-events-none" />
     </div>
   );
 }
@@ -62,42 +87,33 @@ function WidgetsHeader({
   activeTab, 
   setActiveTab,
   period,
-  setPeriod,
-  isCustomizing,
-  onCustomizeToggle
+  setPeriod
 }: { 
   activeTab: string; 
   setActiveTab: (tab: string) => void;
   period: string;
   setPeriod: (p: string) => void;
-  isCustomizing: boolean;
-  onCustomizeToggle: () => void;
 }) {
   const greeting = getGreeting();
   
   return (
-    <div className="mb-6">
-      <h1 className="text-[32px] font-medium mb-1 text-foreground">
+    <div className="mb-4">
+      <h1 className="text-[28px] font-medium mb-0.5 text-foreground leading-none">
         {greeting}<span className="text-muted-foreground">,</span>
       </h1>
-      <p className="text-muted-foreground text-[14px]">
-        {isCustomizing 
-          ? "Drag and drop to arrange your dashboard."
-          : "Here's your sales pipeline at a glance."}
+      <p className="text-muted-foreground text-[13px]">
+        Showing {getPeriodLabel(period).toLowerCase()} performance across your sales pipeline.
       </p>
       
-      <div className="flex items-center justify-end mt-6 mb-4">
+      <div className="flex items-center justify-end mt-4 mb-3">
         <div className="flex items-center gap-2" data-no-close>
-          <div className="hidden md:block">
-            <Customize onClick={onCustomizeToggle} />
-          </div>
           <MetricsFilter period={period} setPeriod={setPeriod} />
-          <div className="ml-2 relative flex items-stretch bg-secondary rounded-md w-fit">
+          <div className="ml-1 relative flex items-stretch rounded-full border border-border/70 bg-secondary/60 p-0.5 w-fit">
             <div className="flex items-stretch h-auto p-0 bg-transparent">
               <button 
                 onClick={() => setActiveTab("overview")}
                 className={cn(
-                  "group relative flex items-center gap-1.5 px-3 py-1.5 text-[14px] transition-all whitespace-nowrap h-9 min-h-9 rounded-md",
+                  "group relative flex items-center gap-1.5 px-3 py-1 text-xs font-medium transition-all whitespace-nowrap h-7 min-h-7 rounded-full",
                   "text-muted-foreground hover:text-foreground",
                   activeTab === "overview" && "text-foreground bg-background shadow-sm"
                 )}
@@ -107,7 +123,7 @@ function WidgetsHeader({
               <button 
                 onClick={() => setActiveTab("pipeline")}
                 className={cn(
-                  "group relative flex items-center gap-1.5 px-3 py-1.5 text-[14px] transition-all whitespace-nowrap h-9 min-h-9 rounded-md",
+                  "group relative flex items-center gap-1.5 px-3 py-1 text-xs font-medium transition-all whitespace-nowrap h-7 min-h-7 rounded-full",
                   "text-muted-foreground hover:text-foreground",
                   activeTab === "pipeline" && "text-foreground bg-background shadow-sm"
                 )}
@@ -145,7 +161,7 @@ function BaseWidget({
   return (
     <div
       className={cn(
-        "bg-card border border-border p-3 h-[175px] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-primary/20 group cursor-pointer rounded-lg"
+        "bg-card border border-border p-3 h-[158px] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-primary/20 group cursor-pointer rounded-lg"
       )}
       onClick={onClick}
     >
@@ -204,36 +220,7 @@ function PipelineAnalytics({ period }: { period: string }) {
 
   const allDeals = dealsData?.content || [];
   
-  // Filter deals based on period
-  const filterByPeriod = (deals: any[], period: string) => {
-    const now = new Date();
-    let cutoffDate: Date;
-    
-    switch (period) {
-      case '1m':
-        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        break;
-      case '3m':
-        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-        break;
-      case '6m':
-        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-        break;
-      case '1y':
-      default:
-        cutoffDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        break;
-    }
-    
-    return deals.filter(deal => {
-      // Filter by createdAt date if available, otherwise include all deals
-      if (!deal.createdAt) return true;
-      const dealDate = new Date(deal.createdAt);
-      return dealDate >= cutoffDate;
-    });
-  };
-
-  const deals = filterByPeriod(allDeals, period);
+  const deals = allDeals.filter((deal: any) => isInPeriod(deal.createdAt, period));
   
   // Calculate analytics
   const stageData: Record<string, { count: number; value: number }> = {
@@ -252,120 +239,89 @@ function PipelineAnalytics({ period }: { period: string }) {
     }
   });
 
-  const totalPipelineValue = Object.values(stageData).reduce((sum, s) => sum + s.value, 0);
-  const totalDeals = deals.length;
-  const avgDealSize = totalDeals > 0 ? totalPipelineValue / totalDeals : 0;
+  const openStageEntries = Object.entries(stageData).filter(([stage]) => !stage.includes('CLOSED'));
+  const activeDealCount = openStageEntries.reduce((sum, [, data]) => sum + data.count, 0);
+  const totalPipelineValue = openStageEntries.reduce((sum, [, data]) => sum + data.value, 0);
+  const avgDealSize = activeDealCount > 0 ? totalPipelineValue / activeDealCount : 0;
   const wonDeals = stageData.CLOSED_WON.count;
   const lostDeals = stageData.CLOSED_LOST.count;
   const winRate = wonDeals + lostDeals > 0 ? (wonDeals / (wonDeals + lostDeals)) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-3.5">
       {/* Top Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="bg-card border border-border rounded-lg p-2.5">
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.DollarSign size={16} className="text-primary" />
             <h3 className="text-xs font-medium text-muted-foreground">Total Pipeline</h3>
           </div>
-          <p className="text-2xl font-semibold">${(totalPipelineValue / 1000000).toFixed(1)}M</p>
-          <p className="text-xs text-muted-foreground mt-1">{totalDeals} deals</p>
+          <p className="text-lg font-semibold leading-none">${(totalPipelineValue / 1000000).toFixed(1)}M</p>
+          <p className="text-xs text-muted-foreground mt-1">{activeDealCount} active deals</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-card border border-border rounded-lg p-2.5">
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.TrendingUp size={16} className="text-green-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Win Rate</h3>
           </div>
-          <p className="text-2xl font-semibold">{winRate.toFixed(0)}%</p>
+          <p className="text-lg font-semibold leading-none">{winRate.toFixed(0)}%</p>
           <p className="text-xs text-muted-foreground mt-1">{wonDeals} won / {lostDeals} lost</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-card border border-border rounded-lg p-2.5">
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.BarChart size={16} className="text-blue-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Avg Deal Size</h3>
           </div>
-          <p className="text-2xl font-semibold">${(avgDealSize / 1000000).toFixed(1)}M</p>
-          <p className="text-xs text-muted-foreground mt-1">across all stages</p>
+          <p className="text-lg font-semibold leading-none">${(avgDealSize / 1000000).toFixed(1)}M</p>
+          <p className="text-xs text-muted-foreground mt-1">across open pipeline</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/pipeline')}>
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-card border border-border rounded-lg p-2.5 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate('/pipeline')}>
+          <div className="flex items-center gap-2 mb-1.5">
             <Icons.Activity size={16} className="text-purple-500" />
             <h3 className="text-xs font-medium text-muted-foreground">Active Deals</h3>
           </div>
-          <p className="text-2xl font-semibold">{totalDeals - wonDeals - lostDeals}</p>
+          <p className="text-lg font-semibold leading-none">{activeDealCount}</p>
           <p className="text-xs text-primary mt-1">View pipeline →</p>
         </div>
       </div>
 
-      {/* Pipeline Funnel */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-          <Icons.Pipeline size={18} className="text-primary" />
-          Deal Stage Distribution
-        </h3>
-        <div className="space-y-3">
-          {Object.entries(stageData)
-            .filter(([stage]) => !stage.includes('CLOSED'))
-            .map(([stage, data]) => {
-              const percentage = totalDeals > 0 ? (data.count / totalDeals) * 100 : 0;
-              const stageLabel = stage.replace(/_/g, ' ');
-              
-              return (
-                <div key={stage}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="font-medium capitalize">{stageLabel.toLowerCase()}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground">{data.count} deals</span>
-                      <span className="text-xs text-muted-foreground w-12 text-right">{percentage.toFixed(0)}%</span>
-                    </div>
-                  </div>
-                  <div className="relative h-8 bg-muted/30 rounded-lg overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-blue-500 rounded-lg transition-all duration-500"
-                      style={{ width: `${percentage}%` }}
-                    />
-                    <div className="absolute inset-0 flex items-center px-3 justify-between text-xs">
-                      {data.value > 0 && (
-                        <span className="font-semibold text-primary-foreground drop-shadow">
-                          ${(data.value / 1000000).toFixed(1)}M
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-
-      {/* Value by Stage & Conversion */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Value by Stage */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-            <Icons.PieChart size={18} className="text-primary" />
-            Pipeline Value by Stage
+      {/* Pipeline Sections */}
+      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-3">
+        <div className="bg-card border border-border rounded-lg p-3.5">
+          <h3 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
+            <Icons.Pipeline size={16} className="text-primary" />
+            Deal Stage Distribution
           </h3>
-          <div className="space-y-3">
-            {Object.entries(stageData)
-              .filter(([stage]) => !stage.includes('CLOSED') && stageData[stage].value > 0)
-              .sort(([, a], [, b]) => b.value - a.value)
+          <div className="space-y-2">
+            {openStageEntries
               .map(([stage, data]) => {
-                const percentage = totalPipelineValue > 0 ? (data.value / totalPipelineValue) * 100 : 0;
+                const percentage = activeDealCount > 0 ? (data.count / activeDealCount) * 100 : 0;
                 const stageLabel = stage.replace(/_/g, ' ');
                 
                 return (
-                  <div key={stage} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <span className="text-sm capitalize">{stageLabel.toLowerCase()}</span>
+                  <div key={stage} className="rounded-md border border-border/50 bg-background/40 px-2.5 py-2">
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="font-medium capitalize">{stageLabel.toLowerCase()}</span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-muted-foreground">{data.count} deals</span>
+                        <span className="text-[11px] text-muted-foreground w-10 text-right">{percentage.toFixed(0)}%</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">${(data.value / 1000000).toFixed(1)}M</span>
-                      <span className="text-xs text-muted-foreground w-12 text-right">{percentage.toFixed(0)}%</span>
+                    <div className="relative h-6 bg-muted/30 rounded-md overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-blue-500 rounded-md transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                      <div className="absolute inset-0 flex items-center px-2 justify-between text-[10px]">
+                        {data.value > 0 && (
+                          <span className="font-semibold text-primary-foreground drop-shadow">
+                            ${(data.value / 1000000).toFixed(1)}M
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -373,19 +329,49 @@ function PipelineAnalytics({ period }: { period: string }) {
           </div>
         </div>
 
-        {/* Conversion Metrics */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-            <Icons.Target size={18} className="text-primary" />
-            Conversion Metrics
+        {/* Value by Stage */}
+        <div className="bg-card border border-border rounded-lg p-3.5">
+          <h3 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
+            <Icons.PieChart size={16} className="text-primary" />
+            Pipeline Value by Stage
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-2">
+            {openStageEntries
+              .filter(([, data]) => data.value > 0)
+              .sort(([, a], [, b]) => b.value - a.value)
+              .map(([stage, data]) => {
+                const percentage = totalPipelineValue > 0 ? (data.value / totalPipelineValue) * 100 : 0;
+                const stageLabel = stage.replace(/_/g, ' ');
+                
+                return (
+                  <div key={stage} className="flex items-center justify-between rounded-md border border-border/40 px-2.5 py-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span className="text-[11px] capitalize">{stageLabel.toLowerCase()}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] font-medium">${(data.value / 1000000).toFixed(1)}M</span>
+                      <span className="text-[11px] text-muted-foreground w-10 text-right">{percentage.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* Stage Snapshot */}
+        <div className="bg-card border border-border rounded-lg p-3.5">
+          <h3 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
+            <Icons.Target size={16} className="text-primary" />
+            Stage Snapshot
+          </h3>
+          <div className="space-y-2.5">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Prospecting → Qualification</span>
-                <span className="text-sm font-medium">
-                  {stageData.PROSPECTING.count > 0 
-                    ? ((stageData.QUALIFICATION.count / stageData.PROSPECTING.count) * 100).toFixed(0)
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Prospecting → Qualification</span>
+                <span className="text-xs font-medium">
+                  {activeDealCount > 0 
+                    ? ((stageData.PROSPECTING.count / activeDealCount) * 100).toFixed(0)
                     : 0}%
                 </span>
               </div>
@@ -393,18 +379,18 @@ function PipelineAnalytics({ period }: { period: string }) {
                 <div 
                   className="h-full bg-green-500 rounded-full transition-all"
                   style={{ 
-                    width: `${stageData.PROSPECTING.count > 0 ? (stageData.QUALIFICATION.count / stageData.PROSPECTING.count) * 100 : 0}%` 
+                    width: `${activeDealCount > 0 ? (stageData.PROSPECTING.count / activeDealCount) * 100 : 0}%` 
                   }}
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Qualification → Proposal</span>
-                <span className="text-sm font-medium">
-                  {stageData.QUALIFICATION.count > 0 
-                    ? ((stageData.PROPOSAL.count / stageData.QUALIFICATION.count) * 100).toFixed(0)
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Qualification → Proposal</span>
+                <span className="text-xs font-medium">
+                  {activeDealCount > 0 
+                    ? ((stageData.QUALIFICATION.count / activeDealCount) * 100).toFixed(0)
                     : 0}%
                 </span>
               </div>
@@ -412,18 +398,18 @@ function PipelineAnalytics({ period }: { period: string }) {
                 <div 
                   className="h-full bg-blue-500 rounded-full transition-all"
                   style={{ 
-                    width: `${stageData.QUALIFICATION.count > 0 ? (stageData.PROPOSAL.count / stageData.QUALIFICATION.count) * 100 : 0}%` 
+                    width: `${activeDealCount > 0 ? (stageData.QUALIFICATION.count / activeDealCount) * 100 : 0}%` 
                   }}
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Proposal → Negotiation</span>
-                <span className="text-sm font-medium">
-                  {stageData.PROPOSAL.count > 0 
-                    ? ((stageData.NEGOTIATION.count / stageData.PROPOSAL.count) * 100).toFixed(0)
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Proposal → Negotiation</span>
+                <span className="text-xs font-medium">
+                  {activeDealCount > 0 
+                    ? ((stageData.PROPOSAL.count / activeDealCount) * 100).toFixed(0)
                     : 0}%
                 </span>
               </div>
@@ -431,18 +417,18 @@ function PipelineAnalytics({ period }: { period: string }) {
                 <div 
                   className="h-full bg-purple-500 rounded-full transition-all"
                   style={{ 
-                    width: `${stageData.PROPOSAL.count > 0 ? (stageData.NEGOTIATION.count / stageData.PROPOSAL.count) * 100 : 0}%` 
+                    width: `${activeDealCount > 0 ? (stageData.PROPOSAL.count / activeDealCount) * 100 : 0}%` 
                   }}
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Negotiation → Closed Won</span>
-                <span className="text-sm font-medium">
-                  {stageData.NEGOTIATION.count > 0 
-                    ? ((wonDeals / stageData.NEGOTIATION.count) * 100).toFixed(0)
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground">Negotiation → Closed Won</span>
+                <span className="text-xs font-medium">
+                  {activeDealCount > 0 
+                    ? ((stageData.NEGOTIATION.count / activeDealCount) * 100).toFixed(0)
                     : 0}%
                 </span>
               </div>
@@ -450,7 +436,7 @@ function PipelineAnalytics({ period }: { period: string }) {
                 <div 
                   className="h-full bg-green-600 rounded-full transition-all"
                   style={{ 
-                    width: `${stageData.NEGOTIATION.count > 0 ? (wonDeals / stageData.NEGOTIATION.count) * 100 : 0}%` 
+                    width: `${activeDealCount > 0 ? (stageData.NEGOTIATION.count / activeDealCount) * 100 : 0}%` 
                   }}
                 />
               </div>
@@ -471,7 +457,7 @@ function WidgetsGrid({ period }: { period: string }) {
   // Fetch dashboard stats with auto-refresh every 30 seconds
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats', period],
-    queryFn: () => dashboardApi.getStats(),
+    queryFn: () => dashboardApi.getStats(period),
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
@@ -499,37 +485,7 @@ function WidgetsGrid({ period }: { period: string }) {
     refetchInterval: 30000,
   });
 
-  // Filter deals by period and get top deal
-  const filterByPeriod = (deals: any[], period: string) => {
-    if (!deals?.length) return [];
-    
-    const now = new Date();
-    let cutoffDate: Date;
-    
-    switch (period) {
-      case '1m':
-        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-        break;
-      case '3m':
-        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-        break;
-      case '6m':
-        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-        break;
-      case '1y':
-      default:
-        cutoffDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        break;
-    }
-    
-    return deals.filter(deal => {
-      if (!deal.createdAt) return true;
-      const dealDate = new Date(deal.createdAt);
-      return dealDate >= cutoffDate;
-    });
-  };
-
-  const filteredDeals = filterByPeriod(allDealsData?.content || [], period);
+  const filteredDeals = (allDealsData?.content || []).filter((deal: any) => isInPeriod(deal.createdAt, period));
   const topDeal = filteredDeals[0] || null;
 
   const totalLeads = stats?.totalLeads || 0;
@@ -541,19 +497,16 @@ function WidgetsGrid({ period }: { period: string }) {
   const stalledDealCount = stats?.stalledDealCount || 0;
   const dealsNeedingAttention = stats?.dealsNeedingAttention || 0;
 
-  // Calculate tasks due today
-  const today = new Date().toISOString().split('T')[0];
-  const tasksDueToday = tasksData?.content?.filter(
-    (task: any) => task.dueDate?.startsWith(today)
-  ).length || 0;
+  // Calculate tasks due in the selected period
+  const tasksInPeriod = tasksData?.content?.filter((task: any) => isInPeriod(task.dueDate, period)) || [];
+  const openTasksInPeriod = tasksInPeriod.filter((task: any) => task.status !== 'COMPLETED').length;
 
-  // Get first upcoming meeting this week
+  // Get first upcoming meeting in the selected period
   const now = new Date();
-  const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const upcomingEvents = eventsData?.content?.filter(
     (event: any) => {
       const eventDate = new Date(event.startTime);
-      return eventDate >= now && eventDate <= weekEnd;
+      return eventDate >= now && isInPeriod(event.startTime, period);
     }
   ) || [];
   const nextMeeting = upcomingEvents.sort((a: any, b: any) => 
@@ -561,7 +514,7 @@ function WidgetsGrid({ period }: { period: string }) {
   )[0];
 
   // Count insights by type for dashboard widgets
-  const closingSoonCount = insights.filter(i => i.type === 'closing_soon').length;
+  const closingSoonCount = insights.filter(i => i.type === 'closing_soon' && i.entity_type === 'deal').length;
   const stuckDealsCount = insights.filter(i => i.type === 'stuck' && i.entity_type === 'deal').length;
   const overdueTasksCount = insights.filter(i => i.type === 'overdue').length;
   const hotLeadsCount = insights.filter(i => i.type === 'hot' && i.entity_type === 'lead').length;
@@ -576,14 +529,14 @@ function WidgetsGrid({ period }: { period: string }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 gap-y-4 mb-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 gap-y-3 mb-3">
       {/* Total Leads Widget */}
       <BaseWidget
         title="Total Leads"
         icon={<Icons.Users size={16} />}
         description={
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-muted-foreground">New leads this month</p>
+            <p className="text-xs text-muted-foreground">Created in {getPeriodLabel(period).toLowerCase()}</p>
             {hotLeadsCount > 0 && (
               <InsightBadge type="hot" label={`${hotLeadsCount} hot`} />
             )}
@@ -592,7 +545,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View all leads"
         onClick={() => navigate('/leads')}
       >
-        <h2 className="text-xl font-semibold mb-1">{totalLeads}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{totalLeads}</h2>
       </BaseWidget>
 
       {/* Active Deals Widget */}
@@ -619,18 +572,18 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View pipeline"
         onClick={() => navigate('/pipeline')}
       >
-        <h2 className="text-xl font-semibold mb-1">{activeDeals}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{activeDeals}</h2>
       </BaseWidget>
 
       {/* Revenue Widget */}
       <BaseWidget
         title="Revenue"
         icon={<Icons.Amount size={16} />}
-        description={<p className="text-xs text-muted-foreground">Closed this quarter</p>}
+        description={<p className="text-xs text-muted-foreground">Closed-won in {getPeriodLabel(period).toLowerCase()}</p>}
         actions="View revenue report"
         onClick={() => navigate('/reports')}
       >
-        <h2 className="text-xl font-semibold mb-1">${totalRevenue.toLocaleString()}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">${totalRevenue.toLocaleString()}</h2>
       </BaseWidget>
 
       {/* Conversion Rate Widget */}
@@ -641,7 +594,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View funnel"
         onClick={() => navigate('/pipeline')}
       >
-        <h2 className="text-xl font-semibold mb-1">{conversionRate.toFixed(1)}%</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{conversionRate.toFixed(1)}%</h2>
       </BaseWidget>
 
       {/* Tasks Due Widget */}
@@ -650,7 +603,7 @@ function WidgetsGrid({ period }: { period: string }) {
         icon={<Icons.Clock size={16} />}
         description={
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs text-muted-foreground">Due today</p>
+            <p className="text-xs text-muted-foreground">Open tasks in {getPeriodLabel(period).toLowerCase()}</p>
             {overdueTasksCount > 0 && (
               <InsightBadge type="overdue" label={`${overdueTasksCount} overdue`} />
             )}
@@ -659,26 +612,26 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View all tasks"
         onClick={() => navigate('/tasks')}
       >
-        <h2 className="text-xl font-semibold mb-1">{tasksDueToday}</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{openTasksInPeriod}</h2>
       </BaseWidget>
 
       {/* Meetings Widget */}
       <BaseWidget
         title="Meetings"
         icon={<Icons.Calendar size={16} />}
-        description={<p className="text-xs text-muted-foreground">Scheduled this week</p>}
+        description={<p className="text-xs text-muted-foreground">Upcoming in {getPeriodLabel(period).toLowerCase()}</p>}
         actions="View calendar"
         onClick={() => navigate('/calendar')}
       >
         {nextMeeting ? (
           <>
-            <div className="text-sm font-semibold mb-0.5 line-clamp-1">{nextMeeting.title}</div>
+            <div className="text-[13px] font-semibold mb-0.5 line-clamp-1 leading-tight">{nextMeeting.title}</div>
             <div className="text-xs text-muted-foreground">
               {new Date(nextMeeting.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
           </>
         ) : (
-          <h2 className="text-xl font-semibold mb-1">-</h2>
+          <h2 className="text-lg font-semibold mb-0.5 leading-none">-</h2>
         )}
       </BaseWidget>
 
@@ -692,11 +645,11 @@ function WidgetsGrid({ period }: { period: string }) {
       >
         {topDeal ? (
           <>
-            <div className="text-sm font-semibold mb-0.5">{(topDeal as any).companyName || topDeal.name}</div>
+            <div className="text-[13px] font-semibold mb-0.5 line-clamp-1 leading-tight">{(topDeal as any).companyName || topDeal.name}</div>
             <div className="text-xs text-muted-foreground">${(topDeal.value / 1000000).toFixed(1)}M</div>
           </>
         ) : (
-          <div className="text-xl font-semibold mb-1">-</div>
+          <div className="text-lg font-semibold mb-0.5 leading-none">-</div>
         )}
       </BaseWidget>
 
@@ -715,7 +668,7 @@ function WidgetsGrid({ period }: { period: string }) {
         actions="View analytics"
         onClick={() => navigate('/reports')}
       >
-        <h2 className="text-xl font-semibold mb-1">{winRate.toFixed(0)}%</h2>
+        <h2 className="text-lg font-semibold mb-0.5 leading-none">{winRate.toFixed(0)}%</h2>
       </BaseWidget>
     </div>
   );
@@ -745,16 +698,16 @@ function SuggestedActions({ onSuggestionClick }: { onSuggestionClick: (prompt: s
   });
 
   return (
-    <div className="flex items-center justify-center gap-3 flex-wrap">
+    <div className="flex items-center justify-center gap-1.5 flex-wrap mb-1">
       {actions.map((action, i) => {
         const IconComponent = action.icon;
         return (
           <button
             key={i}
             onClick={() => onSuggestionClick(action.prompt)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors rounded-md"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/6"
           >
-            <IconComponent size={16} className="text-primary" />
+            <IconComponent size={13} className="text-primary" />
             <span>{action.title}</span>
           </button>
         );
@@ -842,7 +795,11 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
     await processQuery(userMessage);
   };
 
-  const handleClearConversation = () => {
+  const handleClearConversation = async () => {
+    const clearedRemotely = await clearConversation();
+    if (!clearedRemotely) {
+      console.warn('Failed to clear remote conversation history for current user.');
+    }
     clearMessages();
     setStreamingMessage('');
   };
@@ -855,18 +812,18 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
   }, [messages, streamingMessage, isConversationOpen]);
 
   return (
-    <div className="mt-12 max-w-[770px] mx-auto">
+    <div className="mt-8 max-w-[720px] mx-auto">
       {/* Unified Chat Card */}
-      <div className="border rounded-2xl bg-gradient-to-br from-card to-card/50 shadow-lg overflow-hidden backdrop-blur-sm">
+      <div className="border rounded-2xl bg-gradient-to-br from-card to-card/50 shadow-md overflow-hidden backdrop-blur-sm">
         {/* Header - Collapsible when there are messages */}
         {messages.length > 0 && (
           <div className="border-b bg-muted/20">
             <div
               onClick={() => setIsConversationOpen(!isConversationOpen)}
-              className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <div className="size-2 rounded-full bg-green-500 animate-pulse"></div>
+                <div className="size-1.5 rounded-full bg-green-500 animate-pulse"></div>
                 <span className="text-sm font-medium">Conversation</span>
                 <span className="text-xs text-muted-foreground">
                   {messages.length} {messages.length === 1 ? 'message' : 'messages'}
@@ -878,7 +835,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                     e.stopPropagation();
                     navigate('/chat');
                   }}
-                  className="px-2.5 py-1 text-xs text-primary hover:bg-primary/10 rounded-md transition-colors"
+                  className="px-2 py-1 text-[11px] text-primary hover:bg-primary/10 rounded-full transition-colors"
                   title="Open full chat"
                 >
                   Expand
@@ -888,7 +845,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                     e.stopPropagation();
                     handleClearConversation();
                   }}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-colors"
                   title="Clear conversation"
                 >
                   <X size={14} />
@@ -907,7 +864,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
 
         {/* Messages Area - Slides down when open */}
         {messages.length > 0 && isConversationOpen && (
-          <div className="max-h-[400px] overflow-y-auto p-5 space-y-3 bg-muted/5 animate-in slide-in-from-top-2 duration-200">
+          <div className="max-h-[360px] overflow-y-auto p-4 space-y-2.5 bg-muted/5 animate-in slide-in-from-top-2 duration-200">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -918,30 +875,14 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
               >
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm",
+                    "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm shadow-sm",
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-tr-sm'
                       : 'bg-card border border-border rounded-tl-sm'
                   )}
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                      <ReactMarkdown
-                        components={{
-                          h1: ({ children }) => <h1 className="text-lg font-semibold mb-2">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
-                          ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 my-2">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 my-2">{children}</ol>,
-                          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                          code: ({ children }) => <code className="bg-muted px-1 py-0.5 rounded text-xs">{children}</code>,
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
+                    <ChatMarkdown content={message.content} compact />
                   ) : (
                     <p className="leading-relaxed">{message.content}</p>
                   )}
@@ -952,24 +893,8 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
             {/* Streaming message */}
             {streamingMessage && (
               <div className="flex gap-2.5 animate-in fade-in">
-                <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-2.5 bg-card border border-border text-sm shadow-sm">
-                  <div className="prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                    <ReactMarkdown
-                      components={{
-                        h1: ({ children }) => <h1 className="text-lg font-semibold mb-2">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-base font-semibold mb-2">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
-                        ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 my-2">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 my-2">{children}</ol>,
-                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                        code: ({ children }) => <code className="bg-muted px-1 py-0.5 rounded text-xs">{children}</code>,
-                      }}
-                    >
-                      {streamingMessage}
-                    </ReactMarkdown>
-                  </div>
+                <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-3.5 py-2 bg-card border border-border text-sm shadow-sm">
+                  <ChatMarkdown content={streamingMessage} compact />
                 </div>
               </div>
             )}
@@ -987,7 +912,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
         )}
 
         {/* Input Area */}
-        <div className={cn("p-4", messages.length > 0 && "pt-0")}>
+        <div className={cn("p-3", messages.length > 0 && "pt-0")}>
           <form
             onSubmit={handleSubmit}
             className={cn(
@@ -1006,9 +931,9 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                   placeholder="Ask your CRM assistant anything..."
                   disabled={isLoading}
                   className={cn(
-                    "w-full resize-none border-none p-3 pt-4 shadow-none outline-none ring-0 text-sm",
+                    "w-full resize-none border-none p-3 pt-3 shadow-none outline-none ring-0 text-sm",
                     "bg-transparent placeholder:text-muted-foreground/50",
-                    "min-h-[55px] max-h-[120px]",
+                    "min-h-[48px] max-h-[108px]",
                     "focus-visible:ring-0",
                     "disabled:opacity-50"
                   )}
@@ -1022,7 +947,7 @@ const DashboardChatInput = forwardRef<{ submitQuery: (query: string) => void }>(
                 />
               </div>
 
-              <div className="flex items-center justify-between px-3 pb-2">
+              <div className="flex items-center justify-between px-3 pb-2 pt-0.5">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1078,15 +1003,10 @@ DashboardChatInput.displayName = 'DashboardChatInput';
 export function Widgets() {
   const [activeTab, setActiveTab] = useState("overview");
   const [period, setPeriod] = useState("1y");
-  const [isCustomizing, setIsCustomizing] = useState(false);
   const chatInputRef = useRef<{ submitQuery: (query: string) => void }>(null);
   
   const handleSuggestionClick = (prompt: string) => {
     chatInputRef.current?.submitQuery(prompt);
-  };
-  
-  const handleCustomizeToggle = () => {
-    setIsCustomizing(!isCustomizing);
   };
   
   return (
@@ -1097,8 +1017,6 @@ export function Widgets() {
           setActiveTab={setActiveTab}
           period={period}
           setPeriod={setPeriod}
-          isCustomizing={isCustomizing}
-          onCustomizeToggle={handleCustomizeToggle}
         />
         {activeTab === "overview" && (
           <div className="mt-0">

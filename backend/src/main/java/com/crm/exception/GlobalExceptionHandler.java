@@ -36,6 +36,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
                 .error("Not Found")
+                .code("RESOURCE_NOT_FOUND")
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .build();
@@ -54,6 +55,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
                 .error("Conflict")
+                .code("DUPLICATE_RESOURCE")
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .build();
@@ -72,6 +74,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
+                .code("BAD_REQUEST")
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .build();
@@ -90,6 +93,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Unauthorized")
+                .code(ex.getCode() != null ? ex.getCode() : "UNAUTHORIZED")
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .build();
@@ -108,6 +112,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
                 .error("Forbidden")
+                .code("ACCESS_DENIED")
                 .message("You don't have permission to access this resource")
                 .path(request.getRequestURI())
                 .build();
@@ -135,6 +140,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Validation Failed")
+                .code("VALIDATION_FAILED")
                 .message("Invalid input data")
                 .path(request.getRequestURI())
                 .errors(fieldErrors)
@@ -154,6 +160,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Authentication Failed")
+                .code("AUTHENTICATION_FAILED")
                 .message("Invalid email or password")
                 .path(request.getRequestURI())
                 .build();
@@ -172,6 +179,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Token Expired")
+                .code("TOKEN_EXPIRED")
                 .message("JWT token has expired")
                 .path(request.getRequestURI())
                 .build();
@@ -190,6 +198,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Invalid Token")
+                .code("INVALID_TOKEN")
                 .message("Invalid JWT signature")
                 .path(request.getRequestURI())
                 .build();
@@ -208,6 +217,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
+                .code("INTERNAL_SERVER_ERROR")
                 .message("An unexpected error occurred")
                 .path(request.getRequestURI())
                 .build();

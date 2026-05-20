@@ -33,6 +33,10 @@ public class TenantProvisioningServiceImpl implements TenantProvisioningService 
 
     private static final List<String> TENANT_SCOPED_TABLES = List.of(
             "users",
+            "user_sessions",
+            "user_notification_preferences",
+            "user_push_subscriptions",
+            "password_reset_tokens",
             "companies",
             "contacts",
             "leads",

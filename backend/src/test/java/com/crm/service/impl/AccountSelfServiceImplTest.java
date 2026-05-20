@@ -11,7 +11,9 @@ import com.crm.repository.UserNotificationPreferenceRepository;
 import com.crm.repository.UserRepository;
 import com.crm.repository.UserSessionRepository;
 import com.crm.security.JwtTokenProvider;
+import com.crm.security.PasswordPolicyService;
 import com.crm.security.TwoFactorTotpService;
+import com.crm.service.WebPushService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,8 +50,11 @@ class AccountSelfServiceImplTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+    @Mock
+    private WebPushService webPushService;
 
     private final TwoFactorTotpService twoFactorTotpService = new TwoFactorTotpService("Cicosy CRM");
+    private final PasswordPolicyService passwordPolicyService = new PasswordPolicyService();
 
     private AccountSelfServiceImpl accountSelfService;
 
@@ -77,7 +82,9 @@ class AccountSelfServiceImplTest {
                 userSessionRepository,
                 passwordEncoder,
                 jwtTokenProvider,
-                twoFactorTotpService
+                twoFactorTotpService,
+                passwordPolicyService,
+                webPushService
         );
         when(userRepository.findByIdAndTenantIdAndArchivedFalse(currentUser.getId(), currentUser.getTenantId()))
                 .thenReturn(Optional.of(currentUser));

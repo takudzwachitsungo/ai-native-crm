@@ -37,5 +37,8 @@ public class WorkspaceOperationsSummaryDTO {
     private Long syncEnabledIntegrations;
     private Long integrationsWithRecentFailures;
     private Long integrationsNeedingReconnect;
+    private Long savedStandardReports;
+    private Long activeRealtimeSubscribers;
+    private Long activeRealtimeConnections;
     private List<AutomationRunResponseDTO> recentAutomationRuns;
 }

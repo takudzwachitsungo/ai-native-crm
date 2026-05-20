@@ -11,9 +11,7 @@ export default function InsightsPanel() {
   const loadInsights = async () => {
     setLoading(true);
     try {
-      console.log('Loading insights...');
       const data = await getInsights('dashboard');
-      console.log('Insights loaded:', data);
       setInsights(data.insights || []);
     } catch (error) {
       console.error('Failed to load insights:', error);

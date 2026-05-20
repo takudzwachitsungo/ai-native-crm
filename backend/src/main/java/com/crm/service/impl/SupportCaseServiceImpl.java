@@ -42,6 +42,7 @@ import com.crm.security.RecordAccessService;
 import com.crm.service.AutomationExecutionService;
 import com.crm.service.AutomationExecutionTargets;
 import com.crm.service.AutomationRunService;
+import com.crm.service.RealtimeStreamService;
 import com.crm.service.SupportCaseService;
 import com.crm.service.WorkflowRuleService;
 import com.crm.util.SpecificationBuilder;
@@ -98,6 +99,7 @@ public class SupportCaseServiceImpl implements SupportCaseService {
     private final AutomationRunService automationRunService;
     private final RecordAccessService recordAccessService;
     private final AutomationExecutionService automationExecutionService;
+    private final RealtimeStreamService realtimeStreamService;
 
     @Override
     @Transactional(readOnly = true)
@@ -171,6 +173,7 @@ public class SupportCaseServiceImpl implements SupportCaseService {
         }
 
         log.info("Created support case {} for tenant {}", supportCase.getId(), tenantId);
+        publishSupportCaseRealtimeEvent(tenantId, supportCase, "created");
         return supportCaseMapper.toDto(supportCase);
     }
 
@@ -195,6 +198,7 @@ public class SupportCaseServiceImpl implements SupportCaseService {
         supportCase = supportCaseRepository.save(supportCase);
 
         log.info("Updated support case {} for tenant {}", id, tenantId);
+        publishSupportCaseRealtimeEvent(tenantId, supportCase, "updated");
         return supportCaseMapper.toDto(supportCase);
     }
 
@@ -210,6 +214,37 @@ public class SupportCaseServiceImpl implements SupportCaseService {
         supportCase.setArchived(true);
         supportCaseRepository.save(supportCase);
         log.info("Archived support case {} for tenant {}", id, tenantId);
+        publishSupportCaseRealtimeEvent(tenantId, supportCase, "deleted");
+    }
+
+    private void publishSupportCaseRealtimeEvent(UUID tenantId, SupportCase supportCase, String action) {
+        realtimeStreamService.publishTenantEvent(
+                tenantId,
+                com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                        .eventType("case.changed")
+                        .entityType("case")
+                        .entityId(supportCase.getId() != null ? supportCase.getId().toString() : null)
+                        .scope("tenant")
+                        .payload(Map.of(
+                                "action", action,
+                                "status", supportCase.getStatus() != null ? supportCase.getStatus().name() : "",
+                                "priority", supportCase.getPriority() != null ? supportCase.getPriority().name() : "",
+                                "ownerId", supportCase.getOwnerId() != null ? supportCase.getOwnerId().toString() : "",
+                                "queue", supportCase.getSupportQueue() != null ? supportCase.getSupportQueue().name() : ""
+                        ))
+                        .occurredAt(LocalDateTime.now())
+                        .build()
+        );
+        realtimeStreamService.publishTenantEvent(
+                tenantId,
+                com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                        .eventType("dashboard.refresh")
+                        .entityType("dashboard")
+                        .scope("tenant")
+                        .payload(Map.of("source", "case"))
+                        .occurredAt(LocalDateTime.now())
+                        .build()
+        );
     }
 
     @Override
@@ -520,6 +555,38 @@ public class SupportCaseServiceImpl implements SupportCaseService {
                 String.format("Reviewed %d queued support case(s), assigned %d, and created %d assignment task(s).",
                         queueCases.size(), assignedCases, assignmentTasksCreated)
         );
+        if (assignedCases > 0 || assignmentTasksCreated > 0) {
+            realtimeStreamService.publishTenantEvent(
+                    tenantId,
+                    com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                            .eventType("case.changed")
+                            .entityType("case")
+                            .scope("tenant")
+                            .payload(Map.of("action", "assignment_automation", "assignedCases", assignedCases))
+                            .occurredAt(LocalDateTime.now())
+                            .build()
+            );
+            realtimeStreamService.publishTenantEvent(
+                    tenantId,
+                    com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                            .eventType("task.changed")
+                            .entityType("task")
+                            .scope("tenant")
+                            .payload(Map.of("action", "assignment_tasks", "count", assignmentTasksCreated))
+                            .occurredAt(LocalDateTime.now())
+                            .build()
+            );
+            realtimeStreamService.publishTenantEvent(
+                    tenantId,
+                    com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                            .eventType("dashboard.refresh")
+                            .entityType("dashboard")
+                            .scope("tenant")
+                            .payload(Map.of("source", "case"))
+                            .occurredAt(LocalDateTime.now())
+                            .build()
+            );
+        }
 
         return SupportCaseAssignmentAutomationResultDTO.builder()
                 .reviewedCases(queueCases.size())
@@ -691,6 +758,41 @@ public class SupportCaseServiceImpl implements SupportCaseService {
                         escalatedCases
                 )
         );
+        if (responseTasksCreated > 0 || resolutionTasksCreated > 0 || escalationTasksCreated > 0 || escalatedCases > 0) {
+            realtimeStreamService.publishTenantEvent(
+                    tenantId,
+                    com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                            .eventType("case.changed")
+                            .entityType("case")
+                            .scope("tenant")
+                            .payload(Map.of("action", "sla_automation", "escalatedCases", escalatedCases))
+                            .occurredAt(LocalDateTime.now())
+                            .build()
+            );
+            realtimeStreamService.publishTenantEvent(
+                    tenantId,
+                    com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                            .eventType("task.changed")
+                            .entityType("task")
+                            .scope("tenant")
+                            .payload(Map.of(
+                                    "action", "sla_tasks",
+                                    "count", responseTasksCreated + resolutionTasksCreated + escalationTasksCreated
+                            ))
+                            .occurredAt(LocalDateTime.now())
+                            .build()
+            );
+            realtimeStreamService.publishTenantEvent(
+                    tenantId,
+                    com.crm.dto.response.RealtimeEventResponseDTO.builder()
+                            .eventType("dashboard.refresh")
+                            .entityType("dashboard")
+                            .scope("tenant")
+                            .payload(Map.of("source", "case"))
+                            .occurredAt(LocalDateTime.now())
+                            .build()
+            );
+        }
 
         return SupportCaseSlaAutomationResultDTO.builder()
                 .reviewedCases(cases.size())

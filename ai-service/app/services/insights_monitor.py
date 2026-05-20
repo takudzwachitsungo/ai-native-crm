@@ -22,8 +22,7 @@ class InsightsMonitor:
         """Generate all insights for a user"""
         insights = []
         
-        # Set user token
-        self.crm_client.set_user_token(user_token)
+        token_handle = self.crm_client.set_user_token(user_token)
         
         try:
             # Check for stuck deals
@@ -48,6 +47,8 @@ class InsightsMonitor:
             
         except Exception as e:
             logger.error(f"Error generating insights: {str(e)}")
+        finally:
+            self.crm_client.reset_user_token(token_handle)
         
         return insights
     
@@ -55,9 +56,9 @@ class InsightsMonitor:
         """Find deals that haven't moved in 14+ days"""
         insights = []
         try:
-            deals = self.crm_client.search_deals(
-                filters={"stage": ["Qualification", "Proposal", "Negotiation"]}
-            )
+            deals = await self.crm_client.search_deals(size=100)
+            active_stages = {"QUALIFICATION", "PROPOSAL", "NEGOTIATION", "Qualification", "Proposal", "Negotiation"}
+            deals = [deal for deal in deals if deal.get("stage") in active_stages]
             
             now = datetime.now()
             stuck_threshold = timedelta(days=14)
@@ -92,9 +93,9 @@ class InsightsMonitor:
         """Find deals with close dates within 7 days"""
         insights = []
         try:
-            deals = self.crm_client.search_deals(
-                filters={"stage": ["Proposal", "Negotiation"]}
-            )
+            deals = await self.crm_client.search_deals(size=100)
+            closing_stages = {"PROPOSAL", "NEGOTIATION", "Proposal", "Negotiation"}
+            deals = [deal for deal in deals if deal.get("stage") in closing_stages]
             
             now = datetime.now()
             soon_threshold = timedelta(days=7)
@@ -130,7 +131,7 @@ class InsightsMonitor:
         """Find contacts with no activity in 30+ days"""
         insights = []
         try:
-            contacts = self.crm_client.search_contacts(filters={})
+            contacts = await self.crm_client.search_contacts(size=100)
             
             now = datetime.now()
             inactive_threshold = timedelta(days=30)
@@ -165,7 +166,9 @@ class InsightsMonitor:
         """Find overdue tasks"""
         insights = []
         try:
-            tasks = self.crm_client.search_tasks(filters={"status": ["Pending", "In Progress"]})
+            tasks = await self.crm_client.search_tasks(size=100)
+            open_statuses = {"PENDING", "IN_PROGRESS", "Pending", "In Progress"}
+            tasks = [task for task in tasks if task.get("status") in open_statuses]
             
             now = datetime.now()
             
@@ -200,9 +203,9 @@ class InsightsMonitor:
         """Find high-value deals in early stages"""
         insights = []
         try:
-            deals = self.crm_client.search_deals(
-                filters={"stage": ["Qualification", "Proposal"]}
-            )
+            deals = await self.crm_client.search_deals(size=100)
+            early_stages = {"QUALIFICATION", "PROPOSAL", "Qualification", "Proposal"}
+            deals = [deal for deal in deals if deal.get("stage") in early_stages]
             
             # Look for high-value deals (>$50k)
             for deal in deals:

@@ -8,7 +8,20 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "qa:phase1": "node scripts/phase1-qa.mjs",
+    "eval:ai": "node scripts/phase2-ai-evals.mjs",
+    "eval:ai-actions": "node scripts/phase3-ai-actions.mjs",
+    "eval:ai-domains": "node scripts/phase4-ai-domain-evals.mjs",
+    "eval:ai-domain-actions": "node scripts/phase5-ai-domain-actions.mjs",
+    "eval:ai-ops": "node scripts/phase6-ai-ops.mjs",
+    "eval:ai-provider-ops": "node scripts/phase7-ai-provider-ops.mjs",
+    "eval:ai-insight-inbox": "node scripts/phase8-ai-insight-inbox.mjs",
+    "eval:ai-rag-index": "node scripts/phase9-ai-rag-index.mjs",
+    "eval:ai-rag-scheduler": "node scripts/phase10-ai-rag-scheduler.mjs",
+    "eval:ai-enterprise": "node scripts/phase11-ai-enterprise-hardening.mjs",
+    "observability:up": "docker compose -f ops/observability/docker-compose.observability.yml up -d",
+    "observability:down": "docker compose -f ops/observability/docker-compose.observability.yml down"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
